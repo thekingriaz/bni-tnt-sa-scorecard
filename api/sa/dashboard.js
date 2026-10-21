@@ -14,8 +14,9 @@ export default handler(async ({ session }) => {
     .eq('sa_user_id', session.uid).eq('month.status', 'published');
   const yms = [...new Set((mine || []).map(e => e.month.ym))].sort();
   const history = [];
-  for (const ym of yms) {
-    const m = await loadMonth(ym, settings);
+  const loaded = await Promise.all(yms.map(ym => loadMonth(ym, settings)));
+  for (const m of loaded) {
+    const ym = m.month.ym;
     const me = m.entries.find(e => e.sa_user_id === session.uid);
     if (!me) continue;
     history.push({
@@ -48,8 +49,9 @@ async function sdcDashboard(session) {
     .eq('sdc_user_id', session.uid).eq('month.sdc_status', 'published');
   const yms = [...new Set((mine || []).map(e => e.month.ym))].sort();
   const history = [];
-  for (const ym of yms) {
-    const m = await loadSdcMonth(ym, settings);
+  const loaded = await Promise.all(yms.map(ym => loadSdcMonth(ym, settings)));
+  for (const m of loaded) {
+    const ym = m.month.ym;
     const me = m.entries.find(e => e.sdc_user_id === session.uid);
     if (!me) continue;
     history.push({

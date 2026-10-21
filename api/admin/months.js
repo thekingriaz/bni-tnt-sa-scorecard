@@ -1,4 +1,4 @@
-import { db, handler, fail, audit } from '../_lib/db.js';
+import { db, handler, fail, audit, loadSettings } from '../_lib/db.js';
 import { loadMonth, ensureMonth, persistComputed } from '../_lib/compute.js';
 import { loadSdcMonth, ensureSdcMonth, persistSdcComputed } from '../_lib/compute_sdc.js';
 
@@ -18,15 +18,15 @@ export default handler(async ({ req, session, body }) => {
       return { ...m, programme, uploads };
     }
     const { data: months } = await db.from('sa_months').select('*').order('ym', { ascending: false });
-    const out = [];
-    for (const mo of months || []) {
-      const [m, d] = await Promise.all([loadMonth(mo.ym), loadSdcMonth(mo.ym)]);
-      out.push({ ...mo,
+    const settings = await loadSettings();
+    const out = await Promise.all((months || []).map(async mo => {
+      const [m, d] = await Promise.all([loadMonth(mo.ym, settings), loadSdcMonth(mo.ym, settings)]);
+      return { ...mo,
         sa: { status: mo.status, region_avg: m.region_avg, entries: m.entries.length, filled: m.entries.filter(e => e.legacy || e.member_score !== null).length, payout_total: m.entries.reduce((a, e) => a + (e.computed.payout || 0), 0) },
         sdc: { status: mo.sdc_status, region_avg: d.region_avg, entries: d.entries.length, filled: d.entries.filter(e => e.legacy || e.member_score !== null || e.tl_status).length, payout_total: d.entries.reduce((a, e) => a + (e.computed.payout || 0), 0) },
         // backwards-compatible SA fields
-        region_avg: m.region_avg, entries: m.entries.length, filled: m.entries.filter(e => e.legacy || e.member_score !== null).length, payout_total: m.entries.reduce((a, e) => a + (e.computed.payout || 0), 0) });
-    }
+        region_avg: m.region_avg, entries: m.entries.length, filled: m.entries.filter(e => e.legacy || e.member_score !== null).length, payout_total: m.entries.reduce((a, e) => a + (e.computed.payout || 0), 0) };
+    }));
     return { months: out };
   }
   if (req.method !== 'POST') throw fail('Method not allowed', 405);
