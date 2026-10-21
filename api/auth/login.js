@@ -1,7 +1,7 @@
 import bcrypt from 'bcryptjs';
 import { db, handler, fail, signSession, setSessionCookie } from '../_lib/db.js';
 
-// POST { mode: 'sa', chapter_id, pin }  or  { mode: 'admin', email, password }
+// POST { mode: 'sa'|'sdc', chapter_id, pin }  or  { mode: 'admin', email, password }
 export default handler(async ({ req, res, body }) => {
   if (req.method !== 'POST') throw fail('POST only', 405);
   let user;
@@ -17,7 +17,8 @@ export default handler(async ({ req, res, body }) => {
     const chapter_id = Number(body.chapter_id);
     const pin = String(body.pin || '').trim();
     if (!chapter_id || !pin) throw fail('Pick your chapter and enter your PIN');
-    const { data, error } = await db.from('sa_users').select('*').eq('role', 'sa').eq('chapter_id', chapter_id).eq('active', true);
+    const role = body.mode === 'sdc' ? 'sdc' : 'sa';
+    const { data, error } = await db.from('sa_users').select('*').eq('role', role).eq('chapter_id', chapter_id).eq('active', true);
     if (error) throw fail(`Database error: ${error.message}`, 500);
     for (const u of data || []) {
       if (u.pin_hash && (await bcrypt.compare(pin, u.pin_hash))) { user = u; break; }

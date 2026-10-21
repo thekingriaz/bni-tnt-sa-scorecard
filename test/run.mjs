@@ -25,3 +25,46 @@ const m100 = scoreEntry({ member_score: 90, mentoring_pct: 90 }, { ...s, mentori
 // bad file
 assert.throws(() => parseChapterStatistics('<html>nope</html>'), /Not a BNI Connect export/);
 console.log('All checks passed ✓');
+
+// ---------- SDC ----------
+import { scoreSdcEntry, nextSdcBandHints, meetingsInMonth, meetingDates, weekCounts, weeklyPts } from '../api/_lib/scoring_sdc.js';
+import { parseTrafficLights } from '../api/_lib/parsers.js';
+// meetings-in-month, Jun 2026: Tue=5, Wed=4, Thu=4, Fri=4 ; Sep 2026: Tue=5, Wed=5, Thu=4, Fri=4 ; Jul 2026: Tue=4, Wed=5
+assert.deepEqual([2, 3, 4, 5].map(d => meetingsInMonth('2026-06', d)), [5, 4, 4, 4]);
+assert.deepEqual([2, 3, 4, 5].map(d => meetingsInMonth('2026-09', d)), [5, 5, 4, 4]);
+assert.deepEqual([2, 3].map(d => meetingsInMonth('2026-07', d)), [4, 5]);
+assert.deepEqual(meetingDates('2026-06', 2), ['2026-06-02', '2026-06-09', '2026-06-16', '2026-06-23', '2026-06-30']);
+assert.equal(meetingsInMonth('2026-06', null), 0);
+// week counts: no-meeting weeks drop out of the denominator
+const wc = weekCounts([{ no_meeting: false, telebridge_done: true, palms_done: true }, { no_meeting: true, telebridge_done: null, palms_done: null }, { no_meeting: false, telebridge_done: false, palms_done: null }, { no_meeting: false, telebridge_done: true, palms_done: true }]);
+assert.deepEqual([wc.calendar, wc.meetings_total, wc.telebridge_weeks, wc.palms_weeks, wc.palms_pending], [4, 3, 2, 2, 1]);
+assert.equal(weeklyPts(4, 5, 10), 8); assert.equal(weeklyPts(3, 4, 10), 7.5); assert.equal(weeklyPts(0, 0, 10), 0); assert.equal(weeklyPts(6, 5, 10), 10);
+// Sep 2026 Ainthinai as on the sheet: 18 net, GREEN, 75%, 95, TB 4/5, PALMS 4/5, Done, Attended -> 86
+const sdcS = { fee_amount: 49040, sdc_commission_pct: 7.5 };
+const ain = scoreSdcEntry({ net_add: 18, tl_status: 'GREEN', retention_pct: 75, member_score: 95, meetings_total: 5, telebridge_weeks: 4, palms_weeks: 4, visit_done: true, ltrt_attended: true, members_paid: 4 }, sdcS);
+assert.equal(ain.total_raw, 86); assert.equal(ain.total_scaled, 86); assert.equal(ain.band, 'Gold'); assert.equal(ain.max_total, 100);
+assert.equal(ain.per_member_commission, 3678); assert.equal(ain.payout, 4 * 3678);
+// Sep Saral: 3 net, AMBER, 0%, 65, TB 3/4, PALMS 4/4, Not done, Attended -> 42.5 Red
+const sar = scoreSdcEntry({ net_add: 3, tl_status: 'AMBER', retention_pct: 0, member_score: 65, meetings_total: 4, telebridge_weeks: 3, palms_weeks: 4, visit_done: false, ltrt_attended: true, members_paid: 2 }, sdcS);
+assert.equal(sar.total_raw, 42.5); assert.equal(sar.band, 'Red'); assert.equal(sar.payout, Math.round(2 * 3678 * 0.35));
+// net add +1 = 10, 0 = 0, null = 0
+assert.equal(scoreSdcEntry({ net_add: 1 }, sdcS).points.net_growth, 10); assert.equal(scoreSdcEntry({ net_add: 0 }, sdcS).points.net_growth, 0); assert.equal(scoreSdcEntry({}, sdcS).points.net_growth, 0);
+// no meetings held at all: weekly KPIs drop out, max 80, scaled
+const nm = scoreSdcEntry({ net_add: 2, tl_status: 'GREEN', retention_pct: 80, member_score: 80, meetings_total: 0, visit_done: true, ltrt_attended: true }, sdcS);
+assert.equal(nm.max_total, 80); assert.equal(nm.total_scaled, 100);
+// hints
+const sh = nextSdcBandHints({ net_add: 3, tl_status: 'AMBER', retention_pct: 0, member_score: 65, meetings_total: 4, telebridge_weeks: 3, palms_weeks: 4, visit_done: false, ltrt_attended: true }, sdcS);
+assert.equal(sh.next, 'Amber'); assert.equal(sh.hints[0].kpi, 'traffic_light'); assert.equal(sh.hints[0].gain_scaled, 15);
+// Traffic Lights parser (rows as produced by SheetJS sheet_to_json header:1)
+const tl = parseTrafficLights([
+  ['ALL INDIA CHAPTER TRAFFIC LIGHTS - Sept 2026'], [],
+  ['Region', 'Chapter', 'Members', 'Growth', 'Retention', 'Referrals / Member', 'Visitors', 'Conversion', 'Attendance', 'Score', 'Status', 'Rank'],
+  ['Tirunelveli', 'BNI Ainthinai', 102, 18, 84, 1.94, 6.42, 13.77, 96.13, 95, 'GREEN', 44],
+  ['Nagercoil & Tuticorin', 'BNI Comorin.', 40, -11, 0.5, 1, 3, 20, 90, 45, 'Red', 1200],
+], '2026-09');
+assert.equal(tl.rows.length, 2); assert.equal(tl.rows[0].key, 'ainthinai'); assert.equal(tl.rows[0].status, 'GREEN'); assert.equal(tl.rows[0].score, 95); assert.equal(tl.rows[0].growth, 18);
+assert.equal(tl.rows[1].key, 'comorin'); assert.equal(tl.rows[1].status, 'RED');
+// status derived from score when the sheet has no Status column
+const tl2 = parseTrafficLights([['Chapter Name', 'Score'], ['BNI Kanya', 72], ['BNI Kings', 55], ['BNI Saral', 30]], '2026-09');
+assert.deepEqual(tl2.rows.map(r => r.status), ['GREEN', 'AMBER', 'RED']);
+console.log('SDC checks passed ✓');

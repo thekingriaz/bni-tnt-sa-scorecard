@@ -2,7 +2,7 @@ import { db, handler } from '../_lib/db.js';
 
 // GET: session + chapter list (chapters are public so the login screen can show the dropdown)
 export default handler(async ({ session }) => {
-  const { data: chapters, error } = await db.from('sa_chapters').select('id,name,region,sort_order').eq('active', true).order('sort_order');
+  const { data: chapters, error } = await db.from('sa_chapters').select('id,name,region,sort_order,meeting_day').eq('active', true).order('sort_order');
   if (error) throw new Error(`Database error: ${error.message} (check SUPABASE_URL / SUPABASE_SERVICE_KEY in Vercel)`);
   return {
     user: session ? { id: session.uid, role: session.role, name: session.name, chapter_id: session.chapter_id } : null,

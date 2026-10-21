@@ -153,3 +153,57 @@ export function trainingPercents(attendances, chapterKey, memberCount, onlineTyp
   const pct = n => memberCount > 0 ? Math.round((n / memberCount) * 10000) / 100 : 0;
   return { online_count: on, offline_count: off, unique_members: members.size, online_pct: pct(on), offline_pct: pct(off) };
 }
+
+/**
+ * All India Chapter Traffic Lights (xlsx). The browser converts the sheet to rows (SheetJS, header:1) and posts them;
+ * this picks the header row by keywords so column order changes in the export do not break it.
+ * Returns { report, month, rows: [{chapter, key, score, status, growth, retention, members, rank}], header }.
+ * Status: the sheet's own status/colour column when present, else derived from the score (BNI: 70+ GREEN, 50 to 69.9 AMBER, below RED).
+ */
+export function parseTrafficLights(rows, monthHint) {
+  if (!Array.isArray(rows) || !rows.length) throw new Error('Empty file.');
+  const norm = v => String(v ?? '').trim().toLowerCase();
+  const hIdx = rows.findIndex(r => Array.isArray(r) && r.filter(c => norm(c)).length >= 2
+    && r.some(c => /chapter/.test(norm(c)) && norm(c).length <= 30)
+    && r.some(c => /^(total\s*)?score|^status|traffic\s*light\s*(status|colou?r)/.test(norm(c)) && norm(c).length <= 30));
+  if (hIdx < 0) throw new Error('Could not find a header row with "Chapter" and "Score" / "Status". Is this the All India Chapter Traffic Lights export?');
+  const h = rows[hIdx].map(norm);
+  const find = (...res) => { for (const re of res) { const i = h.findIndex(x => re.test(x)); if (i >= 0) return i; } return -1; };
+  const cChap = find(/^chapter(\s*name)?$/, /chapter/);
+  const cScore = find(/^(total\s*)?score$/, /^score/, /score(?!.*(percentile|rank))/);
+  const cStatus = find(/^status$/, /traffic\s*light\s*(status|colou?r)?$/, /colou?r/, /status/);
+  const cGrowth = find(/^(net\s*)?growth/, /net\s*(add|growth)/);
+  const cRet = find(/retention/);
+  const cMem = find(/^members?$/, /member\s*count|membership|size|^mem/);
+  const cRank = find(/^(all\s*india\s*)?rank$/, /rank/);
+  if (cChap < 0 || (cScore < 0 && cStatus < 0)) throw new Error('Header row found but no "Score" or "Status" column.');
+  const num = v => { if (v === null || v === undefined || v === '') return null; const n = Number(String(v).replace(/[%,]/g, '')); return Number.isNaN(n) ? null : n; };
+  const statusOf = (raw, score) => {
+    const s = norm(raw);
+    if (/green/.test(s)) return 'GREEN';
+    if (/amber|yellow|orange/.test(s)) return 'AMBER';
+    if (/red/.test(s)) return 'RED';
+    if (/grey|gray/.test(s)) return 'GREY';
+    if (score === null) return null;
+    return score >= 70 ? 'GREEN' : score >= 50 ? 'AMBER' : 'RED';
+  };
+  const out = [];
+  for (const r of rows.slice(hIdx + 1)) {
+    if (!Array.isArray(r)) continue;
+    const chapter = String(r[cChap] ?? '').trim();
+    if (!chapter || /^(total|average|region)/i.test(chapter)) continue;
+    const score = cScore >= 0 ? num(r[cScore]) : null;
+    const status = statusOf(cStatus >= 0 ? r[cStatus] : null, score);
+    if (score === null && !status) continue;
+    let retention = cRet >= 0 ? num(r[cRet]) : null;
+    if (retention !== null && retention <= 1) retention = Math.round(retention * 10000) / 100; // fractions in the export
+    out.push({
+      chapter, key: normChapter(chapter.replace(/\.+$/, '')), score, status,
+      growth: cGrowth >= 0 ? num(r[cGrowth]) : null, retention,
+      members: cMem >= 0 ? num(r[cMem]) : null, rank: cRank >= 0 ? num(r[cRank]) : null,
+    });
+  }
+  if (!out.length) throw new Error('No chapter rows found under the header.');
+  const title = String(rows.find(r => Array.isArray(r) && r.some(c => /traffic/i.test(String(c ?? ''))))?.find(c => /traffic/i.test(String(c ?? ''))) || '');
+  return { report: 'traffic_lights', month: monthHint || null, title, header: rows[hIdx], rows: out };
+}

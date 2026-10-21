@@ -1,7 +1,7 @@
 import { db, handler, fail, audit, loadSettings } from '../_lib/db.js';
 import { recomputeTraining } from '../_lib/training.js';
 
-const KEYS = ['fee_amount', 'commission_pct', 'mentoring_enabled', 'one_to_one_threshold', 'online_event_types', 'jotform_form_id', 'thresholds', 'bands', 'max_pts'];
+const KEYS = ['fee_amount', 'commission_pct', 'sdc_commission_pct', 'telebridge_form_id', 'mentoring_enabled', 'one_to_one_threshold', 'online_event_types', 'jotform_form_id', 'thresholds', 'bands', 'max_pts'];
 
 // GET -> settings + chapters + known event types (from uploads)
 // PUT { key: value, ... } -> update; recomputes training % for draft months when the online list changes
@@ -18,6 +18,7 @@ export default handler(async ({ req, session, body }) => {
   for (const k of KEYS) if (k in body) patch[k] = body[k];
   if ('fee_amount' in patch) patch.fee_amount = Number(patch.fee_amount);
   if ('commission_pct' in patch) patch.commission_pct = Number(patch.commission_pct);
+  if ('sdc_commission_pct' in patch) patch.sdc_commission_pct = Number(patch.sdc_commission_pct);
   if ('one_to_one_threshold' in patch) patch.one_to_one_threshold = Number(patch.one_to_one_threshold);
   if ('mentoring_enabled' in patch) patch.mentoring_enabled = Boolean(patch.mentoring_enabled);
   if ('online_event_types' in patch) patch.online_event_types = [...new Set((patch.online_event_types || []).map(s => String(s).trim()).filter(Boolean))];
@@ -32,7 +33,7 @@ export default handler(async ({ req, session, body }) => {
   }
   if (body.chapters) { // optional chapter edits: [{id?, name, key, region, sort_order, active}]
     for (const c of body.chapters) {
-      const row = { name: c.name, key: c.key, region: c.region, sort_order: Number(c.sort_order || 0), active: c.active !== false };
+      const row = { name: c.name, key: c.key, region: c.region, sort_order: Number(c.sort_order || 0), active: c.active !== false, meeting_day: c.meeting_day === '' || c.meeting_day === undefined || c.meeting_day === null ? null : Number(c.meeting_day) };
       const r = c.id ? await db.from('sa_chapters').update(row).eq('id', c.id) : await db.from('sa_chapters').insert(row);
       if (r.error) throw r.error;
     }

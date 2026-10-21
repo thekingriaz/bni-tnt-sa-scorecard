@@ -1,16 +1,18 @@
 import { db, handler, fail, audit, loadSettings } from '../_lib/db.js';
 import { ensureMonth } from '../_lib/compute.js';
-import { parseChapterStatistics, parseTrainingReport, trainingPercents, normChapter } from '../_lib/parsers.js';
+import { parseChapterStatistics, parseTrainingReport, parseTrafficLights, trainingPercents, normChapter } from '../_lib/parsers.js';
+import { ensureSdcMonth } from '../_lib/compute_sdc.js';
 import { recomputeTraining } from '../_lib/training.js';
 
 export const config = { api: { bodyParser: { sizeLimit: '8mb' } } };
 
-// POST { kind: 'chapter_statistics'|'training', filename, text }   (text = raw file contents)
-// The month is read from the file itself. Entries for that month are created/updated.
+// POST { kind: 'chapter_statistics'|'training', filename, text }   (text = raw file contents; month read from the file)
+// POST { kind: 'traffic_lights', filename, ym, rows }               (rows = sheet as array of arrays, parsed in the browser with SheetJS)
+// Entries for that month are created/updated. Chapter Statistics feeds both programmes (member count -> SDC net add).
 export default handler(async ({ req, session, body }) => {
   if (req.method !== 'POST') throw fail('POST only', 405);
   const { kind, filename, text } = body;
-  if (!text) throw fail('No file content received');
+  if (!text && kind !== 'traffic_lights') throw fail('No file content received');
   const settings = await loadSettings();
   const { data: chapters } = await db.from('sa_chapters').select('id,name,key').eq('active', true);
   const byKey = {}; for (const c of chapters) byKey[c.key] = c;
@@ -32,6 +34,12 @@ export default handler(async ({ req, session, body }) => {
     }
     // If a training upload already happened for these chapters, recompute its % with the new member counts
     await recomputeTraining(month.id, settings, updated.map(u => byKey[normChapter(u.chapter)].id));
+    // SDC programme shares the member count (drives Chapter Net Growth)
+    await ensureSdcMonth(parsed.month, session.uid);
+    for (const u of updated) {
+      const c = byKey[normChapter(u.chapter)];
+      await db.from('sdc_entries').update({ member_count: u.member_count, updated_at: new Date().toISOString(), updated_by: session.uid }).eq('month_id', month.id).eq('chapter_id', c.id);
+    }
     summary = { region: parsed.region, month: parsed.month, chapters: updated.length, unmatched };
   } else if (kind === 'training') {
     parsed = parseTrainingReport(text);
@@ -57,10 +65,33 @@ export default handler(async ({ req, session, body }) => {
     // Chapters in this region with zero attendances: set 0/0 so the month is complete
     summary = { region: parsed.region, month: parsed.month, chapters: updated.length, unmatched, event_types: parsed.event_types,
       attendances: parsed.attendances.map(a => ({ key: a.key, member_key: a.member_key, event_type: a.event_type })) };
-  } else throw fail('kind must be chapter_statistics or training');
+  } else if (kind === 'traffic_lights') {
+    if (!/^\d{4}-\d{2}$/.test(body.ym || '')) throw fail('Pick the month this Traffic Lights report is for');
+    parsed = parseTrafficLights(body.rows, body.ym);
+    month = await ensureSdcMonth(parsed.month, session.uid);
+    if (month.sdc_status === 'published') throw fail(`${parsed.month} is already published for SDCs. Unpublish it first if you need to re-upload.`);
+    const { data: entries } = await db.from('sdc_entries').select('id,chapter_id,tl_status,tl_auto').eq('month_id', month.id);
+    for (const r of parsed.rows) {
+      const c = byKey[r.key];
+      if (!c) continue; // the all-India file lists ~1500 chapters; only ours matter
+      const e = (entries || []).find(x => x.chapter_id === c.id); if (!e) continue;
+      const patch = { tl_score: r.score, tl_growth: r.growth, updated_at: new Date().toISOString(), updated_by: session.uid };
+      const manual = e.tl_auto === false && e.tl_status !== null;
+      if (!manual) { patch.tl_status = r.status; patch.tl_auto = true; }
+      const up = await db.from('sdc_entries').update(patch).eq('id', e.id);
+      if (up.error) throw up.error;
+      updated.push({ chapter: c.name, status: r.status, score: r.score, growth: r.growth, kept_manual: manual });
+    }
+    const found = new Set(updated.map(u => normChapter(u.chapter)));
+    unmatched = chapters.filter(c => !found.has(c.key)).map(c => c.name);
+    parsed.region = 'All India';
+    summary = { month: parsed.month, chapters: updated.length, missing: unmatched, rows_in_file: parsed.rows.length, header: parsed.header };
+  } else throw fail('kind must be chapter_statistics, training or traffic_lights');
 
   await db.from('sa_uploads').insert({ month_id: month.id, kind, region: parsed.region, filename, summary, uploaded_by: session.uid });
   await audit(session.uid, 'upload', { kind, filename, month: parsed.month, region: parsed.region });
-  return { ok: true, month: parsed.month, region: parsed.region, updated, unmatched, event_types: parsed.event_types || null,
-    warning: unmatched.length ? `Chapters not found in the app: ${unmatched.join(', ')}. Add them in Settings > Chapters.` : null };
+  const warning = !unmatched.length ? null
+    : kind === 'traffic_lights' ? `Our chapters not found in the file: ${unmatched.join(', ')}. Set their status by hand.`
+    : `Chapters not found in the app: ${unmatched.join(', ')}. Add them in Settings > Chapters.`;
+  return { ok: true, kind, month: parsed.month, region: parsed.region, updated, unmatched, event_types: parsed.event_types || null, warning };
 }, { role: 'admin' });
