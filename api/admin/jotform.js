@@ -26,7 +26,7 @@ export default handler(async ({ req, session, body }) => {
   const subs = json.content || [];
 
   const { data: chapters } = await db.from('sa_chapters').select('id,name,key');
-  const { data: entries } = await db.from('sa_entries').select('id,chapter_id,jotform_done,jotform_auto, sa:sa_users(id,name,jotform_alias)').eq('month_id', month.id);
+  const { data: entries } = await db.from('sa_entries').select('id,chapter_id,jotform_done,jotform_auto, sa:sa_users!sa_entries_sa_user_id_fkey(id,name,jotform_alias)').eq('month_id', month.id);
 
   const findAnswer = (s, ...labels) => {
     for (const a of Object.values(s.answers || {})) {
