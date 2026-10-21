@@ -107,6 +107,7 @@ export default handler(async ({ req, session, body }) => {
 
   // ---------- SDC: tele-bridge weeks ----------
   let weeksTouched = 0, tbUnmatched = [];
+  const today = new Date(Date.now() + 5.5 * 3600 * 1000).toISOString().slice(0, 10); // IST
   if (tbForm) {
     const byChapter = {}; for (const w of weeks || []) (byChapter[w.chapter_id] = byChapter[w.chapter_id] || []).push(w);
     const hit = new Map(); // week id -> submission id
@@ -123,7 +124,7 @@ export default handler(async ({ req, session, body }) => {
     const weekPatches = [];
     for (const w of weeks || []) {
       if (w.telebridge_auto === false && w.telebridge_done !== null) continue; // manual
-      const done = hit.has(w.id);
+      const done = hit.has(w.id) ? true : (w.week_date > today ? null : false); // future weeks stay blank
       if (w.telebridge_done === done && w.telebridge_auto) continue;
       weekPatches.push({ id: w.id, telebridge_done: done, telebridge_auto: true, telebridge_submission_id: hit.get(w.id) || null, updated_at: new Date().toISOString(), updated_by: session.uid });
     }
