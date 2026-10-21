@@ -20,11 +20,15 @@ export default handler(async ({ req, session, body }) => {
 
   const [y, m] = ym.split('-').map(Number);
   const nextYm = m === 12 ? `${y + 1}-01` : `${y}-${String(m + 1).padStart(2, '0')}`;
+  const timing = {}; const t0 = Date.now();
   const fetchSubs = async (formId, start, end) => {
+    const ts = Date.now();
     const filter = encodeURIComponent(JSON.stringify({ 'created_at:gt': start, 'created_at:lt': end }));
     const resp = await fetch(`https://api.jotform.com/form/${formId}/submissions?apiKey=${apiKey}&limit=1000&filter=${filter}`);
     if (!resp.ok) throw fail(`Jotform API error ${resp.status} (form ${formId})`);
-    return (await resp.json()).content || [];
+    const out = (await resp.json()).content || [];
+    timing['form_' + formId] = Date.now() - ts;
+    return out;
   };
   const findAnswer = (s, ...labels) => {
     for (const a of Object.values(s.answers || {})) {
@@ -51,12 +55,18 @@ export default handler(async ({ req, session, body }) => {
   };
   const dayDiff = (a, b) => Math.round((new Date(a + 'T00:00:00Z') - new Date(b + 'T00:00:00Z')) / 86400000);
 
-  const { data: chapters } = await db.from('sa_chapters').select('id,name,key');
-  const visitSubs = await fetchSubs(settings.jotform_form_id, `${ym}-01 00:00:00`, `${nextYm}-01 00:00:00`);
+  const tbForm = sdc ? settings.telebridge_form_id : null;
+  const tbAfter = new Date(Date.UTC(y, m, 15)).toISOString().slice(0, 10); // calls happen after the meeting, sometimes next month
+  const [{ data: chapters }, visitSubs, tbSubs] = await Promise.all([
+    db.from('sa_chapters').select('id,name,key'),
+    fetchSubs(settings.jotform_form_id, `${ym}-01 00:00:00`, `${nextYm}-01 00:00:00`),
+    tbForm ? fetchSubs(tbForm, `${ym}-01 00:00:00`, `${tbAfter} 00:00:00`) : Promise.resolve([]),
+  ]);
   const results = [];
 
   if (!sdc) {
     const { data: entries } = await db.from('sa_entries').select('id,chapter_id,jotform_done,jotform_auto, sa:sa_users!sa_entries_sa_user_id_fkey(id,name,jotform_alias)').eq('month_id', month.id);
+    const saPatches = [];
     for (const c of chapters) {
       const e = entries.find(x => x.chapter_id === c.id); if (!e) continue;
       const mine = visitSubs.filter(s => normChapter(findAnswer(s, 'select chapter', 'chapter')) === c.key);
@@ -64,16 +74,21 @@ export default handler(async ({ req, session, body }) => {
       const match = mine.find(s => { const who = (findAnswer(s, 'visited by') + ' ' + findAnswer(s, 'name')).toLowerCase(); return alias && who.includes(alias); });
       const row = { chapter: c.name, sa: e.sa?.name || null, submissions: mine.length, matched: !!match, submitters: mine.map(s => findAnswer(s, 'visited by') || findAnswer(s, 'name')) };
       if (e.jotform_auto === false && e.jotform_done !== null) { row.skipped = 'manual override'; results.push(row); continue; }
-      await db.from('sa_entries').update({ jotform_done: !!match, jotform_auto: true, jotform_submission_id: match ? match.id : null }).eq('id', e.id);
+      saPatches.push(db.from('sa_entries').update({ jotform_done: !!match, jotform_auto: true, jotform_submission_id: match ? match.id : null }).eq('id', e.id));
       results.push(row);
     }
+    await Promise.all(saPatches);
     await audit(session.uid, 'jotform.sync', { ym, submissions: visitSubs.length });
     return { ok: true, ym, total_submissions: visitSubs.length, results };
   }
 
   // ---------- SDC: chapter visits (24 h rule) ----------
   const limitDays = 1; // submitted on the visit date or the next calendar day counts as "within 24 hours"
-  const { data: entries } = await db.from('sdc_entries').select('id,chapter_id,visit_done,visit_auto, sdc:sa_users!sdc_entries_sdc_user_id_fkey(id,name,jotform_alias)').eq('month_id', month.id);
+  const [{ data: entries }, { data: weeks }] = await Promise.all([
+    db.from('sdc_entries').select('id,chapter_id,visit_done,visit_auto, sdc:sa_users!sdc_entries_sdc_user_id_fkey(id,name,jotform_alias)').eq('month_id', month.id),
+    db.from('sdc_weeks').select('*').eq('month_id', month.id),
+  ]);
+  const entryPatches = [];
   for (const c of chapters) {
     const e = entries.find(x => x.chapter_id === c.id); if (!e) continue;
     const mine = visitSubs.filter(s => normChapter(findAnswer(s, 'select chapter', 'chapter')) === c.key);
@@ -85,19 +100,14 @@ export default handler(async ({ req, session, body }) => {
     const row = { chapter: c.name, sdc: e.sdc?.name || null, submissions: mine.length, matched: !!(match && match.on_time), late: !!(match && !match.on_time),
       visit_date: match?.visit_date || null, submitted: match?.submitted || null, submitters: mine.map(s => findAnswer(s, 'visited by') || findAnswer(s, 'name')) };
     if (e.visit_auto === false && e.visit_done !== null) { row.skipped = 'manual override'; results.push(row); continue; }
-    await db.from('sdc_entries').update({ visit_done: row.matched, visit_auto: true, visit_submission_id: match ? match.s.id : null,
-      visit_hours: match && match.late_days !== null ? match.late_days * 24 : null }).eq('id', e.id);
+    entryPatches.push({ id: e.id, visit_done: row.matched, visit_auto: true, visit_submission_id: match ? match.s.id : null, visit_hours: match && match.late_days !== null ? match.late_days * 24 : null });
     results.push(row);
   }
+  await Promise.all(entryPatches.map(p => db.from('sdc_entries').update(p).eq('id', p.id)));
 
   // ---------- SDC: tele-bridge weeks ----------
-  const tbForm = settings.telebridge_form_id;
-  let tbSubs = [], weeksTouched = 0, tbUnmatched = [];
+  let weeksTouched = 0, tbUnmatched = [];
   if (tbForm) {
-    // the call happens after the meeting, sometimes the following month: pull a wider window and match on the meeting date answer
-    const after = new Date(Date.UTC(y, m, 15)).toISOString().slice(0, 10);
-    tbSubs = await fetchSubs(tbForm, `${ym}-01 00:00:00`, `${after} 00:00:00`);
-    const { data: weeks } = await db.from('sdc_weeks').select('*').eq('month_id', month.id);
     const byChapter = {}; for (const w of weeks || []) (byChapter[w.chapter_id] = byChapter[w.chapter_id] || []).push(w);
     const hit = new Map(); // week id -> submission id
     for (const s of tbSubs) {
@@ -110,15 +120,18 @@ export default handler(async ({ req, session, body }) => {
       for (const w of ws) { const d = Math.abs(dayDiff(md, w.week_date)); if (d < bestD) { best = w; bestD = d; } }
       if (best && bestD <= 3 && !hit.has(best.id)) hit.set(best.id, s.id);
     }
+    const weekPatches = [];
     for (const w of weeks || []) {
       if (w.telebridge_auto === false && w.telebridge_done !== null) continue; // manual
       const done = hit.has(w.id);
       if (w.telebridge_done === done && w.telebridge_auto) continue;
-      await db.from('sdc_weeks').update({ telebridge_done: done, telebridge_auto: true, telebridge_submission_id: hit.get(w.id) || null, updated_at: new Date().toISOString(), updated_by: session.uid }).eq('id', w.id);
-      weeksTouched++;
+      weekPatches.push({ id: w.id, telebridge_done: done, telebridge_auto: true, telebridge_submission_id: hit.get(w.id) || null, updated_at: new Date().toISOString(), updated_by: session.uid });
     }
+    await Promise.all(weekPatches.map(p => db.from('sdc_weeks').update(p).eq('id', p.id)));
+    weeksTouched = weekPatches.length;
   }
   await audit(session.uid, 'jotform.sync_sdc', { ym, visits: visitSubs.length, telebridge: tbSubs.length });
-  return { ok: true, ym, programme: 'sdc', total_submissions: visitSubs.length, results,
+  timing.total = Date.now() - t0;
+  return { ok: true, ym, programme: 'sdc', total_submissions: visitSubs.length, results, timing,
     telebridge: { form: tbForm || null, submissions: tbSubs.length, weeks_updated: weeksTouched, unmatched: tbUnmatched.slice(0, 20) } };
 }, { role: 'admin' });
