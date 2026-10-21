@@ -7,7 +7,8 @@ export default handler(async ({ req, res, body }) => {
   let user;
   if (body.mode === 'admin') {
     const email = String(body.email || '').trim().toLowerCase();
-    const { data } = await db.from('sa_users').select('*').eq('role', 'admin').eq('email', email).eq('active', true).maybeSingle();
+    const { data, error } = await db.from('sa_users').select('*').eq('role', 'admin').eq('email', email).eq('active', true).maybeSingle();
+    if (error) throw fail(`Database error: ${error.message}`, 500);
     if (!data || !data.password_hash || !(await bcrypt.compare(String(body.password || ''), data.password_hash))) {
       throw fail('Wrong email or password', 401);
     }
@@ -16,7 +17,8 @@ export default handler(async ({ req, res, body }) => {
     const chapter_id = Number(body.chapter_id);
     const pin = String(body.pin || '').trim();
     if (!chapter_id || !pin) throw fail('Pick your chapter and enter your PIN');
-    const { data } = await db.from('sa_users').select('*').eq('role', 'sa').eq('chapter_id', chapter_id).eq('active', true);
+    const { data, error } = await db.from('sa_users').select('*').eq('role', 'sa').eq('chapter_id', chapter_id).eq('active', true);
+    if (error) throw fail(`Database error: ${error.message}`, 500);
     for (const u of data || []) {
       if (u.pin_hash && (await bcrypt.compare(pin, u.pin_hash))) { user = u; break; }
     }
