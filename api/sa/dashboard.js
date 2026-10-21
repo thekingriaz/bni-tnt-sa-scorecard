@@ -1,7 +1,7 @@
 import { db, handler, loadSettings } from '../_lib/db.js';
-import { loadMonth } from '../_lib/compute.js';
+import { loadMonths } from '../_lib/compute.js';
 import { nextBandHints } from '../_lib/scoring.js';
-import { loadSdcMonth } from '../_lib/compute_sdc.js';
+import { loadSdcMonths } from '../_lib/compute_sdc.js';
 import { nextSdcBandHints, mergeSdcSettings, dowName } from '../_lib/scoring_sdc.js';
 
 // GET: everything the SA / SDC dashboard needs. Only the person's own entries (history by person), rank, region average.
@@ -14,7 +14,7 @@ export default handler(async ({ session }) => {
     .eq('sa_user_id', session.uid).eq('month.status', 'published');
   const yms = [...new Set((mine || []).map(e => e.month.ym))].sort();
   const history = [];
-  const loaded = await Promise.all(yms.map(ym => loadMonth(ym, settings)));
+  const loaded = await loadMonths(yms, settings);
   for (const m of loaded) {
     const ym = m.month.ym;
     const me = m.entries.find(e => e.sa_user_id === session.uid);
@@ -49,7 +49,7 @@ async function sdcDashboard(session) {
     .eq('sdc_user_id', session.uid).eq('month.sdc_status', 'published');
   const yms = [...new Set((mine || []).map(e => e.month.ym))].sort();
   const history = [];
-  const loaded = await Promise.all(yms.map(ym => loadSdcMonth(ym, settings)));
+  const loaded = await loadSdcMonths(yms, settings);
   for (const m of loaded) {
     const ym = m.month.ym;
     const me = m.entries.find(e => e.sdc_user_id === session.uid);

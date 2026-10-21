@@ -1,6 +1,6 @@
 import { db, handler, fail, audit, loadSettings } from '../_lib/db.js';
-import { loadMonth, ensureMonth, persistComputed } from '../_lib/compute.js';
-import { loadSdcMonth, ensureSdcMonth, persistSdcComputed } from '../_lib/compute_sdc.js';
+import { loadMonth, loadMonths, ensureMonth, persistComputed } from '../_lib/compute.js';
+import { loadSdcMonth, loadSdcMonths, ensureSdcMonth, persistSdcComputed } from '../_lib/compute_sdc.js';
 
 // programme = 'sa' (default) | 'sdc'   (query param on GET, body field on POST)
 // GET                        -> list of months with status + averages for both programmes
@@ -19,14 +19,17 @@ export default handler(async ({ req, session, body }) => {
     }
     const { data: months } = await db.from('sa_months').select('*').order('ym', { ascending: false });
     const settings = await loadSettings();
-    const out = await Promise.all((months || []).map(async mo => {
-      const [m, d] = await Promise.all([loadMonth(mo.ym, settings), loadSdcMonth(mo.ym, settings)]);
+    const yms = (months || []).map(m => m.ym);
+    const [saAll, sdcAll] = await Promise.all([loadMonths(yms, settings), loadSdcMonths(yms, settings)]);
+    const empty = { entries: [], region_avg: 0 };
+    const out = (months || []).map(mo => {
+      const m = saAll.find(x => x.month.ym === mo.ym) || empty, d = sdcAll.find(x => x.month.ym === mo.ym) || empty;
       return { ...mo,
         sa: { status: mo.status, region_avg: m.region_avg, entries: m.entries.length, filled: m.entries.filter(e => e.legacy || e.member_score !== null).length, payout_total: m.entries.reduce((a, e) => a + (e.computed.payout || 0), 0) },
         sdc: { status: mo.sdc_status, region_avg: d.region_avg, entries: d.entries.length, filled: d.entries.filter(e => e.legacy || e.member_score !== null || e.tl_status).length, payout_total: d.entries.reduce((a, e) => a + (e.computed.payout || 0), 0) },
         // backwards-compatible SA fields
         region_avg: m.region_avg, entries: m.entries.length, filled: m.entries.filter(e => e.legacy || e.member_score !== null).length, payout_total: m.entries.reduce((a, e) => a + (e.computed.payout || 0), 0) };
-    }));
+    });
     return { months: out };
   }
   if (req.method !== 'POST') throw fail('Method not allowed', 405);

@@ -3,18 +3,31 @@ import { scoreEntry } from './scoring.js';
 
 /** Loads a month's entries joined with chapter + SA, computes live scores for non-legacy rows, assigns ranks. */
 export async function loadMonth(ym, settings) {
+  const r = await loadMonths([ym], settings);
+  return r[0] || null;
+}
+
+/** Batch loader: several months in two queries. Returns array in ym order, missing months skipped. */
+export async function loadMonths(yms, settings) {
   const s = settings || (await loadSettings());
-  const { data: month } = await db.from('sa_months').select('*').eq('ym', ym).maybeSingle();
-  if (!month) return null;
+  const want = [...new Set(yms)].sort();
+  if (!want.length) return [];
+  const { data: months } = await db.from('sa_months').select('*').in('ym', want);
+  if (!months?.length) return [];
   const { data: entries, error } = await db.from('sa_entries')
     .select('*, chapter:sa_chapters(id,name,region,sort_order), sa:sa_users!sa_entries_sa_user_id_fkey(id,name,active)')
-    .eq('month_id', month.id);
+    .in('month_id', months.map(m => m.id));
   if (error) throw error;
-  const rows = (entries || []).map(e => ({ ...e, computed: e.legacy ? legacyComputed(e) : scoreEntry(e, s) }));
-  rows.sort((a, b) => b.computed.total_scaled - a.computed.total_scaled || (a.chapter?.sort_order || 0) - (b.chapter?.sort_order || 0));
-  rows.forEach((r, i) => { r.computed.rank = i + 1; });
-  const avg = rows.length ? Math.round(rows.reduce((a, r) => a + r.computed.total_scaled, 0) / rows.length * 100) / 100 : 0;
-  return { month, entries: rows.sort((a, b) => (a.chapter?.sort_order || 0) - (b.chapter?.sort_order || 0)), region_avg: avg, settings: s };
+  const out = [];
+  for (const ym of want) {
+    const month = months.find(m => m.ym === ym); if (!month) continue;
+    const rows = (entries || []).filter(e => e.month_id === month.id).map(e => ({ ...e, computed: e.legacy ? legacyComputed(e) : scoreEntry(e, s) }));
+    rows.sort((a, b) => b.computed.total_scaled - a.computed.total_scaled || (a.chapter?.sort_order || 0) - (b.chapter?.sort_order || 0));
+    rows.forEach((r, i) => { r.computed.rank = i + 1; });
+    const avg = rows.length ? Math.round(rows.reduce((a, r) => a + r.computed.total_scaled, 0) / rows.length * 100) / 100 : 0;
+    out.push({ month, entries: rows.sort((a, b) => (a.chapter?.sort_order || 0) - (b.chapter?.sort_order || 0)), region_avg: avg, settings: s });
+  }
+  return out;
 }
 
 function legacyComputed(e) {
