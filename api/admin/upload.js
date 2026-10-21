@@ -21,26 +21,28 @@ export default handler(async ({ req, session, body }) => {
   if (kind === 'chapter_statistics') {
     parsed = parseChapterStatistics(text);
     month = await ensureMonth(parsed.month, session.uid);
-    if (month.status === 'published') throw fail(`${parsed.month} is already published. Unpublish it first if you need to re-upload.`);
+    const sdcMonth = await ensureSdcMonth(parsed.month, session.uid);
+    const saLocked = month.status === 'published', sdcLocked = sdcMonth.sdc_status === 'published';
+    if (saLocked && sdcLocked) throw fail(`${parsed.month} is published for both SAs and SDCs. Unpublish it first if you need to re-upload.`);
     for (const r of parsed.rows) {
       const c = byKey[r.key] || byKey[normChapter(r.chapter)];
       if (!c) { unmatched.push(r.chapter); continue; }
-      const up = await db.from('sa_entries').update({
-        member_count: r.mem_avg, one_to_one_per_member: r.one_to_one_per_member,
-        updated_at: new Date().toISOString(), updated_by: session.uid,
-      }).eq('month_id', month.id).eq('chapter_id', c.id);
-      if (up.error) throw up.error;
+      if (!saLocked) {
+        const up = await db.from('sa_entries').update({
+          member_count: r.mem_avg, one_to_one_per_member: r.one_to_one_per_member,
+          updated_at: new Date().toISOString(), updated_by: session.uid,
+        }).eq('month_id', month.id).eq('chapter_id', c.id);
+        if (up.error) throw up.error;
+      }
+      // SDC programme shares the member count (drives Chapter Net Growth); written even on legacy SDC rows so the next month has a baseline
+      if (!sdcLocked || saLocked) {
+        await db.from('sdc_entries').update({ member_count: r.mem_avg, updated_at: new Date().toISOString(), updated_by: session.uid }).eq('month_id', month.id).eq('chapter_id', c.id);
+      }
       updated.push({ chapter: c.name, member_count: r.mem_avg, one_to_one_per_member: r.one_to_one_per_member });
     }
     // If a training upload already happened for these chapters, recompute its % with the new member counts
-    await recomputeTraining(month.id, settings, updated.map(u => byKey[normChapter(u.chapter)].id));
-    // SDC programme shares the member count (drives Chapter Net Growth)
-    await ensureSdcMonth(parsed.month, session.uid);
-    for (const u of updated) {
-      const c = byKey[normChapter(u.chapter)];
-      await db.from('sdc_entries').update({ member_count: u.member_count, updated_at: new Date().toISOString(), updated_by: session.uid }).eq('month_id', month.id).eq('chapter_id', c.id);
-    }
-    summary = { region: parsed.region, month: parsed.month, chapters: updated.length, unmatched };
+    if (!saLocked) await recomputeTraining(month.id, settings, updated.map(u => byKey[normChapter(u.chapter)].id));
+    summary = { region: parsed.region, month: parsed.month, chapters: updated.length, unmatched, sa_locked: saLocked };
   } else if (kind === 'training') {
     parsed = parseTrainingReport(text);
     month = await ensureMonth(parsed.month, session.uid);
@@ -93,5 +95,6 @@ export default handler(async ({ req, session, body }) => {
   const warning = !unmatched.length ? null
     : kind === 'traffic_lights' ? `Our chapters not found in the file: ${unmatched.join(', ')}. Set their status by hand.`
     : `Chapters not found in the app: ${unmatched.join(', ')}. Add them in Settings > Chapters.`;
-  return { ok: true, kind, month: parsed.month, region: parsed.region, updated, unmatched, event_types: parsed.event_types || null, warning };
+  const note = summary?.sa_locked ? `${parsed.month} is published for SAs, so only the SDC member counts were updated.` : null;
+  return { ok: true, kind, month: parsed.month, region: parsed.region, updated, unmatched, event_types: parsed.event_types || null, warning: [warning, note].filter(Boolean).join(' ') || null };
 }, { role: 'admin' });
