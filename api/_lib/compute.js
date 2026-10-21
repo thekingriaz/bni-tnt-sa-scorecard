@@ -7,7 +7,7 @@ export async function loadMonth(ym, settings) {
   const { data: month } = await db.from('sa_months').select('*').eq('ym', ym).maybeSingle();
   if (!month) return null;
   const { data: entries, error } = await db.from('sa_entries')
-    .select('*, chapter:sa_chapters(id,name,region,sort_order), sa:sa_users(id,name,active)')
+    .select('*, chapter:sa_chapters(id,name,region,sort_order), sa:sa_users!sa_entries_sa_user_id_fkey(id,name,active)')
     .eq('month_id', month.id);
   if (error) throw error;
   const rows = (entries || []).map(e => ({ ...e, computed: e.legacy ? legacyComputed(e) : scoreEntry(e, s) }));
