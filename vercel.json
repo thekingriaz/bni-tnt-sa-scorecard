@@ -1,0 +1,11 @@
+{
+  "outputDirectory": "public",
+  "functions": { "api/**/*.js": { "maxDuration": 30 } },
+  "rewrites": [
+    { "source": "/admin", "destination": "/index.html" },
+    { "source": "/login", "destination": "/index.html" }
+  ],
+  "headers": [
+    { "source": "/api/(.*)", "headers": [ { "key": "Cache-Control", "value": "no-store" } ] }
+  ]
+}

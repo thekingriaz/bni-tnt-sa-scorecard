@@ -1,0 +1,17 @@
+{
+  "name": "bni-tnt-sa-scorecard",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "BNI TNT Support Ambassador monthly scorecard: admin entry + SA dashboard (sa.bnitnt.in)",
+  "scripts": {
+    "test": "node test/run.mjs",
+    "dev": "vercel dev"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.45.0",
+    "bcryptjs": "^2.4.3",
+    "jose": "^5.9.0"
+  },
+  "engines": { "node": ">=20" }
+}

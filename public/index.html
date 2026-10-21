@@ -1,0 +1,397 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>BNI TNT SA Scorecard</title>
+<meta name="description" content="Support Ambassador monthly performance scorecard, BNI TNT Region">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><rect width='64' height='64' rx='14' fill='%23CF2030'/><text x='32' y='42' font-size='30' font-family='Arial' font-weight='700' fill='white' text-anchor='middle'>SA</text></svg>">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+:root{
+  --red:#CF2030; --red-dark:#A3121F; --navy:#1B2540; --ink:#1C1F26; --muted:#6B7280; --line:#E6E8EE;
+  --bg:#F4F5F8; --card:#FFFFFF; --gold:#C9971C; --green:#1F8A4C; --amber:#D98E04; --redband:#C62828; --grey:#6B7280;
+  --radius:14px; --shadow:0 1px 2px rgba(16,24,40,.06),0 4px 16px rgba(16,24,40,.06);
+}
+*{box-sizing:border-box} html,body{margin:0;padding:0}
+body{font-family:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;background:var(--bg);color:var(--ink);line-height:1.45;-webkit-font-smoothing:antialiased}
+a{color:var(--red)} button{font:inherit;cursor:pointer}
+input,select,textarea{font:inherit;color:var(--ink);background:#fff;border:1px solid #CBD0DB;border-radius:10px;padding:10px 12px;width:100%}
+input:focus,select:focus,textarea:focus{outline:none;border-color:var(--red);box-shadow:0 0 0 3px rgba(207,32,48,.15)}
+.btn{display:inline-flex;align-items:center;gap:8px;border:0;border-radius:10px;padding:10px 16px;font-weight:600;background:var(--red);color:#fff;transition:.15s}
+.btn:hover{background:var(--red-dark)} .btn:disabled{opacity:.5;cursor:not-allowed}
+.btn.ghost{background:#fff;color:var(--ink);border:1px solid var(--line)} .btn.ghost:hover{background:#F8F9FB}
+.btn.sm{padding:6px 10px;font-size:13px;border-radius:8px}
+.btn.navy{background:var(--navy)} .btn.navy:hover{background:#0F162B}
+.wrap{max-width:1100px;margin:0 auto;padding:16px}
+header.top{background:var(--navy);color:#fff}
+header.top .wrap{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 16px}
+.brand{display:flex;align-items:center;gap:10px;font-weight:700;letter-spacing:.2px}
+.brand .mark{background:var(--red);color:#fff;border-radius:8px;padding:3px 7px;font-size:13px}
+.brand small{display:block;font-weight:500;opacity:.75;font-size:12px}
+.card{background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);padding:18px}
+.grid{display:grid;gap:14px} .g2{grid-template-columns:1fr 1fr} .g3{grid-template-columns:repeat(3,1fr)}
+@media(max-width:760px){.g2,.g3{grid-template-columns:1fr}}
+h1{font-size:22px;margin:0 0 4px} h2{font-size:17px;margin:0 0 10px} h3{font-size:14px;margin:0 0 8px;color:var(--muted);text-transform:uppercase;letter-spacing:.6px}
+.muted{color:var(--muted)} .small{font-size:13px} .right{text-align:right} .center{text-align:center}
+.row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.spacer{flex:1}
+.pill{display:inline-block;border-radius:999px;padding:3px 10px;font-size:12px;font-weight:700;color:#fff;white-space:nowrap}
+.pill.Gold{background:var(--gold)} .pill.Green{background:var(--green)} .pill.Amber{background:var(--amber)} .pill.Red{background:var(--redband)} .pill.Review{background:var(--grey)}
+.pill.draft{background:#9AA3B5} .pill.published{background:var(--green)}
+.score-hero{display:grid;grid-template-columns:auto 1fr;gap:18px;align-items:center}
+.ring{width:132px;height:132px;border-radius:50%;display:grid;place-items:center;background:conic-gradient(var(--c,var(--red)) calc(var(--p,0)*1%),#EEF0F4 0);position:relative}
+.ring::after{content:"";position:absolute;inset:11px;border-radius:50%;background:#fff}
+.ring span{position:relative;font-size:34px;font-weight:800;line-height:1}
+.ring small{position:relative;display:block;font-size:11px;color:var(--muted);text-align:center;margin-top:2px}
+.stat{display:flex;flex-direction:column;gap:2px} .stat b{font-size:22px} .stat span{font-size:12px;color:var(--muted)}
+table{width:100%;border-collapse:collapse;font-size:14px}
+th,td{padding:9px 8px;border-bottom:1px solid var(--line);text-align:left;vertical-align:middle}
+th{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;font-weight:600;background:#FAFBFC}
+tr:last-child td{border-bottom:0}
+.tbl-wrap{overflow:auto;-webkit-overflow-scrolling:touch}
+.kpi-max{color:var(--muted);font-size:12px}
+.pts{font-weight:700} .pts.zero{color:var(--redband)} .pts.full{color:var(--green)}
+.hint{display:flex;gap:10px;align-items:flex-start;padding:10px 12px;border:1px solid var(--line);border-radius:10px;margin-bottom:8px;background:#FFFBF5}
+.hint b{color:var(--red);white-space:nowrap}
+.tabs{display:flex;gap:4px;background:#E9EBF1;border-radius:12px;padding:4px;margin-bottom:14px}
+.tabs button{flex:1;border:0;background:transparent;border-radius:9px;padding:8px;font-weight:600;color:var(--muted)}
+.tabs button.on{background:#fff;color:var(--ink);box-shadow:var(--shadow)}
+.nav{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px}
+.nav button{border:1px solid var(--line);background:#fff;border-radius:999px;padding:7px 14px;font-weight:600;color:var(--muted)}
+.nav button.on{background:var(--navy);color:#fff;border-color:var(--navy)}
+.toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:var(--ink);color:#fff;padding:10px 16px;border-radius:10px;box-shadow:var(--shadow);z-index:50;max-width:90vw;font-size:14px}
+.toast.err{background:var(--redband)}
+.drop{border:2px dashed #CBD0DB;border-radius:12px;padding:18px;text-align:center;color:var(--muted);transition:.15s;cursor:pointer}
+.drop.over{border-color:var(--red);background:#FFF5F5;color:var(--red)}
+.cell-in{width:60px;padding:5px 5px;border-radius:8px;text-align:right}
+.month-tbl th,.month-tbl td{padding:7px 5px;font-size:13px} .month-tbl th{font-size:11px}
+.cell-sel{width:auto;padding:5px 4px;border-radius:8px;font-size:13px}
+td.num{text-align:right;font-variant-numeric:tabular-nums}
+.auto{font-size:10px;color:var(--muted);display:block}
+.legend{display:flex;gap:10px;flex-wrap:wrap;font-size:12px;color:var(--muted)}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:4px;vertical-align:middle}
+.login-box{max-width:420px;margin:48px auto}
+.field{margin-bottom:12px} .field label{display:block;font-size:13px;font-weight:600;margin-bottom:5px;color:#374151}
+.chips{display:flex;gap:6px;flex-wrap:wrap} .chip{border:1px solid var(--line);border-radius:999px;padding:5px 11px;font-size:13px;background:#fff;cursor:pointer}
+.chip.on{background:var(--navy);color:#fff;border-color:var(--navy)}
+.divider{height:1px;background:var(--line);margin:14px 0}
+.banner{background:#FFF4E5;border:1px solid #FFD8A8;border-radius:10px;padding:10px 12px;font-size:13px;margin-bottom:12px}
+.ok{color:var(--green)} .bad{color:var(--redband)}
+footer{padding:24px 16px;text-align:center;color:var(--muted);font-size:12px}
+.hidden{display:none!important}
+</style>
+</head>
+<body>
+<header class="top"><div class="wrap">
+  <div class="brand"><span class="mark">SA</span><div>BNI TNT Scorecard<small id="hdr-sub">Support Ambassador Performance</small></div></div>
+  <div class="row" id="hdr-right"></div>
+</div></header>
+<main class="wrap" id="app"><div class="card center muted">Loading…</div></main>
+<footer>BNI TNT Region · Support Ambassador Scorecard · <span id="yr"></span></footer>
+
+<script>
+/* =============================== helpers =============================== */
+const $ = s => document.querySelector(s);
+const app = $('#app');
+document.getElementById('yr').textContent = new Date().getFullYear();
+const inr = n => n === null || n === undefined ? '–' : '₹' + Math.round(Number(n)).toLocaleString('en-IN');
+const fmt = (n, d = 1) => n === null || n === undefined || n === '' ? '–' : Number(n).toFixed(d).replace(/\.0+$/, '');
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const monthName = ym => { const [y, m] = ym.split('-'); return new Date(y, m - 1, 1).toLocaleString('en-IN', { month: 'short', year: 'numeric' }); };
+const BAND_COLOR = { Gold: '#C9971C', Green: '#1F8A4C', Amber: '#D98E04', Red: '#C62828', Review: '#6B7280' };
+const KPI_LABEL = { member: 'Your Member Score', training: 'Training Attendance', mentoring: 'Mentoring Completion', retention: '1st-Year Retention', one_to_one: '1-2-1 Activity', ltrt: 'LTRT / DCRT', visit: 'Chapter Visit (Jotform)' };
+let toastT;
+function toast(msg, err) { clearTimeout(toastT); let t = $('.toast'); if (!t) { t = document.createElement('div'); document.body.appendChild(t); } t.className = 'toast' + (err ? ' err' : ''); t.textContent = msg; toastT = setTimeout(() => t.remove(), err ? 6000 : 2600); }
+async function api(path, opts = {}) {
+  const r = await fetch('/api/' + path, { headers: { 'Content-Type': 'application/json' }, credentials: 'same-origin', ...opts, body: opts.body ? JSON.stringify(opts.body) : undefined });
+  const j = await r.json().catch(() => ({ error: 'Bad response' }));
+  if (!r.ok) { if (r.status === 401 && state.user) { state.user = null; render(); } throw new Error(j.error || 'Request failed'); }
+  return j;
+}
+const state = { user: null, chapters: [], view: 'months', sa: null, month: null, months: null, settings: null, users: null, selYm: null };
+
+/* =============================== boot =============================== */
+async function boot() {
+  try { const me = await api('auth/me'); state.user = me.user; state.chapters = me.chapters || []; }
+  catch (e) { app.innerHTML = `<div class="card bad">Cannot reach the server: ${esc(e.message)}</div>`; return; }
+  render();
+}
+function header() {
+  const r = $('#hdr-right');
+  if (!state.user) { r.innerHTML = ''; return; }
+  r.innerHTML = `<span class="small" style="opacity:.85">${esc(state.user.name)}</span><button class="btn ghost sm" id="logout">Sign out</button>`;
+  $('#logout').onclick = async () => { await api('auth/logout', { method: 'POST' }); state.user = null; state.sa = null; render(); };
+}
+function render() { header(); if (!state.user) return renderLogin(); if (state.user.role === 'admin') return renderAdmin(); return renderSA(); }
+
+/* =============================== login =============================== */
+function renderLogin() {
+  $('#hdr-sub').textContent = 'Support Ambassador Performance';
+  const opts = state.chapters.map(c => `<option value="${c.id}">${esc(c.name)}</option>`).join('');
+  app.innerHTML = `<div class="login-box card">
+    <h1>Sign in</h1><p class="muted small" style="margin-top:0">Track your monthly score, rank and payout.</p>
+    <div class="tabs"><button class="on" data-t="sa">Support Ambassador</button><button data-t="admin">Admin</button></div>
+    <form id="f-sa">
+      <div class="field"><label>Your chapter</label><select name="chapter_id" required><option value="">Select chapter…</option>${opts}</select></div>
+      <div class="field"><label>PIN</label><input name="pin" type="password" inputmode="numeric" pattern="[0-9]*" autocomplete="off" placeholder="4 to 8 digits" required></div>
+      <button class="btn" style="width:100%;justify-content:center">View my scorecard</button>
+    </form>
+    <form id="f-admin" class="hidden">
+      <div class="field"><label>Email</label><input name="email" type="email" autocomplete="username" required></div>
+      <div class="field"><label>Password</label><input name="password" type="password" autocomplete="current-password" required></div>
+      <button class="btn navy" style="width:100%;justify-content:center">Admin sign in</button>
+    </form>
+    <p class="muted small center" style="margin-bottom:0">Forgot your PIN? Ask the BNI TNT office to reset it.</p>
+  </div>`;
+  app.querySelectorAll('.tabs button').forEach(b => b.onclick = () => { app.querySelectorAll('.tabs button').forEach(x => x.classList.remove('on')); b.classList.add('on'); $('#f-sa').classList.toggle('hidden', b.dataset.t !== 'sa'); $('#f-admin').classList.toggle('hidden', b.dataset.t !== 'admin'); });
+  $('#f-sa').onsubmit = async e => { e.preventDefault(); const fd = new FormData(e.target); try { const r = await api('auth/login', { method: 'POST', body: { mode: 'sa', chapter_id: fd.get('chapter_id'), pin: fd.get('pin') } }); state.user = r.user; render(); } catch (err) { toast(err.message, true); } };
+  $('#f-admin').onsubmit = async e => { e.preventDefault(); const fd = new FormData(e.target); try { const r = await api('auth/login', { method: 'POST', body: { mode: 'admin', email: fd.get('email'), password: fd.get('password') } }); state.user = r.user; render(); } catch (err) { toast(err.message, true); } };
+}
+
+/* =============================== SA dashboard =============================== */
+async function renderSA() {
+  $('#hdr-sub').textContent = 'My Scorecard';
+  if (!state.sa) { app.innerHTML = '<div class="card center muted">Loading your scorecard…</div>'; try { state.sa = await api('sa/dashboard'); } catch (e) { app.innerHTML = `<div class="card bad">${esc(e.message)}</div>`; return; } }
+  const d = state.sa; const hist = d.history;
+  if (!hist.length) { app.innerHTML = `<div class="card"><h1>Hi ${esc(d.user.name)} 👋</h1><p>No published months yet for you. Your first scorecard will appear here once the office publishes the month.</p></div>`; return; }
+  if (!state.selYm || !hist.find(h => h.ym === state.selYm)) state.selYm = hist[hist.length - 1].ym;
+  const h = hist.find(x => x.ym === state.selYm); const c = h.computed; const s = d.settings;
+  const color = BAND_COLOR[c.band] || '#CF2030';
+  const bandMeta = s.bands.find(b => b.label === c.band) || {};
+  const pct = Math.max(0, Math.min(100, c.total_scaled));
+  const kpis = ['member', 'training', ...(s.mentoring_enabled || h.legacy ? ['mentoring'] : []), 'retention', 'one_to_one', 'ltrt', 'visit'];
+  const valueOf = k => { const i = h.inputs; switch (k) {
+    case 'member': return fmt(i.member_score, 0);
+    case 'training': return `${fmt(c.combined_training_pct)}% <span class="auto">online ${fmt(i.online_pct)}% + offline ${fmt(i.offline_pct)}%${i.training_unique != null ? ` · ${i.training_unique} of ${fmt(i.member_count, 0)} members` : ''}</span>`;
+    case 'mentoring': return fmt(i.mentoring_pct) + '%';
+    case 'retention': return fmt(i.retention_pct) + '%';
+    case 'one_to_one': return `${fmt(i.one_to_one_per_member, 2)} <span class="auto">${h.legacy ? 'as entered on the old sheet' : 'per member per month · target ' + s.one_to_one_threshold}</span>`;
+    case 'ltrt': return i.ltrt_attended === null ? '–' : i.ltrt_attended ? 'Attended' : 'Not attended';
+    case 'visit': return i.jotform_done === null ? '–' : i.jotform_done ? 'Submitted' : 'Not submitted'; } };
+  const maxOf = k => h.legacy ? { member: 10, training: 20, mentoring: 20, retention: 25, one_to_one: 10, ltrt: 5, visit: 10 }[k] : s.max_pts[k];
+  const hintsHtml = h.hints && h.hints.next ? `<div class="card"><h3>How to reach ${h.hints.next_emoji} ${h.hints.next}</h3>
+      <p class="small muted" style="margin-top:0">You need <b>${fmt(h.hints.gap)}</b> more points (scaled). Biggest wins first:</p>
+      ${h.hints.hints.map(x => `<div class="hint"><b>+${fmt(x.gain_scaled)}</b><span>${esc(x.action)}</span></div>`).join('') || '<p class="muted small">All KPIs maxed. Keep it up.</p>'}</div>`
+    : h.hints ? `<div class="card"><h3>Status</h3><p>🏆 You are in the top band. Hold it.</p></div>` : '';
+  app.innerHTML = `
+  <div class="row" style="margin-bottom:12px"><div><h1>Hi ${esc(d.user.name)} 👋</h1><div class="muted small">${esc(d.user.chapter?.name || h.chapter)} · ${esc(d.user.chapter?.region || '')}</div></div>
+    <div class="spacer"></div><select id="sel-ym" style="width:auto">${hist.map(x => `<option value="${x.ym}" ${x.ym === state.selYm ? 'selected' : ''}>${monthName(x.ym)}</option>`).join('')}</select></div>
+  ${h.legacy ? '<div class="banner">This month was scored on the old sheet (out of 100 including Mentoring). Payout data is not available for legacy months.</div>' : ''}
+  <div class="grid g2">
+    <div class="card"><div class="score-hero">
+      <div class="ring" style="--p:${pct};--c:${color}"><span>${fmt(c.total_scaled, 0)}</span><small>of 100</small></div>
+      <div>
+        <div style="margin-bottom:8px"><span class="pill ${c.band}">${bandMeta.emoji || ''} ${c.band}</span> <span class="small muted">${esc(bandMeta.name || '')}</span></div>
+        <div class="row" style="gap:20px">
+          <div class="stat"><b>#${c.rank}</b><span>of ${h.total_sas} SAs</span></div>
+          <div class="stat"><b>${fmt(h.region_avg, 1)}</b><span>region average</span></div>
+          <div class="stat"><b>${c.total_raw}/${c.max_total}</b><span>raw points</span></div>
+        </div>
+      </div></div></div>
+    <div class="card"><h3>Payout for ${monthName(h.ym)}</h3>
+      ${h.legacy ? '<p class="muted">Not available for legacy months.</p>' : `
+      <div style="font-size:30px;font-weight:800;color:${color}">${inr(c.payout)}</div>
+      <div class="small muted">${c.members_paid} member${c.members_paid === 1 ? '' : 's'} (${h.inputs.new_members || 0} new + ${h.inputs.renewals || 0} renewals) × ${inr(c.per_member_commission)} = ${inr(c.base_payout)} × <b>${c.multiplier.toFixed(2)}</b> (${c.band})</div>
+      <div class="divider"></div>
+      <div class="small muted">Gold pays 1.00×. Every band below costs you money: Green 0.80×, Amber 0.60×, Red 0.35×, Review 0.15×.</div>`}
+    </div>
+  </div>
+  <div class="grid g2" style="margin-top:14px">
+    <div class="card"><h3>KPI breakdown</h3><div class="tbl-wrap"><table>
+      <thead><tr><th>KPI</th><th>Your value</th><th class="right">Points</th></tr></thead>
+      <tbody>${kpis.map(k => { const p = c.points[k] ?? 0, m = maxOf(k); return `<tr><td>${KPI_LABEL[k]}</td><td>${valueOf(k)}</td><td class="right"><span class="pts ${p === 0 ? 'zero' : p === m ? 'full' : ''}">${p}</span> <span class="kpi-max">/ ${m}</span></td></tr>`; }).join('')}</tbody>
+    </table></div></div>
+    ${hintsHtml}
+  </div>
+  <div class="card" style="margin-top:14px"><h3>Your trend</h3><canvas id="trend" height="110"></canvas>
+    <div class="legend" style="margin-top:8px"><span><i style="background:#CF2030"></i>Your score</span><span><i style="background:#9AA3B5"></i>Region average</span><span><i style="background:#C9971C"></i>Gold line (85)</span></div></div>
+  <div class="card" style="margin-top:14px"><h3>Scoring guide</h3><div class="small muted">
+    Member score 80+ = 10 pts, 70+ = 5 · Training 20%+ = 20, 15%+ = 15, 10%+ = 10 · Retention 75%+ = 25, 70%+ = 15 · 1-2-1 ≥ ${s.one_to_one_threshold} per member per month = 10 · LTRT attended = 5 · Jotform visit report = 10.
+    Total out of ${s.mentoring_enabled ? 100 : 80}, scaled to 100. Bands: Gold 85+, Green 70+, Amber 55+, Red 40+, Review below 40.
+  </div></div>`;
+  $('#sel-ym').onchange = e => { state.selYm = e.target.value; renderSA(); };
+  const ctx = $('#trend');
+  if (!window.Chart) { ctx.replaceWith(Object.assign(document.createElement('p'), { className: 'muted small', textContent: 'Trend chart could not load (offline). Scores: ' + hist.map(x => monthName(x.ym) + ' ' + fmt(x.computed.total_scaled, 0)).join(' · ') })); return; }
+  new Chart(ctx, { type: 'line', data: { labels: hist.map(x => monthName(x.ym)), datasets: [
+    { label: 'You', data: hist.map(x => x.computed.total_scaled), borderColor: '#CF2030', backgroundColor: '#CF2030', tension: .3, pointRadius: 4 },
+    { label: 'Region avg', data: hist.map(x => x.region_avg), borderColor: '#9AA3B5', backgroundColor: '#9AA3B5', borderDash: [5, 4], tension: .3, pointRadius: 3 },
+    { label: 'Gold', data: hist.map(() => 85), borderColor: '#C9971C', borderDash: [2, 4], pointRadius: 0, borderWidth: 1 } ] },
+    options: { responsive: true, plugins: { legend: { display: false }, tooltip: { mode: 'index', intersect: false } }, scales: { y: { min: 0, max: 100, ticks: { stepSize: 20 } }, x: { grid: { display: false } } } } });
+}
+
+/* =============================== Admin =============================== */
+function adminNav() {
+  return `<div class="nav">${[['months', 'Months'], ['settings', 'Settings'], ['users', 'Users']].map(([k, l]) => `<button class="${state.view === k ? 'on' : ''}" data-v="${k}">${l}</button>`).join('')}</div>`;
+}
+function bindNav() { app.querySelectorAll('.nav button').forEach(b => b.onclick = () => { state.view = b.dataset.v; state.month = null; renderAdmin(); }); }
+async function renderAdmin() {
+  $('#hdr-sub').textContent = 'Admin console';
+  if (state.view === 'settings') return renderSettings();
+  if (state.view === 'users') return renderUsers();
+  if (state.month) return renderMonth(state.month);
+  app.innerHTML = adminNav() + '<div class="card center muted">Loading…</div>'; bindNav();
+  const { months } = await api('admin/months');
+  const now = new Date(); const thisYm = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+  const prev = new Date(now.getFullYear(), now.getMonth() - 1, 1); const prevYm = `${prev.getFullYear()}-${String(prev.getMonth() + 1).padStart(2, '0')}`;
+  app.innerHTML = adminNav() + `
+  <div class="card"><div class="row"><h2 style="margin:0">Months</h2><div class="spacer"></div>
+    <input id="new-ym" type="month" value="${months.find(m => m.ym === prevYm) ? thisYm : prevYm}" style="width:auto"><button class="btn" id="btn-new">Open month</button></div>
+    <div class="tbl-wrap" style="margin-top:12px"><table><thead><tr><th>Month</th><th>Status</th><th class="right">Filled</th><th class="right">Region avg</th><th class="right">Payout total</th><th></th></tr></thead>
+    <tbody>${months.map(m => `<tr><td><b>${monthName(m.ym)}</b></td><td><span class="pill ${m.status}">${m.status}</span></td><td class="right">${m.filled}/${m.entries}</td><td class="right">${fmt(m.region_avg)}</td><td class="right">${inr(m.payout_total)}</td><td class="right"><button class="btn ghost sm" data-ym="${m.ym}">Open</button></td></tr>`).join('') || '<tr><td colspan="6" class="muted">No months yet. Open one above or upload a BNI Connect file.</td></tr>'}</tbody></table></div>
+  </div>
+  <div class="card" style="margin-top:14px"><h3>Monthly routine</h3><ol class="small" style="margin:0;padding-left:18px">
+    <li>Open the month (or just upload: the month is read from the file).</li>
+    <li>Upload <b>Chapter Statistics</b> × 2 regions, then <b>Region Member Training Report</b> × 2 regions (From and To = that one month).</li>
+    <li>Click <b>Sync Jotform</b>, then type Member Score, Retention %, LTRT, New members, Renewals per chapter.</li>
+    <li>Check the scores, then <b>Publish</b>. SAs only see published months.</li></ol></div>`;
+  bindNav();
+  $('#btn-new').onclick = async () => { const ym = $('#new-ym').value; if (!ym) return; try { await api('admin/months', { method: 'POST', body: { action: 'create', ym } }); state.month = ym; renderAdmin(); } catch (e) { toast(e.message, true); } };
+  app.querySelectorAll('[data-ym]').forEach(b => b.onclick = () => { state.month = b.dataset.ym; renderAdmin(); });
+}
+
+async function renderMonth(ym) {
+  app.innerHTML = adminNav() + '<div class="card center muted">Loading…</div>'; bindNav();
+  let m; try { m = await api('admin/months?ym=' + ym); } catch (e) { toast(e.message, true); state.month = null; return renderAdmin(); }
+  const pub = m.month.status === 'published';
+  const sas = state.users ? state.users.filter(u => u.role === 'sa') : null;
+  const num = (e, k, step = 'any', w = '') => pub || e.legacy ? `<td class="num">${fmt(e[k], 2)}</td>` : `<td class="num"><input class="cell-in ${w}" type="number" step="${step}" data-id="${e.id}" data-k="${k}" value="${e[k] ?? ''}"></td>`;
+  const yn = (e, k, a, b) => pub || e.legacy ? `<td>${e[k] === null ? '–' : e[k] ? a : b}</td>` : `<td><select class="cell-sel" data-id="${e.id}" data-k="${k}"><option value="" ${e[k] === null ? 'selected' : ''}>–</option><option value="1" ${e[k] === true ? 'selected' : ''}>${a}</option><option value="0" ${e[k] === false ? 'selected' : ''}>${b}</option></select>${k === 'jotform_done' && e.jotform_auto ? '<span class="auto">auto</span>' : ''}</td>`;
+  const rows = m.entries.map(e => { const c = e.computed; return `<tr>
+    <td><b>${esc(e.chapter.name.replace(/^BNI\s+/, ""))}</b><span class="auto">${esc(e.sa?.name || '<no SA>')}${e.sa && e.sa.active === false ? ' (inactive)' : ''}</span></td>
+    ${num(e, 'member_score', '1')}
+    ${num(e, 'online_pct', '0.01')}${num(e, 'offline_pct', '0.01')}
+    <td class="num muted">${fmt(e.member_count, 0)}</td>
+    ${num(e, 'retention_pct', '0.01')}
+    ${num(e, 'one_to_one_per_member', '0.01')}
+    ${yn(e, 'ltrt_attended', 'Attended', 'Not attended')}
+    ${yn(e, 'jotform_done', 'Done', 'Not done')}
+    ${num(e, 'new_members', '1')}${num(e, 'renewals', '1')}
+    <td class="num"><b>${fmt(c.total_scaled, 0)}</b><span class="auto">${c.total_raw}/${c.max_total}</span></td>
+    <td><span class="pill ${c.band}">${c.band}</span></td>
+    <td class="num">${inr(c.payout)}</td>
+    <td class="num muted">#${c.rank}</td></tr>`; }).join('');
+  app.innerHTML = adminNav() + `
+  <div class="row" style="margin-bottom:12px"><button class="btn ghost sm" id="back">← Months</button><h2 style="margin:0">${monthName(ym)}</h2><span class="pill ${m.month.status}">${m.month.status}</span><div class="spacer"></div>
+    <span class="small muted">Region avg <b>${fmt(m.region_avg)}</b></span>
+    ${pub ? `<button class="btn ghost sm" id="unpub">Unpublish</button>` : `<button class="btn" id="pub">Publish month</button>`}</div>
+  ${pub ? '' : `<div class="grid g2" style="margin-bottom:14px">
+    <div class="card"><h3>Upload BNI Connect exports</h3>
+      <div class="drop" id="drop">Drop .xls files here or click to choose<br><span class="small">Chapter Statistics and Region Member Training Report, one month, both regions. Type is detected from the file.</span></div>
+      <input type="file" id="file" multiple accept=".xls,.xml,.txt" class="hidden">
+      <div id="up-log" class="small" style="margin-top:8px">${state.upLog || ''}</div>
+      ${m.uploads?.length ? `<div class="divider"></div><div class="small muted">Uploaded: ${m.uploads.map(u => `${esc(u.kind)} · ${esc(u.region || '')} · ${new Date(u.created_at).toLocaleDateString('en-IN')}`).join('<br>')}</div>` : ''}
+    </div>
+    <div class="card"><h3>Jotform chapter visits</h3><p class="small muted" style="margin-top:0">Pulls this month's "BNI Chapter Visit Report" submissions and ticks the chapters where the SA submitted. Manual changes you make afterwards are kept.</p>
+      <button class="btn navy sm" id="jot">Sync Jotform</button><div id="jot-log" class="small" style="margin-top:8px"></div></div>
+  </div>`}
+  <div class="card"><div class="tbl-wrap"><table class="month-tbl">
+    <thead><tr><th>Chapter / SA</th><th class="right">Member score</th><th class="right">Online %</th><th class="right">Offline %</th><th class="right">Members</th><th class="right">Retention %</th><th class="right">1-2-1 / member</th><th>LTRT</th><th>Jotform</th><th class="right">New</th><th class="right">Renewals</th><th class="right">Score</th><th>Band</th><th class="right">Payout</th><th class="right">Rank</th></tr></thead>
+    <tbody>${rows}</tbody></table></div>
+    ${pub ? '' : '<p class="small muted" style="margin-bottom:0">Edits save when you leave the cell. Online %, Offline %, Members and 1-2-1 come from the uploads; you can override them.</p>'}</div>`;
+  bindNav();
+  $('#back').onclick = () => { state.month = null; state.upLog = ''; renderAdmin(); };
+  if ($('#pub')) $('#pub').onclick = async () => { if (!confirm(`Publish ${monthName(ym)}? SAs will see their scores and payout immediately.`)) return; try { await api('admin/months', { method: 'POST', body: { action: 'publish', ym } }); toast('Published'); renderMonth(ym); } catch (e) { toast(e.message, true); } };
+  if ($('#unpub')) $('#unpub').onclick = async () => { if (!confirm('Unpublish? SAs will stop seeing this month until you publish again.')) return; try { await api('admin/months', { method: 'POST', body: { action: 'unpublish', ym } }); renderMonth(ym); } catch (e) { toast(e.message, true); } };
+  const save = async (id, k, v) => { try { await api('admin/entries', { method: 'PUT', body: { id, [k]: v } }); renderMonthScoresOnly(ym); } catch (e) { toast(e.message, true); } };
+  app.querySelectorAll('.cell-in').forEach(i => i.onchange = () => save(Number(i.dataset.id), i.dataset.k, i.value));
+  app.querySelectorAll('.cell-sel').forEach(i => i.onchange = () => save(Number(i.dataset.id), i.dataset.k, i.value === '' ? null : i.value === '1'));
+  const drop = $('#drop'), file = $('#file');
+  if (drop) {
+    drop.onclick = () => file.click();
+    drop.ondragover = e => { e.preventDefault(); drop.classList.add('over'); }; drop.ondragleave = () => drop.classList.remove('over');
+    drop.ondrop = e => { e.preventDefault(); drop.classList.remove('over'); handleFiles(e.dataTransfer.files, ym); };
+    file.onchange = () => handleFiles(file.files, ym);
+    $('#jot').onclick = async () => { $('#jot-log').textContent = 'Syncing…'; try { const r = await api('admin/jotform', { method: 'POST', body: { ym } }); $('#jot-log').innerHTML = `${r.total_submissions} submissions found. ` + r.results.map(x => `<br>${esc(x.chapter)}: ${x.matched ? '<span class="ok">✓ ' + esc(x.sa) + '</span>' : x.submissions ? `<span class="bad">submitted by ${esc(x.submitters.join(', '))}, no match for ${esc(x.sa || 'SA')}</span>` : '<span class="muted">none</span>'}${x.skipped ? ' (manual, kept)' : ''}`).join(''); renderMonthScoresOnly(ym); } catch (e) { $('#jot-log').innerHTML = `<span class="bad">${esc(e.message)}</span>`; } };
+  }
+}
+async function renderMonthScoresOnly(ym) { // cheap re-render after a save (keeps focus flow simple)
+  const m = await api('admin/months?ym=' + ym);
+  const rows = app.querySelectorAll('tbody tr');
+  m.entries.forEach((e, i) => { const tr = rows[i]; if (!tr) return; const c = e.computed; const tds = tr.querySelectorAll('td');
+    tds[11].innerHTML = `<b>${fmt(c.total_scaled, 0)}</b><span class="auto">${c.total_raw}/${c.max_total}</span>`; tds[12].innerHTML = `<span class="pill ${c.band}">${c.band}</span>`; tds[13].textContent = inr(c.payout); tds[14].textContent = '#' + c.rank;
+    const jot = tr.querySelector('[data-k="jotform_done"]'); if (jot) { jot.value = e.jotform_done === null ? '' : e.jotform_done ? '1' : '0'; }
+    for (const k of ['online_pct', 'offline_pct', 'one_to_one_per_member']) { const el = tr.querySelector(`[data-k="${k}"]`); if (el && document.activeElement !== el) el.value = e[k] ?? ''; }
+    tds[4].textContent = fmt(e.member_count, 0); });
+}
+async function handleFiles(files, ym) {
+  const log = $('#up-log'); state.upLog = '';
+  for (const f of files) {
+    log.innerHTML += `<div>⏳ ${esc(f.name)}…</div>`;
+    try {
+      const text = await f.text();
+      const kind = /Chapter Statistics/i.test(text) ? 'chapter_statistics' : /Member Training Report/i.test(text) ? 'training' : null;
+      if (!kind) throw new Error('Not a Chapter Statistics or Member Training Report export');
+      const r = await api('admin/upload', { method: 'POST', body: { kind, filename: f.name, text } });
+      log.lastElementChild.innerHTML = `<span class="ok">✓</span> ${esc(f.name)}: ${esc(r.region || '')} ${r.month}, ${r.updated.length} chapters updated${r.warning ? ` <span class="bad">${esc(r.warning)}</span>` : ''}${kind === 'training' && r.updated.some(u => u.needs_member_count) ? ' <span class="bad">Some chapters have no member count yet: upload Chapter Statistics for this region, then re-upload this file.</span>' : ''}`;
+      if (r.month !== ym) { toast(`File was for ${monthName(r.month)}, opening that month`); state.month = r.month; return renderMonth(r.month); }
+    } catch (e) { log.lastElementChild.innerHTML = `<span class="bad">✗ ${esc(f.name)}: ${esc(e.message)}</span>`; }
+  }
+  state.upLog = log.innerHTML; renderMonth(ym);
+}
+
+/* =============================== Settings =============================== */
+async function renderSettings() {
+  app.innerHTML = adminNav() + '<div class="card center muted">Loading…</div>'; bindNav();
+  const d = await api('admin/settings'); const s = d.settings;
+  const types = [...new Set([...d.known_event_types, ...s.online_event_types])].sort();
+  app.innerHTML = adminNav() + `
+  <div class="grid g2">
+    <div class="card"><h2>Commission</h2>
+      <div class="field"><label>Membership fee per member (₹)</label><input id="fee" type="number" value="${s.fee_amount}"></div>
+      <div class="field"><label>Commission % of fee</label><input id="pct" type="number" step="0.01" value="${s.commission_pct}"></div>
+      <p class="small muted">Per member: ${inr(s.fee_amount * s.commission_pct / 100)}. Payout = (new + renewals) × this × band multiplier.</p>
+      <h2>Scoring</h2>
+      <div class="field"><label>1-2-1 threshold (per member per month)</label><input id="o2o" type="number" step="0.01" value="${s.one_to_one_threshold}"></div>
+      <div class="field"><label><input type="checkbox" id="ment" ${s.mentoring_enabled ? 'checked' : ''} style="width:auto;margin-right:8px">Mentoring KPI enabled (score out of 100 instead of 80)</label></div>
+      <div class="field"><label>Jotform form ID (Chapter Visit Report)</label><input id="jf" value="${esc(s.jotform_form_id || '')}"></div>
+      <button class="btn" id="save">Save settings</button>
+    </div>
+    <div class="card"><h2>Online training events</h2><p class="small muted" style="margin-top:0">Tick the event types that count as <b>online</b>. Everything else counts as offline. Draft months recalculate automatically.</p>
+      <div class="chips" id="chips">${types.map(t => `<span class="chip ${s.online_event_types.includes(t) ? 'on' : ''}" data-t="${esc(t)}">${esc(t)}</span>`).join('') || '<span class="muted small">Upload a training report first; event types will appear here.</span>'}</div>
+      <div class="field" style="margin-top:10px"><label>Add an event type manually</label><div class="row"><input id="newtype" placeholder="e.g. BNI Online Support Ambassador Orientation - India"><button class="btn ghost sm" id="addtype">Add</button></div></div>
+      <div class="divider"></div>
+      <h2>Bands</h2><table class="small"><thead><tr><th>Band</th><th>Min score</th><th>Multiplier</th></tr></thead><tbody>${s.bands.map(b => `<tr><td>${b.emoji} ${b.label}</td><td>${b.min}</td><td>${b.multiplier.toFixed(2)}×</td></tr>`).join('')}</tbody></table>
+      <p class="small muted">Thresholds and bands are fixed in code for now (scoring.js). Ask for a change if the team revises the scheme.</p>
+    </div>
+  </div>`;
+  bindNav();
+  app.querySelectorAll('.chip').forEach(c => c.onclick = () => c.classList.toggle('on'));
+  $('#addtype').onclick = () => { const v = $('#newtype').value.trim(); if (!v) return; const el = document.createElement('span'); el.className = 'chip on'; el.dataset.t = v; el.textContent = v; el.onclick = () => el.classList.toggle('on'); $('#chips').appendChild(el); $('#newtype').value = ''; };
+  $('#save').onclick = async () => { try { await api('admin/settings', { method: 'PUT', body: { fee_amount: $('#fee').value, commission_pct: $('#pct').value, one_to_one_threshold: $('#o2o').value, mentoring_enabled: $('#ment').checked, jotform_form_id: $('#jf').value.trim(), online_event_types: [...app.querySelectorAll('.chip.on')].map(c => c.dataset.t) } }); toast('Settings saved'); renderSettings(); } catch (e) { toast(e.message, true); } };
+}
+
+/* =============================== Users =============================== */
+async function renderUsers() {
+  app.innerHTML = adminNav() + '<div class="card center muted">Loading…</div>'; bindNav();
+  const { users } = await api('admin/users'); state.users = users;
+  const chapOpts = sel => state.chapters.map(c => `<option value="${c.id}" ${sel === c.id ? 'selected' : ''}>${esc(c.name)}</option>`).join('');
+  const sas = users.filter(u => u.role === 'sa'), admins = users.filter(u => u.role === 'admin');
+  app.innerHTML = adminNav() + `
+  <div class="card"><h2>Support Ambassadors</h2><div class="tbl-wrap"><table><thead><tr><th>Name</th><th>Chapter</th><th>Jotform name</th><th>Status</th><th>Last login</th><th></th></tr></thead>
+    <tbody>${sas.map(u => `<tr><td><b>${esc(u.name)}</b></td><td>${esc(u.chapter?.name || '–')}</td><td class="small">${esc(u.jotform_alias || '')}</td><td>${u.active ? '<span class="ok">active</span>' : '<span class="muted">inactive</span>'}</td><td class="small muted">${u.last_login_at ? new Date(u.last_login_at).toLocaleDateString('en-IN') : 'never'}</td>
+      <td class="right"><button class="btn ghost sm" data-pin="${u.id}">Set PIN</button> <button class="btn ghost sm" data-alias="${u.id}">Jotform name</button> ${u.active ? `<button class="btn ghost sm" data-deact="${u.id}">Deactivate</button>` : `<button class="btn ghost sm" data-act="${u.id}">Activate</button>`}</td></tr>`).join('')}</tbody></table></div>
+    <div class="divider"></div>
+    <h3>Replace a chapter's SA (new person starts fresh)</h3>
+    <form id="f-rep" class="row"><select name="chapter_id" style="width:auto" required><option value="">Chapter…</option>${chapOpts()}</select><input name="name" placeholder="New SA name" style="width:200px" required><input name="pin" placeholder="PIN (4-8 digits)" inputmode="numeric" style="width:150px" required><input name="from_ym" type="month" style="width:auto" title="Draft months from here onwards move to the new SA"><button class="btn sm">Replace</button></form>
+  </div>
+  <div class="card" style="margin-top:14px"><h2>Admins</h2><div class="tbl-wrap"><table><thead><tr><th>Name</th><th>Email</th><th>Last login</th><th></th></tr></thead>
+    <tbody>${admins.map(u => `<tr><td><b>${esc(u.name)}</b></td><td>${esc(u.email)}</td><td class="small muted">${u.last_login_at ? new Date(u.last_login_at).toLocaleString('en-IN') : 'never'}</td><td class="right"><button class="btn ghost sm" data-pw="${u.id}">Set password</button></td></tr>`).join('')}</tbody></table></div>
+    <div class="divider"></div><h3>Add admin</h3>
+    <form id="f-adm" class="row"><input name="name" placeholder="Name" style="width:180px" required><input name="email" type="email" placeholder="Email" style="width:240px" required><input name="password" type="password" placeholder="Password (8+)" style="width:180px" required><button class="btn sm navy">Add admin</button></form>
+  </div>`;
+  bindNav();
+  const act = async (body, msg) => { try { await api('admin/users', { method: 'POST', body }); toast(msg); renderUsers(); } catch (e) { toast(e.message, true); } };
+  app.querySelectorAll('[data-pin]').forEach(b => b.onclick = () => { const pin = prompt('New PIN (4 to 8 digits):'); if (pin) act({ action: 'set_pin', id: b.dataset.pin, pin }, 'PIN updated'); });
+  app.querySelectorAll('[data-alias]').forEach(b => b.onclick = () => { const v = prompt('Name exactly as the SA writes it on the Jotform ("Visited By" / "Name"):'); if (v !== null) act({ action: 'update', id: b.dataset.alias, jotform_alias: v }, 'Updated'); });
+  app.querySelectorAll('[data-deact]').forEach(b => b.onclick = () => { if (confirm('Deactivate this SA? They will no longer be able to sign in.')) act({ action: 'update', id: b.dataset.deact, active: false }, 'Deactivated'); });
+  app.querySelectorAll('[data-act]').forEach(b => b.onclick = () => act({ action: 'update', id: b.dataset.act, active: true }, 'Activated'));
+  app.querySelectorAll('[data-pw]').forEach(b => b.onclick = () => { const pw = prompt('New password (8+ characters):'); if (pw) act({ action: 'set_password', id: b.dataset.pw, password: pw }, 'Password updated'); });
+  $('#f-rep').onsubmit = e => { e.preventDefault(); const fd = Object.fromEntries(new FormData(e.target)); if (!confirm(`Replace the SA of this chapter with ${fd.name}? The current SA will be deactivated.`)) return; act({ action: 'replace_sa', ...fd }, 'SA replaced'); };
+  $('#f-adm').onsubmit = e => { e.preventDefault(); act({ action: 'create_admin', ...Object.fromEntries(new FormData(e.target)) }, 'Admin added'); };
+}
+
+boot();
+</script>
+</body>
+</html>
