@@ -207,3 +207,36 @@ export function parseTrafficLights(rows, monthHint) {
   const title = String(rows.find(r => Array.isArray(r) && r.some(c => /traffic/i.test(String(c ?? ''))))?.find(c => /traffic/i.test(String(c ?? ''))) || '');
   return { report: 'traffic_lights', month: monthHint || null, title, header: rows[hIdx], rows: out };
 }
+
+const MONTHS = { jan: 1, feb: 2, mar: 3, apr: 4, may: 5, jun: 6, jul: 7, aug: 8, sep: 9, sept: 9, oct: 10, nov: 11, dec: 12 };
+/** "Oct 16, 2026" | "16 Oct 2026" | "2026-10-16" | "16/10/2026" -> "2026-10-16" (null if unreadable) */
+export function readDate(str) {
+  const s = String(str || '').trim(); let m;
+  if ((m = /^(\d{4})-(\d{1,2})-(\d{1,2})/.exec(s))) return `${m[1]}-${m[2].padStart(2, '0')}-${m[3].padStart(2, '0')}`;
+  const mon = w => MONTHS[String(w).toLowerCase().slice(0, 4)] || MONTHS[String(w).toLowerCase().slice(0, 3)];
+  if ((m = /([A-Za-z]{3,9})\.?\s+(\d{1,2}),?\s+(\d{4})/.exec(s)) && mon(m[1]))
+    return `${m[3]}-${String(mon(m[1])).padStart(2, '0')}-${m[2].padStart(2, '0')}`;
+  if ((m = /(\d{1,2})\s+([A-Za-z]{3,9})\.?,?\s+(\d{4})/.exec(s)) && mon(m[2]))
+    return `${m[3]}-${String(mon(m[2])).padStart(2, '0')}-${m[1].padStart(2, '0')}`;
+  if ((m = /(\d{1,2})\/(\d{1,2})\/(\d{4})/.exec(s))) return `${m[3]}-${m[2].padStart(2, '0')}-${m[1].padStart(2, '0')}`; // Indian dd/mm/yyyy
+  return null;
+}
+
+/**
+ * BNI Connect "Last Meeting Entered" (PALMS status) table, pasted as text from the browser
+ * (tab-separated rows: Region, Chapter Name, Last Meeting Entered) or typed one chapter per line.
+ * Returns [{ chapter, key, last: 'YYYY-MM-DD' }].
+ */
+export function parsePalmsStatus(text) {
+  const out = [];
+  for (const line of String(text || '').split(/\r?\n/)) {
+    const cm = /\bBNI\s+([A-Za-z][A-Za-z .'-]*?)(?=\t|\s{2,}|\s+[A-Z][a-z]{2,8}\.?\s+\d{1,2},?\s+\d{4}|\s+\d{1,2}[\/ -]|$)/.exec(line);
+    if (!cm) continue;
+    const rest = line.slice(cm.index + cm[0].length);
+    const last = readDate(rest);
+    if (!last) continue;
+    const chapter = `BNI ${cm[1].trim()}`;
+    out.push({ chapter, key: normChapter(chapter.replace(/\.+$/, '')), last });
+  }
+  return out;
+}

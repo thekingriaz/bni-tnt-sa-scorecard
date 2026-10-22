@@ -450,21 +450,21 @@ async function renderSdcMonth(ym) {
   const tl = e => ro(e) ? `<td><span class="tl-${esc(e.tl_status || '')}">${esc(e.tl_status || '–')}</span>${e.tl_score != null ? `<span class="auto">score ${fmt(e.tl_score, 0)}</span>` : ''}</td>`
     : `<td><select class="cell-sel" data-id="${e.id}" data-k="tl_status"><option value="" ${!e.tl_status ? 'selected' : ''}>–</option>${['GREEN', 'AMBER', 'RED', 'GREY'].map(v => `<option ${e.tl_status === v ? 'selected' : ''}>${v}</option>`).join('')}</select>${e.tl_auto ? `<span class="auto">auto${e.tl_score != null ? ' · ' + fmt(e.tl_score, 0) : ''}</span>` : ''}</td>`;
   const netExtra = e => `<span class="auto">${e.legacy ? '' : e.net_add_derived !== null && e.net_add_derived !== undefined ? `${fmt(e.prev_member_count, 0)}→${fmt(e.member_count, 0)}${e.net_add !== null && e.net_add !== undefined && e.net_add !== e.net_add_derived ? ' (override)' : ''}` : e.member_count != null ? `${fmt(e.member_count, 0)} members, no previous month` : 'no upload yet'}</span>`;
-  const rows = m.entries.map(e => { const c = e.computed; return `<tr>
+  const rows = m.entries.map(e => { const c = e.computed; return `<tr data-ch="${e.chapter_id}">
     <td><b>${esc(e.chapter.name.replace(/^BNI\s+/, ''))}</b><span class="auto">${esc(e.sdc?.name || '<no SDC>')}${e.sdc && e.sdc.active === false ? ' (inactive)' : ''} · ${DOW[e.chapter.meeting_day] || '?'}</span></td>
     ${ro(e) ? `<td class="num">${e.net_add ?? '–'}${netExtra(e)}</td>` : `<td class="num"><input class="cell-in" type="number" step="1" data-id="${e.id}" data-k="net_add" value="${e.net_add ?? ''}" placeholder="${e.net_add_derived ?? ''}">${netExtra(e)}</td>`}
     ${tl(e)}
     ${num(e, 'retention_pct', '0.01')}
     ${num(e, 'member_score', '1')}
-    <td class="num">${e.telebridge_weeks ?? 0}/${e.meetings_total ?? 0}${!e.legacy && e.telebridge_pending ? `<span class="auto">${e.telebridge_pending} unticked</span>` : ''}</td>
-    <td class="num">${e.palms_weeks ?? 0}/${e.meetings_total ?? 0}${!e.legacy && e.palms_pending ? `<span class="auto">${e.palms_pending} unticked</span>` : ''}</td>
+    <td class="num c-tb">${sdcWeekCell(e, 'telebridge')}</td>
+    <td class="num c-palms">${sdcWeekCell(e, 'palms')}</td>
     ${yn(e, 'visit_done', 'Done', 'Not done', 'visit_auto')}
     ${yn(e, 'ltrt_attended', 'Attended', 'Not attended')}
     <td class="num muted">${e.legacy ? '–' : `${c.members_paid}<span class="auto">${e.new_members ?? 0} new + ${e.renewals ?? 0} ren.</span>`}</td>
-    <td class="num"><b>${fmt(c.total_scaled, 0)}</b><span class="auto">${fmt(c.total_raw)}/${c.max_total}</span></td>
-    <td><span class="pill ${c.band}">${c.band}</span></td>
-    <td class="num">${inr(c.payout)}</td>
-    <td class="num muted">#${c.rank}</td></tr>`; }).join('');
+    <td class="num c-score">${sdcScoreCell(c)}</td>
+    <td class="c-band"><span class="pill ${c.band}">${c.band}</span></td>
+    <td class="num c-pay">${inr(c.payout)}</td>
+    <td class="num muted c-rank">#${c.rank}</td></tr>`; }).join('');
   // weekly grid
   const maxWeeks = Math.max(0, ...m.entries.map(e => (e.weeks || []).length));
   const tg = (w, k, label) => { const v = w[k]; return `<button class="${v === true ? 'y' : v === false ? 'n' : ''} ${k === 'telebridge_done' && w.telebridge_auto && v !== null ? 'auto' : ''}" data-w="${w.id}" data-k="${k}" data-v="${v === null || v === undefined ? '' : v ? 1 : 0}" ${pub ? 'disabled' : ''} title="${label}: ${v === true ? 'done' : v === false ? 'not done' : 'not recorded'}. Click to change.">${label} ${v === true ? '✓' : v === false ? '✗' : '·'}</button>`; };
@@ -473,7 +473,7 @@ async function renderSdcMonth(ym) {
     <tbody>${m.entries.filter(e => !e.legacy).map(e => `<tr><td><b>${esc(e.chapter.name.replace(/^BNI\s+/, ''))}</b><span class="auto">${DOW[e.chapter.meeting_day] || ''}</span></td>${(e.weeks || []).map(w => `<td><div class="wk ${w.no_meeting ? 'off' : ''}"><small>${dmy(w.week_date)}</small><div class="tg">${tg(w, 'telebridge_done', 'TB')}${tg(w, 'palms_done', 'PALMS')}</div>${pub ? '' : `<span class="nm" data-nm="${w.id}" data-v="${w.no_meeting ? 1 : 0}">${w.no_meeting ? 'no meeting · undo' : 'no meeting'}</span>`}</div></td>`).join('')}${'<td></td>'.repeat(maxWeeks - (e.weeks || []).length)}</tr>`).join('')}</tbody></table></div></div>` : '';
   app.innerHTML = adminNav() + `
   <div class="row" style="margin-bottom:12px"><button class="btn ghost sm" id="back">← Months</button><h2 style="margin:0">${monthName(ym)} · SDC</h2><span class="pill ${m.month.sdc_status}">${m.month.sdc_status}</span><div class="spacer"></div>
-    <span class="small muted">Region avg <b>${fmt(m.region_avg)}</b></span>
+    <span class="small muted">Region avg <b id="sdc-avg">${fmt(m.region_avg)}</b></span>
     ${base ? '<span class="pill draft">baseline</span>' : pub ? `<button class="btn ghost sm" id="unpub">Unpublish</button>` : `<button class="btn" id="pub">Publish month</button>`}</div>
   ${base ? `<div class="banner">${monthName(ym)} is before the go-live month (${monthName(m.go_live_ym)}). Upload its <b>Chapter Statistics</b> (both regions) here so ${monthName(m.go_live_ym)} net growth has a starting point. Nothing else is needed; this month is never scored or shown to SDCs.</div>` : ''}
   ${pub ? '' : `<div class="grid g2" style="margin-bottom:14px">
@@ -483,6 +483,11 @@ async function renderSdcMonth(ym) {
       <div id="up-log" class="small" style="margin-top:8px">${state.upLog || ''}</div>
       ${m.uploads?.length ? `<div class="divider"></div><div class="small muted">Uploaded: ${m.uploads.map(u => `${esc(u.kind)} · ${esc(u.region || '')} · ${new Date(u.created_at).toLocaleDateString('en-IN')}`).join('<br>')}</div>` : ''}
     </div>
+    <div class="card" style="grid-column:1/-1"><h3>PALMS on time · Friday check</h3>
+      <p class="small muted" style="margin-top:0">On BNI Connect, open the <b>Last Meeting Entered</b> report, select the table and copy it (or type one line per chapter, e.g. <i>BNI Kanya Oct 13, 2026</i>). Paste below with the report date. Each chapter's meeting in the 7 days up to that date is ticked ✓ if it was entered, ✗ if the last meeting entered is older.</p>
+      <div class="row" style="align-items:flex-start"><div style="flex:0 0 170px"><label class="small"><b>Report date (Friday)</b></label><input id="palms-asof" type="date" value="${lastFriday(ym)}"></div>
+        <div style="flex:1;min-width:240px"><label class="small"><b>Paste the table</b></label><textarea id="palms-text" rows="4" placeholder="Region Name	Chapter Name	Last Meeting Entered&#10;Nagercoil &amp; Tuticorin	BNI Comorin	Oct 16, 2026&#10;…"></textarea></div></div>
+      <div class="row" style="margin-top:8px"><button class="btn navy sm" id="palms-apply">Apply PALMS</button><span id="palms-log" class="small"></span></div></div>
     <div class="card"><h3>Jotform sync</h3><p class="small muted" style="margin-top:0">Pulls this month's <b>Tele-bridge Call</b> submissions into the weekly grid (by chapter and meeting date) and the <b>Chapter Visit Report</b> for the SDC (Done only if submitted within 24 hours of the visit date). Manual ticks you make afterwards are kept.</p>
       <button class="btn navy sm" id="jot">Sync Jotform</button><div id="jot-log" class="small" style="margin-top:8px"></div></div>
   </div>`}
@@ -495,23 +500,81 @@ async function renderSdcMonth(ym) {
   $('#back').onclick = () => { state.month = null; state.upLog = ''; renderAdmin(); };
   if ($('#pub')) $('#pub').onclick = async () => { if (!confirm(`Publish ${monthName(ym)} for SDCs? They will see their scores and payout immediately.`)) return; try { await api('admin/months', { method: 'POST', body: { action: 'publish', ym, programme: 'sdc' } }); toast('Published'); renderSdcMonth(ym); } catch (e) { toast(e.message, true); } };
   if ($('#unpub')) $('#unpub').onclick = async () => { if (!confirm('Unpublish? SDCs will stop seeing this month until you publish again.')) return; try { await api('admin/months', { method: 'POST', body: { action: 'unpublish', ym, programme: 'sdc' } }); renderSdcMonth(ym); } catch (e) { toast(e.message, true); } };
-  const save = async (body) => { try { await api('admin/entries', { method: 'PUT', body: { programme: 'sdc', ...body } }); renderSdcMonth(ym); } catch (e) { toast(e.message, true); } };
+  // Saves never re-render the page: buttons flip instantly, then only the score cells refresh in the background.
+  const save = async (body, undo) => { try { await api('admin/entries', { method: 'PUT', body: { programme: 'sdc', ...body } }); refreshSdcScores(ym); } catch (e) { if (undo) undo(); toast(e.message, true); } };
   app.querySelectorAll('.cell-in').forEach(i => i.onchange = () => save({ id: Number(i.dataset.id), [i.dataset.k]: i.value }));
   app.querySelectorAll('.cell-sel').forEach(i => i.onchange = () => save({ id: Number(i.dataset.id), [i.dataset.k]: i.dataset.k === 'tl_status' ? (i.value || null) : i.value === '' ? null : i.value === '1' }));
-  app.querySelectorAll('.tg button').forEach(b => b.onclick = () => { const cur = b.dataset.v; const next = cur === '' ? true : cur === '1' ? false : null; save({ week_id: Number(b.dataset.w), [b.dataset.k]: next }); });
-  app.querySelectorAll('.nm').forEach(b => b.onclick = () => save({ week_id: Number(b.dataset.nm), no_meeting: b.dataset.v !== '1' }));
+  const paintTg = (b, v) => { const label = b.dataset.k === 'palms_done' ? 'PALMS' : 'TB'; b.dataset.v = v === null ? '' : v ? '1' : '0'; b.classList.toggle('y', v === true); b.classList.toggle('n', v === false); b.classList.remove('auto'); b.textContent = `${label} ${v === true ? '✓' : v === false ? '✗' : '·'}`; };
+  app.querySelectorAll('.tg button').forEach(b => b.onclick = () => { const cur = b.dataset.v; const prev = cur === '' ? null : cur === '1'; const next = cur === '' ? true : cur === '1' ? false : null;
+    paintTg(b, next); save({ week_id: Number(b.dataset.w), [b.dataset.k]: next }, () => paintTg(b, prev)); });
+  app.querySelectorAll('.nm').forEach(b => b.onclick = () => { const off = b.dataset.v !== '1'; const wk = b.closest('.wk');
+    const paint = o => { b.dataset.v = o ? '1' : '0'; b.textContent = o ? 'no meeting · undo' : 'no meeting'; wk.classList.toggle('off', o); };
+    paint(off); save({ week_id: Number(b.dataset.nm), no_meeting: off }, () => paint(!off)); });
   const drop = $('#drop'), file = $('#file');
   if (drop) {
     drop.onclick = () => file.click();
     drop.ondragover = e => { e.preventDefault(); drop.classList.add('over'); }; drop.ondragleave = () => drop.classList.remove('over');
     drop.ondrop = e => { e.preventDefault(); drop.classList.remove('over'); handleSdcFiles(e.dataTransfer.files, ym); };
     file.onchange = () => handleSdcFiles(file.files, ym);
+    $('#palms-apply').onclick = async () => {
+      const as_of = $('#palms-asof').value, text = $('#palms-text').value;
+      if (!as_of || !text.trim()) return toast('Pick the report date and paste the table', true);
+      $('#palms-log').textContent = 'Applying…';
+      try {
+        const r = await api('admin/entries', { method: 'POST', body: { programme: 'sdc', action: 'palms_report', ym, as_of, text } });
+        $('#palms-log').innerHTML = `<span class="ok">${r.updates.filter(u => u.on_time).length} on time</span>, <span class="bad">${r.updates.filter(u => !u.on_time).length} late</span>` +
+          r.updates.filter(u => !u.on_time).map(u => `<br><span class="bad">✗ ${esc(u.chapter.replace(/^BNI\s+/, ''))}: meeting ${dmy(u.week_date)}, last entered ${dmy(u.last)}</span>`).join('') +
+          r.skipped.map(x => `<br><span class="muted">${esc(x.chapter)}: ${esc(x.reason)}</span>`).join('') +
+          (r.missing.length ? `<br><span class="muted">Not in the pasted table: ${esc(r.missing.map(n => n.replace(/^BNI\s+/, '')).join(', '))}</span>` : '');
+        state.palmsLog = $('#palms-log').innerHTML;
+        refreshSdcGrid(ym);
+      } catch (e) { $('#palms-log').innerHTML = `<span class="bad">${esc(e.message)}</span>`; }
+    };
     $('#jot').onclick = async () => { $('#jot-log').textContent = 'Syncing…'; try { const r = await api('admin/jotform', { method: 'POST', body: { ym, programme: 'sdc' } });
       const tb = r.telebridge || {};
       $('#jot-log').innerHTML = `<b>Tele-bridge:</b> ${tb.form ? `${tb.submissions} submissions, ${tb.weeks_updated} week${tb.weeks_updated === 1 ? '' : 's'} updated${tb.unmatched?.length ? ` <span class="muted">(${tb.unmatched.length} could not be matched to a chapter)</span>` : ''}` : '<span class="bad">no Tele-bridge form ID in Settings</span>'}<br><b>Visits:</b> ${r.total_submissions} submissions. ` +
         r.results.map(x => `<br>${esc(x.chapter)}: ${x.matched ? `<span class="ok">✓ ${esc(x.sdc)} (visited ${esc(x.visit_date || '?')}, submitted ${esc(x.submitted || '?')})</span>` : x.late ? `<span class="bad">late: visited ${esc(x.visit_date || '?')}, submitted ${esc(x.submitted || '?')}</span>` : x.submissions ? `<span class="muted">submitted by ${esc(x.submitters.join(', '))}, no match for ${esc(x.sdc || 'SDC')}</span>` : '<span class="muted">none</span>'}${x.skipped ? ' (manual, kept)' : ''}`).join('');
-      renderSdcMonth(ym); } catch (e) { $('#jot-log').innerHTML = `<span class="bad">${esc(e.message)}</span>`; } };
+      refreshSdcGrid(ym); } catch (e) { $('#jot-log').innerHTML = `<span class="bad">${esc(e.message)}</span>`; } };
   }
+}
+function sdcWeekCell(e, k) {
+  const done = e[k + '_weeks'] ?? 0, total = e.meetings_total ?? 0, pend = e[k + '_pending'];
+  return `${done}/${total}${!e.legacy && pend ? `<span class="auto">${pend} unticked</span>` : ''}`;
+}
+function sdcScoreCell(c) { return `<b>${fmt(c.total_scaled, 0)}</b><span class="auto">${fmt(c.total_raw)}/${c.max_total}</span>`; }
+let sdcRefreshT, sdcRefreshSeq = 0;
+function refreshSdcScores(ym) { // debounced: rapid clicks cause one fetch
+  clearTimeout(sdcRefreshT);
+  sdcRefreshT = setTimeout(async () => {
+    const seq = ++sdcRefreshSeq;
+    let m; try { m = await api('admin/months?ym=' + ym + '&programme=sdc'); } catch (e) { return toast(e.message, true); }
+    if (seq !== sdcRefreshSeq || state.month !== ym) return;
+    for (const e of m.entries) {
+      const tr = app.querySelector(`tr[data-ch="${e.chapter_id}"]`); if (!tr) continue; const c = e.computed;
+      const set = (sel, html) => { const el = tr.querySelector(sel); if (el) el.innerHTML = html; };
+      set('.c-tb', sdcWeekCell(e, 'telebridge')); set('.c-palms', sdcWeekCell(e, 'palms')); set('.c-score', sdcScoreCell(c));
+      set('.c-band', `<span class="pill ${c.band}">${c.band}</span>`); set('.c-pay', inr(c.payout)); set('.c-rank', '#' + c.rank);
+    }
+    const avg = app.querySelector('#sdc-avg'); if (avg) avg.textContent = fmt(m.region_avg);
+  }, 350);
+}
+function lastFriday(ym) { // latest Friday on or before today, kept inside the month
+  const t = new Date(); const d = new Date(Date.UTC(t.getFullYear(), t.getMonth(), t.getDate()));
+  while (d.getUTCDay() !== 5) d.setUTCDate(d.getUTCDate() - 1);
+  let iso = d.toISOString().slice(0, 10);
+  if (iso.slice(0, 7) > ym) { const [y, m] = ym.split('-').map(Number); const e = new Date(Date.UTC(y, m, 0)); while (e.getUTCDay() !== 5) e.setUTCDate(e.getUTCDate() - 1); iso = e.toISOString().slice(0, 10); }
+  return iso;
+}
+async function refreshSdcGrid(ym) { // repaint week buttons + score cells in place, no page reload
+  let m; try { m = await api('admin/months?ym=' + ym + '&programme=sdc'); } catch (e) { return toast(e.message, true); }
+  if (state.month !== ym) return;
+  for (const e of m.entries) for (const w of e.weeks || []) for (const k of ['telebridge_done', 'palms_done']) {
+    const b = app.querySelector(`.tg button[data-w="${w.id}"][data-k="${k}"]`); if (!b) continue; const v = w[k];
+    b.dataset.v = v === null || v === undefined ? '' : v ? '1' : '0'; b.classList.toggle('y', v === true); b.classList.toggle('n', v === false);
+    b.classList.toggle('auto', k === 'telebridge_done' && !!w.telebridge_auto && v !== null);
+    b.textContent = `${k === 'palms_done' ? 'PALMS' : 'TB'} ${v === true ? '✓' : v === false ? '✗' : '·'}`;
+  }
+  refreshSdcScores(ym);
 }
 function loadSheetJS() {
   if (window.XLSX) return Promise.resolve();

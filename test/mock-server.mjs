@@ -2,8 +2,8 @@
 // node test/mock-server.mjs  -> http://localhost:4173
 import http from 'http'; import fs from 'fs'; import path from 'path';
 import { scoreEntry, nextBandHints, DEFAULT_SETTINGS } from '../api/_lib/scoring.js';
-import { parseChapterStatistics, parseTrainingReport, trainingPercents, parseTrafficLights } from '../api/_lib/parsers.js';
-import { scoreSdcEntry, nextSdcBandHints, meetingDates, weekCounts, mergeSdcSettings } from '../api/_lib/scoring_sdc.js';
+import { parseChapterStatistics, parseTrainingReport, trainingPercents, parseTrafficLights, parsePalmsStatus } from '../api/_lib/parsers.js';
+import { scoreSdcEntry, nextSdcBandHints, meetingDates, weekCounts, mergeSdcSettings, palmsFromReport } from '../api/_lib/scoring_sdc.js';
 
 const PUB = path.resolve(new URL('../public', import.meta.url).pathname);
 const legacy = JSON.parse(fs.readFileSync(new URL('../supabase/legacy/sheet_data.json', import.meta.url)));
@@ -31,6 +31,7 @@ function makeSdcMonth(ym) { const weeks = []; let wid = 1;
     return { id: Number(ym.replace('-', '')) * 100 + 50 + i, chapter_id: c.id, sdc_user_id: 200 + i, legacy: false, net_add: null, member_count: [102, 60, 45, 60, 38, 55, 50, 40, 70, 48, 61, 40, 36, 33][i], tl_status: i % 4 === 2 ? 'AMBER' : 'GREEN', tl_auto: true, tl_score: 80, retention_pct: 75, member_score: 80, visit_done: null, visit_auto: false, ltrt_attended: null, notes: null }; });
   return { ym, sdc_status: 'draft', entries, weeks, uploads: [] }; }
 sdcMonths['2026-10'] = makeSdcMonth('2026-10');
+for (const k of Object.keys(sdcMonths)) if (k < '2026-10') delete sdcMonths[k];
 const sdcSettings = () => mergeSdcSettings({ ...settings, sdc_commission_pct: 7.5 });
 function loadSdcMonth(ym) { const m = sdcMonths[ym]; if (!m) return null; const sa = months[ym];
   const prevYm = (() => { const [y, mo] = ym.split('-').map(Number); return mo === 1 ? `${y - 1}-12` : `${y}-${String(mo - 1).padStart(2, '0')}`; })();
@@ -85,6 +86,9 @@ http.createServer(async (req, res) => {
     if (p === '/api/admin/months' && body.programme === 'sdc') { if (body.action === 'create' && !sdcMonths[body.ym]) sdcMonths[body.ym] = makeSdcMonth(body.ym); if (body.action === 'publish') sdcMonths[body.ym].sdc_status = 'published'; if (body.action === 'unpublish') sdcMonths[body.ym].sdc_status = 'draft'; return json(res, 200, { ok: true }); }
     if (p === '/api/admin/months') { if (body.action === 'create' && !months[body.ym]) months[body.ym] = { ym: body.ym, status: 'draft', uploads: [], entries: chapters.map((c, i) => ({ id: Date.now() + i, chapter_id: c.id, sa_user_id: 100 + i, legacy: false, member_score: null, online_pct: null, offline_pct: null, retention_pct: null, one_to_one_per_member: null, ltrt_attended: null, jotform_done: null, new_members: 0, renewals: 0 })) };
       if (body.action === 'publish') months[body.ym].status = 'published'; if (body.action === 'unpublish') months[body.ym].status = 'draft'; return json(res, 200, { ok: true }); }
+    if (p === '/api/admin/entries' && body.programme === 'sdc' && body.action === 'palms_report') { const m = sdcMonths[body.ym]; const rows = parsePalmsStatus(body.text);
+      const km = {}; chapters.forEach(c => km[c.key] = c.id); const r = palmsFromReport(m.weeks, rows, km, body.as_of); for (const u of r.updates) m.weeks.find(w => w.id === u.week_id).palms_done = u.palms_done;
+      return json(res, 200, { ok: true, updates: r.updates.map(u => ({ chapter: chapters[u.chapter_id - 1].name, week_date: u.week_date, last: u.last, on_time: u.palms_done })), skipped: r.skipped, missing: chapters.filter(c => !rows.some(x => x.key === c.key)).map(c => c.name) }); }
     if (p === '/api/admin/entries' && body.programme === 'sdc') { for (const m of Object.values(sdcMonths)) { if (body.week_id) { const w = m.weeks.find(x => x.id === Number(body.week_id)); if (w) { for (const k of ['no_meeting', 'telebridge_done', 'palms_done']) if (k in body) w[k] = body[k]; if ('telebridge_done' in body) w.telebridge_auto = false; } }
         const e = m.entries.find(x => x.id === Number(body.id)); if (e) { for (const k of Object.keys(body)) if (!['id', 'programme'].includes(k)) e[k] = body[k] === '' ? null : (['ltrt_attended', 'visit_done', 'notes', 'tl_status'].includes(k) ? body[k] : Number(body[k])); if ('tl_status' in body) e.tl_auto = false; } } return json(res, 200, { ok: true }); }
     if (p === '/api/admin/entries') { for (const m of Object.values(months)) { const e = m.entries.find(x => x.id === Number(body.id)); if (e) { for (const k of Object.keys(body)) if (k !== 'id') e[k] = body[k] === '' ? null : (['ltrt_attended', 'jotform_done', 'notes'].includes(k) ? body[k] : Number(body[k])); } } return json(res, 200, { ok: true }); }

@@ -139,3 +139,25 @@ export function nextSdcBandHints(entry, settings) {
   hints.sort((a, b) => b.gain_scaled - a.gain_scaled);
   return { next: next.label, next_emoji: next.emoji, next_min: next.min, gap, hints };
 }
+
+/**
+ * PALMS on time from a Friday "Last Meeting Entered" report.
+ * For each chapter, the week checked is its meeting date in the 7 days ending on the report date (asOf).
+ * On time = the last meeting entered on BNI Connect is that meeting date or later.
+ * weeks: sdc_weeks rows ({id, chapter_id, week_date, no_meeting}); rows: parsePalmsStatus output; keyToChapterId: {key: id}.
+ * Returns { updates: [{week_id, chapter_id, week_date, palms_done, last}], skipped: [{chapter, reason}] }.
+ */
+export function palmsFromReport(weeks, rows, keyToChapterId, asOf) {
+  const day = d => Date.UTC(+d.slice(0, 4), +d.slice(5, 7) - 1, +d.slice(8, 10));
+  const end = day(asOf), start = end - 6 * 86400000;
+  const updates = [], skipped = [];
+  for (const r of rows) {
+    const chId = keyToChapterId[r.key];
+    if (!chId) { skipped.push({ chapter: r.chapter, reason: 'chapter not in the app' }); continue; }
+    const w = (weeks || []).find(x => x.chapter_id === chId && day(String(x.week_date)) >= start && day(String(x.week_date)) <= end);
+    if (!w) { skipped.push({ chapter: r.chapter, reason: 'no meeting of this month in the week ending ' + asOf }); continue; }
+    if (w.no_meeting) { skipped.push({ chapter: r.chapter, reason: 'week marked no meeting' }); continue; }
+    updates.push({ week_id: w.id, chapter_id: chId, week_date: String(w.week_date), palms_done: day(r.last) >= day(String(w.week_date)), last: r.last });
+  }
+  return { updates, skipped };
+}

@@ -68,3 +68,26 @@ assert.equal(tl.rows[1].key, 'comorin'); assert.equal(tl.rows[1].status, 'RED');
 const tl2 = parseTrafficLights([['Chapter Name', 'Score'], ['BNI Kanya', 72], ['BNI Kings', 55], ['BNI Saral', 30]], '2026-09');
 assert.deepEqual(tl2.rows.map(r => r.status), ['GREEN', 'AMBER', 'RED']);
 console.log('SDC checks passed ✓');
+
+// ---------- PALMS from the Friday "Last Meeting Entered" report ----------
+import { parsePalmsStatus, readDate } from '../api/_lib/parsers.js';
+import { palmsFromReport } from '../api/_lib/scoring_sdc.js';
+assert.equal(readDate('Oct 16, 2026'), '2026-10-16'); assert.equal(readDate('16 Oct 2026'), '2026-10-16'); assert.equal(readDate('16/10/2026'), '2026-10-16'); assert.equal(readDate('Sept 9, 2026'), '2026-09-09');
+const pasted = `Region Name\tChapter Name\tLast Meeting Entered
+Nagercoil & Tuticorin\tBNI Comorin\tOct 16, 2026
+Nagercoil & Tuticorin\tBNI Kanya\tOct 13, 2026
+Tirunelveli\tBNI Bamboo Kottai\tOct 14, 2026
+Tirunelveli\tBNI Dil Nadu\tOct 9, 2026
+Tirunelveli BNI Cmy Veli Oct 15, 2026`;
+const pr = parsePalmsStatus(pasted);
+assert.deepEqual(pr.map(r => [r.key, r.last]), [['comorin', '2026-10-16'], ['kanya', '2026-10-13'], ['bambookottai', '2026-10-14'], ['dilnadu', '2026-10-09'], ['cmyveli', '2026-10-15']]);
+const wk = [
+  { id: 1, chapter_id: 12, week_date: '2026-10-09' }, { id: 2, chapter_id: 12, week_date: '2026-10-16' },   // Comorin Fri
+  { id: 3, chapter_id: 11, week_date: '2026-10-13' },                                                       // Kanya Tue
+  { id: 4, chapter_id: 2, week_date: '2026-10-14', no_meeting: true },                                      // Bamboo Kottai Wed, holiday
+  { id: 5, chapter_id: 4, week_date: '2026-10-16' },                                                        // Dil Nadu Fri, last entered 9 Oct = late
+];
+const res = palmsFromReport(wk, pr, { comorin: 12, kanya: 11, bambookottai: 2, dilnadu: 4 }, '2026-10-16');
+assert.deepEqual(res.updates.map(u => [u.week_id, u.palms_done]), [[2, true], [3, true], [5, false]]);
+assert.deepEqual(res.skipped.map(s => s.chapter), ['BNI Bamboo Kottai', 'BNI Cmy Veli']);
+console.log('PALMS report checks passed ✓');

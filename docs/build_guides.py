@@ -433,7 +433,7 @@ admin_body += """
 <h3>Step 2: Every Friday evening during the month</h3>
 <ol>
 <li>Click <b>Sync Jotform</b>. Tele-bridge submissions are matched to the meeting week by chapter and meeting date and ticked <b>TB ✓</b>. Future weeks stay blank.</li>
-<li>In the weekly grid, tick <b>PALMS ✓</b> for every chapter whose PALMS came in on time this week, <b>PALMS ✗</b> for the rest. Keep the PALMS screenshot in the office records as proof.</li>
+<li><b>PALMS:</b> on BNI Connect open the <b>Last Meeting Entered</b> report, select the whole table and copy it. In the <b>PALMS on time · Friday check</b> box, set the report date to today (Friday), paste, and click <b>Apply PALMS</b>. Each chapter's meeting that week is ticked ✓ if it was entered, ✗ if the last meeting entered is older. The result lists the late chapters. Single cells can still be clicked by hand.</li>
 <li>If a chapter did not meet this week (holiday), click <b>no meeting</b> under that cell. The week drops out of both denominators.</li>
 <li>A wrong automatic tick can be clicked to change it; manual ticks survive later syncs.</li>
 </ol>
