@@ -54,6 +54,7 @@ export default handler(async ({ req, session, body }) => {
     }
     const d = new Date(s); return Number.isNaN(d.getTime()) ? null : d.toISOString().slice(0, 10);
   };
+  const swapDayMonth = iso => { const [y, m, d] = String(iso || '').split('-').map(Number); return d && d <= 12 && d !== m ? `${y}-${String(d).padStart(2, '0')}-${String(m).padStart(2, '0')}` : null; };
   const dayDiff = (a, b) => Math.round((new Date(a + 'T00:00:00Z') - new Date(b + 'T00:00:00Z')) / 86400000);
 
   const tbForm = sdc ? settings.telebridge_form_id : null;
@@ -107,7 +108,9 @@ export default handler(async ({ req, session, body }) => {
     const mine = visitSubs.filter(s => normChapter(findAnswer(s, 'select chapter', 'chapter')) === c.key);
     const alias = (e.sdc?.jotform_alias || e.sdc?.name || '').toLowerCase().trim();
     const theirs = mine.filter(s => { const who = (findAnswer(s, 'visited by') + ' ' + findAnswer(s, 'name')).toLowerCase(); return alias && who.includes(alias); })
-      .map(s => { const vd = toDate(findAnswer(s, 'visit date', 'date')); const sd = (s.created_at || '').slice(0, 10); const late = vd && sd ? dayDiff(sd, vd) : null;
+      .map(s => { let vd = toDate(findAnswer(s, 'visit date', 'date')); const sd = (s.created_at || '').slice(0, 10);
+        const sw = swapDayMonth(vd); if (vd && sd && sw) { const l1 = dayDiff(sd, vd), l2 = dayDiff(sd, sw); if (!(l1 >= 0 && l1 <= 1) && l2 >= 0 && l2 <= 1) vd = sw; }
+        const late = vd && sd ? dayDiff(sd, vd) : null;
         return { s, visit_date: vd, submitted: sd, late_days: late, on_time: late !== null && late >= 0 && late <= limitDays }; });
     const match = theirs.find(t => t.on_time) || theirs[0] || null;
     const row = { chapter: c.name, sdc: e.sdc?.name || null, submissions: mine.length, matched: !!(match && match.on_time), late: !!(match && !match.on_time),
@@ -129,17 +132,23 @@ export default handler(async ({ req, session, body }) => {
       const key = normChapter(chapterRaw);
       const c = chapters.find(x => x.key === key);
       const meetingRaw = findAnswer(s, 'date of the chapter meeting', 'meeting');
-      const md = toDate(meetingRaw);
+      let md = toDate(meetingRaw);
       const createdUtc = zonedToUtcMs(s.created_at, jotTz);
       const row = { submitted: istLabel(createdUtc), chapter: c ? c.name : chapterRaw, meeting_entered: md || meetingRaw || null,
         submitted_by: findAnswer(s, 'submitted by'), week: null, deadline: null, result: '' };
       tbDetail.push(row);
       if (!c) { row.result = 'chapter not recognised'; tbUnmatched.push({ chapter: chapterRaw, date: md }); continue; }
       if (!md) { row.result = 'meeting date unreadable'; tbUnmatched.push({ chapter: chapterRaw, date: meetingRaw }); continue; }
-      if (md.slice(0, 7) !== ym) { row.result = `meeting in ${md.slice(0, 7)}, not this month`; continue; }
       const ws = byChapter[c.id] || [];
-      let best = null, bestD = 99;
-      for (const w of ws) { const d = Math.abs(dayDiff(md, w.week_date)); if (d < bestD) { best = w; bestD = d; } }
+      const nearest = date => { let bw = null, bd = 99; if (date.slice(0, 7) !== ym) return [null, 99]; for (const w of ws) { const d = Math.abs(dayDiff(date, w.week_date)); if (d < bd) { bw = w; bd = d; } } return [bw, bd]; };
+      let [best, bestD] = nearest(md);
+      // Day-first typing (07-10-2026 meant 7 Oct) gets read month-first as 10 July: if the swapped reading hits a meeting, use it
+      const swapped = swapDayMonth(md);
+      if ((!best || bestD > 0) && swapped) {
+        const [b2, d2] = nearest(swapped);
+        if (b2 && d2 < bestD && d2 <= 3) { best = b2; bestD = d2; row.note = `entered ${md}, read as ${swapped} (day-first)`; md = swapped; row.meeting_entered = `${row.meeting_entered} → ${swapped}`; }
+      }
+      if (md.slice(0, 7) !== ym) { row.result = `meeting in ${md.slice(0, 7)}, not this month`; continue; }
       if (!best || bestD > 3) { row.result = 'no meeting of this chapter within 3 days of that date'; continue; }
       row.week = String(best.week_date);
       const deadline = telebridgeDeadlineUtc(best.week_date);
