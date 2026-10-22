@@ -22,7 +22,8 @@ export default handler(async ({ req, session, body }) => {
     parsed = parseChapterStatistics(text);
     month = await ensureMonth(parsed.month, session.uid);
     const sdcMonth = await ensureSdcMonth(parsed.month, session.uid);
-    const saLocked = month.status === 'published', sdcLocked = sdcMonth.sdc_status === 'published';
+    const baseline = parsed.month < settings.go_live_ym; // pre-go-live months only hold member counts; their scores are never shown
+    const saLocked = !baseline && month.status === 'published', sdcLocked = !baseline && sdcMonth.sdc_status === 'published';
     if (saLocked && sdcLocked) throw fail(`${parsed.month} is published for both SAs and SDCs. Unpublish it first if you need to re-upload.`);
     for (const r of parsed.rows) {
       const c = byKey[r.key] || byKey[normChapter(r.chapter)];
@@ -41,8 +42,8 @@ export default handler(async ({ req, session, body }) => {
       updated.push({ chapter: c.name, member_count: r.mem_avg, one_to_one_per_member: r.one_to_one_per_member });
     }
     // If a training upload already happened for these chapters, recompute its % with the new member counts
-    if (!saLocked) await recomputeTraining(month.id, settings, updated.map(u => byKey[normChapter(u.chapter)].id));
-    summary = { region: parsed.region, month: parsed.month, chapters: updated.length, unmatched, sa_locked: saLocked };
+    if (!saLocked && !baseline) await recomputeTraining(month.id, settings, updated.map(u => byKey[normChapter(u.chapter)].id));
+    summary = { region: parsed.region, month: parsed.month, chapters: updated.length, unmatched, sa_locked: saLocked, baseline };
   } else if (kind === 'training') {
     parsed = parseTrainingReport(text);
     month = await ensureMonth(parsed.month, session.uid);
