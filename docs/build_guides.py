@@ -139,7 +139,7 @@ sa_body += """
 <tr><td class='k'>How to reach the next band</td><td>The exact actions, biggest gain first, that take you to the next band. Start here every month.</td></tr>
 <tr><td class='k'>Your trend</td><td>Your score month by month against the region average and the Gold line at 85.</td></tr>
 </table>
-<p>Months up to September 2026 are marked "legacy": they were scored on the old sheet (out of 100 with Mentoring) and show no payout. From October 2026 the new system applies.</p>
+<p><b>Fresh start:</b> every SA starts from October 2026. Nothing from the old Google Sheet is carried over, so your first scorecard, rank and payout are for October.</p>
 
 <h2 class='pb'>4. The scoring system</h2>
 """ + SCORING_TABLE + """
@@ -242,7 +242,7 @@ sdc_body += """
 <tr><td class='k'>How to reach the next band</td><td>The exact actions, biggest gain first, that take you to the next band. Start here every month.</td></tr>
 <tr><td class='k'>Your trend</td><td>Your score month by month against the region average and the Gold line at 85.</td></tr>
 </table>
-<p>Months June to September 2026 are marked "legacy": they were scored on the old sheet and show no payout. From October 2026 the new system applies.</p>
+<p><b>Fresh start:</b> every SDC starts from October 2026. Nothing from the old Google Sheet is carried over, so your first scorecard, rank and payout are for October.</p>
 
 <h2 class='pb'>4. The scoring system</h2>
 """ + SDC_SCORING_TABLE + """
@@ -428,6 +428,7 @@ admin_body += """
 <h2 class='pb'>9. The SDC month (Support Director Consultants)</h2>
 <p>Switch the console to <b>SDC</b>. The SDC month is a separate page with its own publish button, but it shares the chapter list, the Chapter Statistics upload and the New / Renewals counts with the SA month.</p>
 <h3>Step 1: Open the month</h3>
+<p><b>First month only (October 2026):</b> open <b>September 2026</b> on the SDC switch (marked "baseline") and drop that month's Chapter Statistics for both regions. That gives October its starting member count. Do this once.</p>
 <p>Months → pick the month → <b>Open month</b>. The app creates one row per chapter and the <b>weekly grid</b>: one cell per chapter meeting date (Ainthinai Tue, Bamboo Kottai Wed, Cmy Veli Thu, and so on; meeting days are in Settings).</p>
 <h3>Step 2: Every Friday evening during the month</h3>
 <ol>
@@ -469,7 +470,8 @@ admin_body += """
 <li>Payout counts members by <b>payment month</b>, not by renewal date.</li>
 <li>History belongs to the person, not the chapter. A new SA starts with a blank history.</li>
 <li>The Google Sheet is now an archive. The app is the record.</li>
-<li>SDC net growth is <b>monthly</b> (this month's count minus last month's), not the trailing "Growth" figure printed on the Traffic Lights report. The old SDC sheet used the trailing figure, which is why June to September net adds look large.</li>
+<li><b>Go-live is October 2026</b> for both programmes. Earlier months are not scored or shown. September 2026 exists only as a <b>baseline</b>: upload its Chapter Statistics (both regions) once so October net growth has a starting point. A baseline month cannot be published.</li>
+<li>SDC net growth is <b>monthly</b> (this month's count minus last month's), not the trailing "Growth" figure printed on the Traffic Lights report.</li>
 <li>Tele-bridge weeks are matched by the <b>meeting date</b> typed on the form, not by the date the form was submitted.</li>
 </ul>
 <div class='footer'>BNI TNT Region · SA &amp; SDC Scorecard Admin Guide v1.1 · Owner Mohamed Riaz · https://sa.bnitnt.in</div>
