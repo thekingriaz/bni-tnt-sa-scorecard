@@ -12,7 +12,7 @@ export default handler(async ({ session }) => {
   const { data: mine } = await db.from('sa_entries')
     .select('id, month:sa_months!inner(id,ym,status,published_at), chapter:sa_chapters(id,name)')
     .eq('sa_user_id', session.uid).eq('month.status', 'published');
-  const yms = [...new Set((mine || []).map(e => e.month.ym))].sort();
+  const yms = [...new Set((mine || []).map(e => e.month.ym))].filter(ym => ym >= settings.go_live_ym).sort();
   const history = [];
   const loaded = await loadMonths(yms, settings);
   for (const m of loaded) {
@@ -44,10 +44,11 @@ export default handler(async ({ session }) => {
 
 async function sdcDashboard(session) {
   const settings = mergeSdcSettings(await loadSettings());
+  const goLive = settings.go_live_ym || '2026-10';
   const { data: mine } = await db.from('sdc_entries')
     .select('id, month:sa_months!inner(id,ym,sdc_status)')
     .eq('sdc_user_id', session.uid).eq('month.sdc_status', 'published');
-  const yms = [...new Set((mine || []).map(e => e.month.ym))].sort();
+  const yms = [...new Set((mine || []).map(e => e.month.ym))].filter(ym => ym >= goLive).sort();
   const history = [];
   const loaded = await loadSdcMonths(yms, settings);
   for (const m of loaded) {

@@ -339,7 +339,7 @@ async function renderAdmin() {
   <div class="card"><div class="row"><h2 style="margin:0">Months · ${PROG_NAME[state.prog]}s</h2><div class="spacer"></div>
     <input id="new-ym" type="month" value="${months.find(m => m.ym === prevYm) ? thisYm : prevYm}" style="width:auto"><button class="btn" id="btn-new">Open month</button></div>
     <div class="tbl-wrap" style="margin-top:12px"><table><thead><tr><th>Month</th><th>Status</th><th class="right">Filled</th><th class="right">Region avg</th><th class="right">Payout total</th><th></th></tr></thead>
-    <tbody>${months.map(m => `<tr><td><b>${monthName(m.ym)}</b></td><td><span class="pill ${m.status}">${m.status}</span></td><td class="right">${m.filled}/${m.entries}</td><td class="right">${fmt(m.region_avg)}</td><td class="right">${inr(m.payout_total)}</td><td class="right"><button class="btn ghost sm" data-ym="${m.ym}">Open</button></td></tr>`).join('') || '<tr><td colspan="6" class="muted">No months yet. Open one above or upload a BNI Connect file.</td></tr>'}</tbody></table></div>
+    <tbody>${months.map(m => `<tr><td><b>${monthName(m.ym)}</b></td><td>${m.baseline ? '<span class="pill draft" title="Before go-live: holds member counts for net growth only. Never scored or published.">baseline</span>' : `<span class="pill ${m.status}">${m.status}</span>`}</td><td class="right">${m.filled}/${m.entries}</td><td class="right">${fmt(m.region_avg)}</td><td class="right">${inr(m.payout_total)}</td><td class="right"><button class="btn ghost sm" data-ym="${m.ym}">Open</button></td></tr>`).join('') || '<tr><td colspan="6" class="muted">No months yet. Open one above or upload a BNI Connect file.</td></tr>'}</tbody></table></div>
   </div>
   <div class="card" style="margin-top:14px"><h3>Monthly routine</h3>${state.prog === 'sdc' ? `<ol class="small" style="margin:0;padding-left:18px">
     <li>Open the month. The weekly grid is created from each chapter's meeting day.</li>
@@ -360,6 +360,7 @@ async function renderMonth(ym) {
   app.innerHTML = adminNav() + '<div class="card center muted">Loading…</div>'; bindNav();
   let m; try { m = await api('admin/months?ym=' + ym); } catch (e) { toast(e.message, true); state.month = null; return renderAdmin(); }
   const pub = m.month.status === 'published';
+  const base = !!m.baseline;
   const sas = state.users ? state.users.filter(u => u.role === 'sa') : null;
   const num = (e, k, step = 'any', w = '') => pub || e.legacy ? `<td class="num">${fmt(e[k], 2)}</td>` : `<td class="num"><input class="cell-in ${w}" type="number" step="${step}" data-id="${e.id}" data-k="${k}" value="${e[k] ?? ''}"></td>`;
   const yn = (e, k, a, b) => pub || e.legacy ? `<td>${e[k] === null ? '–' : e[k] ? a : b}</td>` : `<td><select class="cell-sel" data-id="${e.id}" data-k="${k}"><option value="" ${e[k] === null ? 'selected' : ''}>–</option><option value="1" ${e[k] === true ? 'selected' : ''}>${a}</option><option value="0" ${e[k] === false ? 'selected' : ''}>${b}</option></select>${k === 'jotform_done' && e.jotform_auto ? '<span class="auto">auto</span>' : ''}</td>`;
@@ -380,7 +381,8 @@ async function renderMonth(ym) {
   app.innerHTML = adminNav() + `
   <div class="row" style="margin-bottom:12px"><button class="btn ghost sm" id="back">← Months</button><h2 style="margin:0">${monthName(ym)}</h2><span class="pill ${m.month.status}">${m.month.status}</span><div class="spacer"></div>
     <span class="small muted">Region avg <b>${fmt(m.region_avg)}</b></span>
-    ${pub ? `<button class="btn ghost sm" id="unpub">Unpublish</button>` : `<button class="btn" id="pub">Publish month</button>`}</div>
+    ${base ? '<span class="pill draft">baseline</span>' : pub ? `<button class="btn ghost sm" id="unpub">Unpublish</button>` : `<button class="btn" id="pub">Publish month</button>`}</div>
+  ${base ? `<div class="banner">${monthName(ym)} is before the go-live month (${monthName(m.go_live_ym)}). It only holds member counts so ${monthName(m.go_live_ym)} net growth can be calculated. It is never scored or shown to SAs or SDCs.</div>` : ''}
   ${pub ? '' : `<div class="grid g2" style="margin-bottom:14px">
     <div class="card"><h3>Upload BNI Connect exports</h3>
       <div class="drop" id="drop">Drop .xls files here or click to choose<br><span class="small">Chapter Statistics and Region Member Training Report, one month, both regions. Type is detected from the file.</span></div>
@@ -441,6 +443,7 @@ async function renderSdcMonth(ym) {
   app.innerHTML = adminNav() + '<div class="card center muted">Loading…</div>'; bindNav();
   let m; try { m = await api('admin/months?ym=' + ym + '&programme=sdc'); } catch (e) { toast(e.message, true); state.month = null; return renderAdmin(); }
   const pub = m.month.sdc_status === 'published';
+  const base = !!m.baseline;
   const ro = e => pub || e.legacy;
   const num = (e, k, step = 'any', extra = '') => ro(e) ? `<td class="num">${fmt(e[k], 2)}${extra}</td>` : `<td class="num"><input class="cell-in" type="number" step="${step}" data-id="${e.id}" data-k="${k}" value="${e[k] ?? ''}">${extra}</td>`;
   const yn = (e, k, a, b, autoFlag) => ro(e) ? `<td>${e[k] === null ? '–' : e[k] ? a : b}</td>` : `<td><select class="cell-sel" data-id="${e.id}" data-k="${k}"><option value="" ${e[k] === null ? 'selected' : ''}>–</option><option value="1" ${e[k] === true ? 'selected' : ''}>${a}</option><option value="0" ${e[k] === false ? 'selected' : ''}>${b}</option></select>${autoFlag && e[autoFlag] ? '<span class="auto">auto</span>' : ''}</td>`;
@@ -471,7 +474,8 @@ async function renderSdcMonth(ym) {
   app.innerHTML = adminNav() + `
   <div class="row" style="margin-bottom:12px"><button class="btn ghost sm" id="back">← Months</button><h2 style="margin:0">${monthName(ym)} · SDC</h2><span class="pill ${m.month.sdc_status}">${m.month.sdc_status}</span><div class="spacer"></div>
     <span class="small muted">Region avg <b>${fmt(m.region_avg)}</b></span>
-    ${pub ? `<button class="btn ghost sm" id="unpub">Unpublish</button>` : `<button class="btn" id="pub">Publish month</button>`}</div>
+    ${base ? '<span class="pill draft">baseline</span>' : pub ? `<button class="btn ghost sm" id="unpub">Unpublish</button>` : `<button class="btn" id="pub">Publish month</button>`}</div>
+  ${base ? `<div class="banner">${monthName(ym)} is before the go-live month (${monthName(m.go_live_ym)}). Upload its <b>Chapter Statistics</b> (both regions) here so ${monthName(m.go_live_ym)} net growth has a starting point. Nothing else is needed; this month is never scored or shown to SDCs.</div>` : ''}
   ${pub ? '' : `<div class="grid g2" style="margin-bottom:14px">
     <div class="card"><h3>Upload reports</h3>
       <div class="drop" id="drop">Drop files here or click to choose<br><span class="small"><b>All India Chapter Traffic Lights</b> (.xlsx) for ${monthName(ym)}, and/or BNI Connect <b>Chapter Statistics</b> (.xls, both regions) for member counts.</span></div>

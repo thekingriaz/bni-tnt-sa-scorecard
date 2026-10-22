@@ -2,6 +2,7 @@
 // Pure functions. Used by the API (and copied verbatim into the frontend for live previews).
 
 export const DEFAULT_SETTINGS = {
+  go_live_ym: '2026-10',      // first scored month for both programmes; earlier months are baseline only (never shown, never published)
   fee_amount: 49040,          // ₹ per member (new or renewal)
   commission_pct: 2.5,        // % of fee_amount per member
   mentoring_enabled: false,   // paused: score out of 80, scaled to 100

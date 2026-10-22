@@ -15,7 +15,8 @@ export default handler(async ({ req, session, body }) => {
       const m = programme === 'sdc' ? await loadSdcMonth(ym) : await loadMonth(ym);
       if (!m) throw fail('Month not found', 404);
       const { data: uploads } = await db.from('sa_uploads').select('id,kind,region,filename,summary,created_at').eq('month_id', m.month.id).order('created_at', { ascending: false });
-      return { ...m, programme, uploads };
+      const settings = await loadSettings();
+      return { ...m, programme, uploads, baseline: ym < settings.go_live_ym, go_live_ym: settings.go_live_ym };
     }
     const { data: months } = await db.from('sa_months').select('*').order('ym', { ascending: false });
     const settings = await loadSettings();
@@ -24,13 +25,13 @@ export default handler(async ({ req, session, body }) => {
     const empty = { entries: [], region_avg: 0 };
     const out = (months || []).map(mo => {
       const m = saAll.find(x => x.month.ym === mo.ym) || empty, d = sdcAll.find(x => x.month.ym === mo.ym) || empty;
-      return { ...mo,
+      return { ...mo, baseline: mo.ym < settings.go_live_ym,
         sa: { status: mo.status, region_avg: m.region_avg, entries: m.entries.length, filled: m.entries.filter(e => e.legacy || e.member_score !== null).length, payout_total: m.entries.reduce((a, e) => a + (e.computed.payout || 0), 0) },
         sdc: { status: mo.sdc_status, region_avg: d.region_avg, entries: d.entries.length, filled: d.entries.filter(e => e.legacy || e.member_score !== null || e.tl_status).length, payout_total: d.entries.reduce((a, e) => a + (e.computed.payout || 0), 0) },
         // backwards-compatible SA fields
         region_avg: m.region_avg, entries: m.entries.length, filled: m.entries.filter(e => e.legacy || e.member_score !== null).length, payout_total: m.entries.reduce((a, e) => a + (e.computed.payout || 0), 0) };
     });
-    return { months: out };
+    return { months: out, go_live_ym: settings.go_live_ym };
   }
   if (req.method !== 'POST') throw fail('Method not allowed', 405);
   const { action, ym } = body;
@@ -42,6 +43,8 @@ export default handler(async ({ req, session, body }) => {
     return { ok: true, month };
   }
   if (action === 'publish') {
+    const st = await loadSettings();
+    if (ym < st.go_live_ym) throw fail(`${ym} is before the go-live month (${st.go_live_ym}). It holds baseline member counts only and cannot be published.`);
     const m = sdc ? await persistSdcComputed(ym) : await persistComputed(ym);
     const patch = sdc ? { sdc_status: 'published', sdc_published_at: new Date().toISOString(), sdc_published_by: session.uid }
                       : { status: 'published', published_at: new Date().toISOString(), published_by: session.uid };
