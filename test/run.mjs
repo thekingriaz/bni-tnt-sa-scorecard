@@ -116,3 +116,17 @@ assert.deepEqual(['kings', 'nanjil'].map(k => { const r = ma2.rows.find(x => x.k
 for (const r of [...ma1.rows, ...ma2.rows]) assert.equal(r.change, r.joined - r.left);
 assert.throws(() => parseMembershipActivity(F('chapter-statistics-tirunelveli-sep2026.xls')), /not a Membership Activity/);
 console.log('Membership Activity checks passed ✓');
+
+// ---------- Real All India Traffic Lights export (Sept 2026): two score columns, repeated chapter names, no colour column ----------
+const tlReal = JSON.parse(F('traffic-lights-sep2026-rows.json'));
+const tr = parseTrafficLights(tlReal, null, ['Tirunelveli', 'Nagercoil & Tuticorin']);
+assert.equal(tr.month, '2026-09'); assert.match(tr.score_column, /Sept 2026/);
+assert.equal(tr.rows.length, 14);                                  // only our two regions
+const byK = Object.fromEntries(tr.rows.map(r => [r.key, r]));
+assert.equal(byK.kings.region, 'Nagercoil & Tuticorin'); assert.equal(byK.kings.score, 55); assert.equal(byK.kings.status, 'AMBER'); // not Tirupur's / Kottayam's Kings
+assert.equal(byK.ainthinai.score, 95); assert.equal(byK.ainthinai.status, 'GREEN');
+assert.equal(byK.dilnadu.score, 90);                               // Sept column, not Aug (65)
+assert.equal(byK.tamilan.status, 'GREEN'); assert.equal(byK.saral.status, 'AMBER'); assert.equal(byK.comorin.score, 60);
+assert.equal(tr.rows.filter(r => r.status === 'GREEN').length, 9);
+assert.equal(parseTrafficLights(tlReal, '2026-08', ['Tirunelveli', 'Nagercoil & Tuticorin']).rows.find(r => r.key === 'dilnadu').score, 65); // explicit month picks Aug
+console.log('Real Traffic Lights checks passed ✓');

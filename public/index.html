@@ -444,6 +444,7 @@ async function renderSdcMonth(ym) {
   let m; try { m = await api('admin/months?ym=' + ym + '&programme=sdc'); } catch (e) { toast(e.message, true); state.month = null; return renderAdmin(); }
   const pub = m.month.sdc_status === 'published';
   const base = !!m.baseline;
+  if (m.go_live_ym) state.goLive = m.go_live_ym;
   const ro = e => pub || e.legacy;
   const num = (e, k, step = 'any', extra = '') => ro(e) ? `<td class="num">${fmt(e[k], 2)}${extra}</td>` : `<td class="num"><input class="cell-in" type="number" step="${step}" data-id="${e.id}" data-k="${k}" value="${e[k] ?? ''}">${extra}</td>`;
   const yn = (e, k, a, b, autoFlag) => ro(e) ? `<td>${e[k] === null ? '–' : e[k] ? a : b}</td>` : `<td><select class="cell-sel" data-id="${e.id}" data-k="${k}"><option value="" ${e[k] === null ? 'selected' : ''}>–</option><option value="1" ${e[k] === true ? 'selected' : ''}>${a}</option><option value="0" ${e[k] === false ? 'selected' : ''}>${b}</option></select>${autoFlag && e[autoFlag] ? '<span class="auto">auto</span>' : ''}</td>`;
@@ -594,8 +595,11 @@ async function handleSdcFiles(files, ym) {
         let rows = null;
         for (const name of wb.SheetNames) { const rs = XLSX.utils.sheet_to_json(wb.Sheets[name], { header: 1, defval: null }); if (rs.some(row => row.some(c => /chapter/i.test(String(c ?? ''))) && row.some(c => /score|status/i.test(String(c ?? ''))))) { rows = rs; break; } }
         if (!rows) rows = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], { header: 1, defval: null });
-        r = await api('admin/upload', { method: 'POST', body: { kind: 'traffic_lights', filename: f.name, ym, rows: rows.slice(0, 4000) } });
-        log.lastElementChild.innerHTML = `<span class="ok">✓</span> ${esc(f.name)}: Traffic Lights ${monthName(r.month)}, ${r.updated.length} of our chapters found` + (r.updated.length ? ` (${r.updated.map(u => `${esc(u.chapter.replace(/^BNI\s+/, ''))} <span class="tl-${u.status}">${u.status}</span>${u.kept_manual ? '*' : ''}`).join(', ')})` : '') + (r.warning ? ` <span class="bad">${esc(r.warning)}</span>` : '');
+        // the all-India sheet is ~1,600 rows x 100 columns of mostly blanks: trim before sending
+        const slim = rows.slice(0, 5000).map(row => { const x = row.slice(0, 30); while (x.length && (x[x.length - 1] === null || x[x.length - 1] === '')) x.pop(); return x; });
+        r = await api('admin/upload', { method: 'POST', body: { kind: 'traffic_lights', filename: f.name, ym, rows: slim } });
+        log.lastElementChild.innerHTML = `<span class="ok">✓</span> ${esc(f.name)}: Traffic Lights ${monthName(r.month)} (column "${esc(r.score_column || '')}"), ${r.updated.length} of our chapters` + (r.updated.length ? `: ${r.updated.map(u => `${esc(u.chapter.replace(/^BNI\s+/, ''))} ${u.score ?? ''} <span class="tl-${u.status}">${u.status}</span>${u.kept_manual ? '*' : ''}`).join(', ')}` : '') + (r.warning ? ` <span class="bad">${esc(r.warning)}</span>` : '');
+        if (r.month !== ym && r.month >= (state.goLive || '0000-00')) { toast(`File is for ${monthName(r.month)}, opening that month`); state.month = r.month; state.upLog = log.innerHTML; return renderSdcMonth(r.month); }
       } else {
         const text = await f.text();
         const kind = /Membership Activity by Chapter/i.test(text) ? 'membership_activity' : /Chapter Statistics/i.test(text) ? 'chapter_statistics' : /Member Training Report/i.test(text) ? 'training' : null;

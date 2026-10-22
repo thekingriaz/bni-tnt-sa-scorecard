@@ -87,7 +87,7 @@ SDC_SCORING_TABLE = """
 <table class='data'>
 <tr><th>#</th><th>KPI</th><th>Where the number comes from</th><th>Scoring</th><th>Max</th></tr>
 <tr><td>1</td><td class='k'>Chapter Net Growth</td><td>Members who joined minus members who left in the month, from the BNI Connect <b>Membership Activity by Chapter</b> report (uploaded by admin).</td><td>+2 or more = 20 pts<br>+1 = 10 pts<br>0 or negative = 0</td><td>20</td></tr>
-<tr><td>2</td><td class='k'>All India Traffic Light</td><td>Your chapter's colour on the monthly All India Chapter Traffic Lights report (uploaded by admin)</td><td>GREEN = 15 pts<br>AMBER or RED = 0</td><td>15</td></tr>
+<tr><td>2</td><td class='k'>All India Traffic Light</td><td>Your chapter's score for the month on the All India Chapter Traffic Lights report (uploaded by admin). 70 or more is GREEN.</td><td>GREEN (70+) = 15 pts<br>AMBER or RED = 0</td><td>15</td></tr>
 <tr><td>3</td><td class='k'>Overall Renewal Rate</td><td>Chapter's overall retention % as published in the monthly 3+1 Traffic Lights (admin enters)</td><td>80% or more = 20 pts<br>70% to 79.9% = 10 pts<br>Below 70% = 0</td><td>20</td></tr>
 <tr><td>4</td><td class='k'>Your own Member Score</td><td>Your Traffic Light score as a member (admin enters)</td><td>80 or more = 10 pts<br>70 to 79 = 5 pts<br>Below 70 = 0</td><td>10</td></tr>
 <tr><td>5</td><td class='k'>Weekly Tele-Bridge call with LT</td><td>The weekly "Support DC Tele-bridge Call" Jotform submission, matched to each chapter meeting date automatically. Counts only if submitted <b>by 09:30 AM IST, two days after the meeting</b> (Tuesday meeting: by Thursday 09:30).</td><td>Weeks done on time ÷ meetings held × 10</td><td>10</td></tr>
@@ -440,7 +440,7 @@ admin_body += """
 <table class='data'>
 <tr><th>Column</th><th>Source</th><th>Rule</th></tr>
 <tr><td class='k'>Net add</td><td>BNI Connect → Reports → Region Meeting Statistics → <b>Membership Activity by Chapter</b>, both regions, From = 1st, To = last day of the month. Drop both .xls files on the SDC month page.</td><td>Filled automatically: Joined minus Left (shown under the number). Type a number only to correct it; a typed number is kept on later uploads.</td></tr>
-<tr><td class='k'>Traffic light</td><td>Upload the <b>All India Chapter Traffic Lights</b> .xlsx on the SDC month page</td><td>GREEN / AMBER / RED per chapter is read from the file (chapter score shown under it). Pick a value by hand to override.</td></tr>
+<tr><td class='k'>Traffic light</td><td>Upload the <b>All India Chapter Traffic Lights</b> .xlsx on the SDC month page. Use the report whose latest score column is the month being scored (the October report, released in early November, for October).</td><td>Only our two regions are read (other chapters with the same name elsewhere in India are ignored). Score 70+ = GREEN, 50 to 69 AMBER, 30 to 49 RED. Pick a value by hand to override.</td></tr>
 <tr><td class='k'>Renewal %</td><td>3+1 Traffic Lights report</td><td>Chapter's <b>overall</b> retention % as published (82 for 82%). Leave blank only if the report has no figure.</td></tr>
 <tr><td class='k'>Member score</td><td>Monthly Member Traffic Light report</td><td>The SDC's own score as a member.</td></tr>
 <tr><td class='k'>Visit 24h</td><td>Sync Jotform</td><td>Done only if the SDC's Chapter Visit Report was submitted on the visit day or the next day. The sync shows late submissions; override by hand if the office accepts a reason.</td></tr>

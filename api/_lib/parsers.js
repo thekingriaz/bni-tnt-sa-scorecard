@@ -155,28 +155,41 @@ export function trainingPercents(attendances, chapterKey, memberCount, onlineTyp
 }
 
 /**
- * All India Chapter Traffic Lights (xlsx). The browser converts the sheet to rows (SheetJS, header:1) and posts them;
- * this picks the header row by keywords so column order changes in the export do not break it.
- * Returns { report, month, rows: [{chapter, key, score, status, growth, retention, members, rank}], header }.
- * Status: the sheet's own status/colour column when present, else derived from the score (BNI: 70+ GREEN, 50 to 69.9 AMBER, below RED).
+ * All India Chapter Traffic Lights (xlsx). The browser converts the sheet to rows (SheetJS, header:1) and posts them.
+ * Real export (Sept 2026): header "Rank | Region | Chapter Name | Chapter Size | Member Growth (6 Months) | Retention | ... |
+ * Score Aug 2026 | Score Sept 2026 | Current Position"; ~1,600 chapters, all of India; no colour column.
+ * - Chapter names repeat across India (several "BNI Kings"), so rows are filtered to `regions` when given.
+ * - Several "Score <Month YYYY>" columns: the one for `monthHint` is used, else the latest month in the header.
+ * - Status: the sheet's own status/colour column when present, else from the score (BNI: 70+ GREEN, 50+ AMBER, 30+ RED, else GREY).
+ * Returns { report, month, title, header, score_column, rows: [{chapter, key, region, score, status, growth, retention, members, rank}] }.
  */
-export function parseTrafficLights(rows, monthHint) {
+export function parseTrafficLights(rows, monthHint, regions) {
   if (!Array.isArray(rows) || !rows.length) throw new Error('Empty file.');
-  const norm = v => String(v ?? '').trim().toLowerCase();
+  const norm = v => String(v ?? '').replace(/\s+/g, ' ').trim().toLowerCase();
   const hIdx = rows.findIndex(r => Array.isArray(r) && r.filter(c => norm(c)).length >= 2
     && r.some(c => /chapter/.test(norm(c)) && norm(c).length <= 30)
-    && r.some(c => /^(total\s*)?score|^status|traffic\s*light\s*(status|colou?r)/.test(norm(c)) && norm(c).length <= 30));
-  if (hIdx < 0) throw new Error('Could not find a header row with "Chapter" and "Score" / "Status". Is this the All India Chapter Traffic Lights export?');
+    && r.some(c => /^(total )?score|^status|traffic light (status|colou?r)/.test(norm(c)) && norm(c).length <= 40));
+  if (hIdx < 0) throw new Error('Could not find a header row with "Chapter" and "Score". Is this the All India Chapter Traffic Lights export?');
   const h = rows[hIdx].map(norm);
   const find = (...res) => { for (const re of res) { const i = h.findIndex(x => re.test(x)); if (i >= 0) return i; } return -1; };
-  const cChap = find(/^chapter(\s*name)?$/, /chapter/);
-  const cScore = find(/^(total\s*)?score$/, /^score/, /score(?!.*(percentile|rank))/);
-  const cStatus = find(/^status$/, /traffic\s*light\s*(status|colou?r)?$/, /colou?r/, /status/);
-  const cGrowth = find(/^(net\s*)?growth/, /net\s*(add|growth)/);
+  const cChap = find(/^chapter( name)?$/, /chapter name/, /chapter/);
+  const cRegion = find(/^region/);
+  const cStatus = find(/^status$/, /traffic light (status|colou?r)$/, /^colou?r$/);
+  const cGrowth = find(/growth/, /net (add|growth)/);
   const cRet = find(/retention/);
-  const cMem = find(/^members?$/, /member\s*count|membership|size|^mem/);
-  const cRank = find(/^(all\s*india\s*)?rank$/, /rank/);
-  if (cChap < 0 || (cScore < 0 && cStatus < 0)) throw new Error('Header row found but no "Score" or "Status" column.');
+  const cMem = find(/chapter size/, /^members?$/, /member count|membership|^size/);
+  const cRank = find(/^rank$/, /rank/);
+  const MON = { jan: 1, feb: 2, mar: 3, apr: 4, may: 5, jun: 6, jul: 7, aug: 8, sep: 9, sept: 9, oct: 10, nov: 11, dec: 12 };
+  // every "Score ..." column, with the month it names
+  const scoreCols = h.map((x, i) => ({ x, i })).filter(o => /^(total )?score\b/.test(o.x) && !/^scoring/.test(o.x)).map(o => {
+    const m = /([a-z]{3,9})\.?\s+(\d{4})/.exec(o.x); const mo = m && (MON[m[1].slice(0, 4)] || MON[m[1].slice(0, 3)]);
+    return { i: o.i, ym: mo ? `${m[2]}-${String(mo).padStart(2, '0')}` : null, label: rows[hIdx][o.i] };
+  });
+  if (cChap < 0 || (!scoreCols.length && cStatus < 0)) throw new Error('Header row found but no "Score" or "Status" column.');
+  let sc = monthHint ? scoreCols.find(c => c.ym === monthHint) : null;
+  if (!sc) sc = [...scoreCols].sort((a, b) => String(b.ym).localeCompare(String(a.ym)))[0] || null;
+  const month = sc?.ym || monthHint || null;
+  const want = regions && regions.length ? new Set(regions.map(norm)) : null;
   const num = v => { if (v === null || v === undefined || v === '') return null; const n = Number(String(v).replace(/[%,]/g, '')); return Number.isNaN(n) ? null : n; };
   const statusOf = (raw, score) => {
     const s = norm(raw);
@@ -185,27 +198,29 @@ export function parseTrafficLights(rows, monthHint) {
     if (/red/.test(s)) return 'RED';
     if (/grey|gray/.test(s)) return 'GREY';
     if (score === null) return null;
-    return score >= 70 ? 'GREEN' : score >= 50 ? 'AMBER' : 'RED';
+    return score >= 70 ? 'GREEN' : score >= 50 ? 'AMBER' : score >= 30 ? 'RED' : 'GREY';
   };
   const out = [];
   for (const r of rows.slice(hIdx + 1)) {
     if (!Array.isArray(r)) continue;
     const chapter = String(r[cChap] ?? '').trim();
     if (!chapter || /^(total|average|region)/i.test(chapter)) continue;
-    const score = cScore >= 0 ? num(r[cScore]) : null;
+    const region = cRegion >= 0 ? String(r[cRegion] ?? '').trim() : null;
+    if (want && cRegion >= 0 && !want.has(norm(region))) continue;
+    const score = sc ? num(r[sc.i]) : null;
     const status = statusOf(cStatus >= 0 ? r[cStatus] : null, score);
     if (score === null && !status) continue;
     let retention = cRet >= 0 ? num(r[cRet]) : null;
-    if (retention !== null && retention <= 1) retention = Math.round(retention * 10000) / 100; // fractions in the export
+    if (retention !== null && retention > 0 && retention <= 1) retention = Math.round(retention * 10000) / 100; // fractions in some exports
     out.push({
-      chapter, key: normChapter(chapter.replace(/\.+$/, '')), score, status,
+      chapter, key: normChapter(chapter.replace(/\.+$/, '')), region, score, status,
       growth: cGrowth >= 0 ? num(r[cGrowth]) : null, retention,
       members: cMem >= 0 ? num(r[cMem]) : null, rank: cRank >= 0 ? num(r[cRank]) : null,
     });
   }
-  if (!out.length) throw new Error('No chapter rows found under the header.');
+  if (!out.length) throw new Error(want ? 'None of our regions (' + regions.join(', ') + ') found in the file.' : 'No chapter rows found under the header.');
   const title = String(rows.find(r => Array.isArray(r) && r.some(c => /traffic/i.test(String(c ?? ''))))?.find(c => /traffic/i.test(String(c ?? ''))) || '');
-  return { report: 'traffic_lights', month: monthHint || null, title, header: rows[hIdx], rows: out };
+  return { report: 'traffic_lights', month, title, header: rows[hIdx], score_column: sc ? String(sc.label).replace(/\s+/g, ' ').trim() : null, rows: out };
 }
 
 const MONTHS = { jan: 1, feb: 2, mar: 3, apr: 4, may: 5, jun: 6, jul: 7, aug: 8, sep: 9, sept: 9, oct: 10, nov: 11, dec: 12 };

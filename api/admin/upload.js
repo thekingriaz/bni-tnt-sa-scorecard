@@ -88,17 +88,20 @@ export default handler(async ({ req, session, body }) => {
     }
     summary = { region: parsed.region, month: parsed.month, chapters: updated.length, unmatched };
   } else if (kind === 'traffic_lights') {
-    if (!/^\d{4}-\d{2}$/.test(body.ym || '')) throw fail('Pick the month this Traffic Lights report is for');
-    parsed = parseTrafficLights(body.rows, body.ym);
+    const { data: chRegions } = await db.from('sa_chapters').select('region').eq('active', true);
+    const regions = [...new Set((chRegions || []).map(c => c.region))];
+    parsed = parseTrafficLights(body.rows, null, regions); // month comes from the file's latest "Score <Month YYYY>" column
+    if (!parsed.month) { if (!/^\d{4}-\d{2}$/.test(body.ym || '')) throw fail('Could not read the month from the file'); parsed.month = body.ym; }
     month = await ensureSdcMonth(parsed.month, session.uid);
-    if (month.sdc_status === 'published') throw fail(`${parsed.month} is already published for SDCs. Unpublish it first if you need to re-upload.`);
+    const tlBaseline = parsed.month < settings.go_live_ym;
+    if (!tlBaseline && month.sdc_status === 'published') throw fail(`${parsed.month} is already published for SDCs. Unpublish it first if you need to re-upload.`);
     const { data: entries } = await db.from('sdc_entries').select('id,chapter_id,tl_status,tl_auto').eq('month_id', month.id);
     for (const r of parsed.rows) {
       const c = byKey[r.key];
       if (!c) continue; // the all-India file lists ~1500 chapters; only ours matter
       const e = (entries || []).find(x => x.chapter_id === c.id); if (!e) continue;
       const patch = { tl_score: r.score, tl_growth: r.growth, updated_at: new Date().toISOString(), updated_by: session.uid };
-      const manual = e.tl_auto === false && e.tl_status !== null;
+      const manual = !tlBaseline && e.tl_auto === false && e.tl_status !== null;
       if (!manual) { patch.tl_status = r.status; patch.tl_auto = true; }
       const up = await db.from('sdc_entries').update(patch).eq('id', e.id);
       if (up.error) throw up.error;
@@ -107,7 +110,7 @@ export default handler(async ({ req, session, body }) => {
     const found = new Set(updated.map(u => normChapter(u.chapter)));
     unmatched = chapters.filter(c => !found.has(c.key)).map(c => c.name);
     parsed.region = 'All India';
-    summary = { month: parsed.month, chapters: updated.length, missing: unmatched, rows_in_file: parsed.rows.length, header: parsed.header };
+    summary = { month: parsed.month, chapters: updated.length, missing: unmatched, score_column: parsed.score_column };
   } else throw fail('kind must be chapter_statistics, training, membership_activity or traffic_lights');
 
   await db.from('sa_uploads').insert({ month_id: month.id, kind, region: parsed.region, filename, summary, uploaded_by: session.uid });
@@ -115,6 +118,10 @@ export default handler(async ({ req, session, body }) => {
   const warning = !unmatched.length ? null
     : kind === 'traffic_lights' ? `Our chapters not found in the file: ${unmatched.join(', ')}. Set their status by hand.`
     : `Chapters not found in the app: ${unmatched.join(', ')}. Add them in Settings > Chapters.`;
+  if (kind === 'traffic_lights') {
+    const note2 = parsed.month < settings.go_live_ym ? `This is the ${parsed.month} report: that month is before go-live and is not scored. Upload the report whose latest score column is the month you are scoring.` : null;
+    return { ok: true, kind, month: parsed.month, region: parsed.region, score_column: parsed.score_column, updated, unmatched, warning: [warning, note2].filter(Boolean).join(' ') || null };
+  }
   const note = summary?.sa_locked ? `${parsed.month} is published for SAs, so only the SDC member counts were updated.` : null;
   return { ok: true, kind, month: parsed.month, region: parsed.region, updated, unmatched, event_types: parsed.event_types || null, warning: [warning, note].filter(Boolean).join(' ') || null };
 }, { role: 'admin' });
