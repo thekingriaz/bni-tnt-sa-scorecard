@@ -130,3 +130,19 @@ assert.equal(byK.tamilan.status, 'GREEN'); assert.equal(byK.saral.status, 'AMBER
 assert.equal(tr.rows.filter(r => r.status === 'GREEN').length, 9);
 assert.equal(parseTrafficLights(tlReal, '2026-08', ['Tirunelveli', 'Nagercoil & Tuticorin']).rows.find(r => r.key === 'dilnadu').score, 65); // explicit month picks Aug
 console.log('Real Traffic Lights checks passed ✓');
+
+// ---------- OCR'd Friday screenshot text (tesseract output of the real 2 Oct screenshot) ----------
+import { closestKey } from '../api/_lib/parsers.js';
+const ocr = `Nagercoil & Tuticorin BNI Comorin Oct 2, 2026
+Nagercoil & Tuticonn BNI Korkai Sep 29. 2026
+Nagercoil & Tuticorin BNI Kumani Sep 30, 2026
+Tirunelveli BNI Sarai Oct 1, 2026
+Tirunetveli BNI Thamira Oct 1,2026`;
+const op = parsePalmsStatus(ocr);
+assert.deepEqual(op.map(r => [r.key, r.last]), [['comorin', '2026-10-02'], ['korkai', '2026-09-29'], ['kumani', '2026-09-30'], ['sarai', '2026-10-01'], ['thamira', '2026-10-01']]);
+const keys = ['ainthinai', 'bambookottai', 'cmyveli', 'dilnadu', 'tamilan', 'ejamaan', 'thamira', 'saral', 'korkai', 'nanjil', 'kanya', 'comorin', 'kumari', 'kings'];
+assert.equal(closestKey('kumani', keys), 'kumari'); assert.equal(closestKey('sarai', keys), 'saral'); assert.equal(closestKey('kanyaa', keys), 'kanya');
+assert.equal(closestKey('chennai', keys), null);
+console.log('OCR text checks passed ✓');
+assert.equal(readDate('Oct7, 2026'), '2026-10-07'); assert.deepEqual(parsePalmsStatus('BNI Bamboo Kottai Oct7, 2026').map(r => [r.key, r.last]), [['bambookottai', '2026-10-07']]);
+console.log('OCR spacing checks passed ✓');

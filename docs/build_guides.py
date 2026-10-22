@@ -91,7 +91,7 @@ SDC_SCORING_TABLE = """
 <tr><td>3</td><td class='k'>Overall Renewal Rate</td><td>Chapter's overall retention % as published in the monthly 3+1 Traffic Lights (admin enters)</td><td>80% or more = 20 pts<br>70% to 79.9% = 10 pts<br>Below 70% = 0</td><td>20</td></tr>
 <tr><td>4</td><td class='k'>Your own Member Score</td><td>Your Traffic Light score as a member (admin enters)</td><td>80 or more = 10 pts<br>70 to 79 = 5 pts<br>Below 70 = 0</td><td>10</td></tr>
 <tr><td>5</td><td class='k'>Weekly Tele-Bridge call with LT</td><td>The weekly "Support DC Tele-bridge Call" Jotform submission, matched to each chapter meeting date automatically. Counts only if submitted <b>by 09:30 AM IST, two days after the meeting</b> (Tuesday meeting: by Thursday 09:30).</td><td>Weeks done on time ÷ meetings held × 10</td><td>10</td></tr>
-<tr><td>6</td><td class='k'>PALMS submitted on time</td><td>Admin ticks each meeting week on Friday evening</td><td>Weeks on time ÷ meetings held × 10</td><td>10</td></tr>
+<tr><td>6</td><td class='k'>PALMS submitted on time</td><td>The office checks BNI Connect's "Last Meeting Entered" report every Friday evening: this week's meeting must already be entered</td><td>Weeks on time ÷ meetings held × 10</td><td>10</td></tr>
 <tr><td>7</td><td class='k'>Chapter Visit within 24 hours</td><td>Your BNI Chapter Visit Report on Jotform, matched to your name; counts only if submitted on the visit day or the next day</td><td>Done = 10 pts<br>Not done or late = 0</td><td>10</td></tr>
 <tr><td>8</td><td class='k'>LTRT / DCRT attendance</td><td>Admin marks attendance</td><td>Attended = 5 pts<br>Not attended = 0</td><td>5</td></tr>
 </table>
@@ -432,7 +432,7 @@ admin_body += """
 <h3>Step 2: Every Friday evening during the month</h3>
 <ol>
 <li>Click <b>Sync Jotform</b>. Tele-bridge submissions are matched to the meeting week by chapter and meeting date. <b>TB ✓</b> only if submitted by 09:30 AM IST two days after the meeting; <b>TB ✗</b> once that deadline passes with nothing on time; blank while the window is still open. Expand <b>Show all Tele-bridge submissions</b> to see every submission, its deadline and why it did or didn't count.</li>
-<li><b>PALMS:</b> on BNI Connect open the <b>Last Meeting Entered</b> report, select the whole table and copy it. In the <b>PALMS on time · Friday check</b> box, set the report date to today (Friday), paste, and click <b>Apply PALMS</b>. Each chapter's meeting that week is ticked ✓ if it was entered, ✗ if the last meeting entered is older. The result lists the late chapters. Single cells can still be clicked by hand.</li>
+<li><b>PALMS:</b> drop the Friday <b>Last Meeting Entered</b> screenshot on the <b>PALMS on time · Friday check</b> box. The app reads it (a few seconds), fills one line per chapter and sets the report date. <b>Check the 14 lines against the screenshot</b> (fix any wrong date, type any chapter it lists as "Not read"), then click <b>Apply PALMS</b>. Each chapter's meeting that week is ticked ✓ if it was entered, ✗ if the last meeting entered is older. Slightly misread names are matched to the right chapter automatically. Single cells can still be clicked by hand.</li>
 <li>If a chapter did not meet this week (holiday), click <b>no meeting</b> under that cell. The week drops out of both denominators.</li>
 <li>A wrong automatic tick can be clicked to change it; manual ticks survive later syncs.</li>
 </ol>

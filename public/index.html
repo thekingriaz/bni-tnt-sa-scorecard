@@ -485,7 +485,9 @@ async function renderSdcMonth(ym) {
       ${m.uploads?.length ? `<div class="divider"></div><div class="small muted">Uploaded: ${m.uploads.map(u => `${esc(u.kind)} · ${esc(u.region || '')} · ${new Date(u.created_at).toLocaleDateString('en-IN')}`).join('<br>')}</div>` : ''}
     </div>
     <div class="card" style="grid-column:1/-1"><h3>PALMS on time · Friday check</h3>
-      <p class="small muted" style="margin-top:0">On BNI Connect, open the <b>Last Meeting Entered</b> report, select the table and copy it (or type one line per chapter, e.g. <i>BNI Kanya Oct 13, 2026</i>). Paste below with the report date. Each chapter's meeting in the 7 days up to that date is ticked ✓ if it was entered, ✗ if the last meeting entered is older.</p>
+      <p class="small muted" style="margin-top:0">Every Friday evening, drop the <b>Last Meeting Entered</b> screenshot below. The app reads it, fills the box and sets the report date: <b>check the 14 lines against the screenshot</b>, then click Apply. Each chapter's meeting that week is ticked ✓ if it was entered, ✗ if the last meeting entered is older. (Copying the table text from BNI Connect also works.)</p>
+      <div class="drop" id="palms-drop" style="margin-bottom:8px">Drop the Friday screenshot here or click to choose (.png / .jpg)</div>
+      <input type="file" id="palms-file" accept="image/*" class="hidden">
       <div class="row" style="align-items:flex-start"><div style="flex:0 0 170px"><label class="small"><b>Report date (Friday)</b></label><input id="palms-asof" type="date" value="${lastFriday(ym)}"></div>
         <div style="flex:1;min-width:240px"><label class="small"><b>Paste the table</b></label><textarea id="palms-text" rows="4" placeholder="Region Name	Chapter Name	Last Meeting Entered&#10;Nagercoil &amp; Tuticorin	BNI Comorin	Oct 16, 2026&#10;…"></textarea></div></div>
       <div class="row" style="margin-top:8px"><button class="btn navy sm" id="palms-apply">Apply PALMS</button><span id="palms-log" class="small"></span></div></div>
@@ -517,6 +519,25 @@ async function renderSdcMonth(ym) {
     drop.ondragover = e => { e.preventDefault(); drop.classList.add('over'); }; drop.ondragleave = () => drop.classList.remove('over');
     drop.ondrop = e => { e.preventDefault(); drop.classList.remove('over'); handleSdcFiles(e.dataTransfer.files, ym); };
     file.onchange = () => handleSdcFiles(file.files, ym);
+    const pd = $('#palms-drop'), pf = $('#palms-file');
+    pd.onclick = () => pf.click();
+    pd.ondragover = e => { e.preventDefault(); pd.classList.add('over'); }; pd.ondragleave = () => pd.classList.remove('over');
+    const readShot = async file => {
+      if (!file || !/^image\//.test(file.type)) return toast('Drop an image (.png or .jpg)', true);
+      pd.textContent = 'Reading the screenshot… (first time takes ~15 seconds)';
+      try {
+        const lines = await ocrPalmsScreenshot(file, pct => { pd.textContent = `Reading the screenshot… ${pct}%`; });
+        if (!lines.length) throw new Error('No "BNI <chapter> <date>" lines found. Is this the Last Meeting Entered screenshot?');
+        $('#palms-text').value = lines.join('\n');
+        const fri = fridayFromLines(lines); if (fri) $('#palms-asof').value = fri;
+        const got = new Set(lines.map(chapterOf));
+        const missing = (state.chapters || []).filter(c => !got.has(c.name.toLowerCase().replace(/^bni\s+/, '').replace(/[^a-z0-9]/g, ''))).map(c => c.name.replace(/^BNI\s+/, ''));
+        pd.innerHTML = `<span class="ok">✓ Read ${lines.length} of ${(state.chapters || []).length || 14} chapters from ${esc(file.name)}</span>. Check them against the screenshot, then click Apply PALMS.` +
+          (missing.length ? `<br><span class="bad">Not read: ${esc(missing.join(', '))}. Type the missing line(s) in the box, e.g. <i>BNI ${esc(missing[0])} Oct 13, 2026</i></span>` : '');
+      } catch (e) { pd.innerHTML = `<span class="bad">${esc(e.message)}</span> Drop again or paste the table.`; }
+    };
+    pd.ondrop = e => { e.preventDefault(); pd.classList.remove('over'); readShot(e.dataTransfer.files[0]); };
+    pf.onchange = () => readShot(pf.files[0]);
     $('#palms-apply').onclick = async () => {
       const as_of = $('#palms-asof').value, text = $('#palms-text').value;
       if (!as_of || !text.trim()) return toast('Pick the report date and paste the table', true);
@@ -524,6 +545,7 @@ async function renderSdcMonth(ym) {
       try {
         const r = await api('admin/entries', { method: 'POST', body: { programme: 'sdc', action: 'palms_report', ym, as_of, text } });
         $('#palms-log').innerHTML = `<span class="ok">${r.updates.filter(u => u.on_time).length} on time</span>, <span class="bad">${r.updates.filter(u => !u.on_time).length} late</span>` +
+          (r.corrected?.length ? `<br><span class="muted">Names corrected: ${esc(r.corrected.join(', '))}</span>` : '') +
           r.updates.filter(u => !u.on_time).map(u => `<br><span class="bad">✗ ${esc(u.chapter.replace(/^BNI\s+/, ''))}: meeting ${dmy(u.week_date)}, last entered ${dmy(u.last)}</span>`).join('') +
           r.skipped.map(x => `<br><span class="muted">${esc(x.chapter)}: ${esc(x.reason)}</span>`).join('') +
           (r.missing.length ? `<br><span class="muted">Not in the pasted table: ${esc(r.missing.map(n => n.replace(/^BNI\s+/, '')).join(', '))}</span>` : '');
@@ -577,6 +599,57 @@ async function refreshSdcGrid(ym) { // repaint week buttons + score cells in pla
     b.textContent = `${k === 'palms_done' ? 'PALMS' : 'TB'} ${v === true ? '✓' : v === false ? '✗' : '·'}`;
   }
   refreshSdcScores(ym);
+}
+function loadScript(src) { return new Promise((res, rej) => { const sc = document.createElement('script'); sc.src = src; sc.onload = res; sc.onerror = () => rej(new Error('Could not load ' + src.split('/').pop() + ' (offline?)')); document.head.appendChild(sc); }); }
+/** Reads the BNI Connect "Last Meeting Entered" screenshot in the browser (Tesseract OCR). Returns lines "BNI <Chapter> <Mon D, YYYY>". */
+async function ocrPalmsScreenshot(file, onPct) {
+  const P = window.TESS_PATHS || {};
+  if (!window.Tesseract) await loadScript(P.script || 'https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js');
+  const bmp = await createImageBitmap(file);
+  // upscale, greyscale, hard threshold: the report's small grey text reads far better this way
+  const prep = (scale, thr) => {
+    const cv = document.createElement('canvas'); cv.width = bmp.width * scale; cv.height = bmp.height * scale;
+    const cx = cv.getContext('2d'); cx.imageSmoothingQuality = 'high'; cx.drawImage(bmp, 0, 0, cv.width, cv.height);
+    const img = cx.getImageData(0, 0, cv.width, cv.height), d = img.data;
+    for (let i = 0; i < d.length; i += 4) { const g = 0.299 * d[i] + 0.587 * d[i + 1] + 0.114 * d[i + 2]; const v = g > thr ? 255 : 0; d[i] = d[i + 1] = d[i + 2] = v; }
+    cx.putImageData(img, 0, 0); return cv;
+  };
+  const opts = { logger: m => { if (m.status === 'recognizing text' && onPct) onPct(Math.round(m.progress * 100)); } };
+  if (P.worker) Object.assign(opts, { workerPath: P.worker, corePath: P.core, langPath: P.lang });
+  const worker = await Tesseract.createWorker('eng', 1, opts);
+  const pick = text => text.split(/\r?\n/).map(l => l.trim()).filter(l => /\bBNI\s+\S/.test(l) && /\d{4}/.test(l)).map(l => /\bBNI\s+.*$/.exec(l)[0]);
+  try {
+    await worker.setParameters({ tessedit_pageseg_mode: '6' });
+    const byChapter = new Map();
+    const add = lines => { for (const l of lines) { const k = chapterOf(l); if (k && !byChapter.has(k)) byChapter.set(k, l); } };
+    add(pick((await worker.recognize(prep(3, 150))).data.text));
+    const expected = (state.chapters || []).length || 14;
+    if (byChapter.size < expected) add(pick((await worker.recognize(prep(2, 185))).data.text)); // second pass picks up dropped lines
+    if (byChapter.size < expected) add(pick((await worker.recognize(prep(4, 130))).data.text));
+    return [...byChapter.values()];
+  } finally { await worker.terminate(); }
+}
+/** Our chapter key for an OCR line ("BNI Kumani Oct 7, 2026" -> "kumari"), or null. */
+function chapterOf(line) {
+  const m = /\bBNI\s+([A-Za-z .'-]+?)\s*(?:[A-Z][a-z]{2,8}\.?\s*\d{1,2}\s*[,.]?\s*\d{4})/.exec(line); if (!m) return null;
+  const k = m[1].toLowerCase().replace(/[^a-z0-9]/g, '');
+  const keys = (state.chapters || []).map(c => c.name.toLowerCase().replace(/^bni\s+/, '').replace(/[^a-z0-9]/g, ''));
+  if (!keys.length) return k;
+  if (keys.includes(k)) return k;
+  let best = null, bd = 99; for (const x of keys) { const dd = editDist(k, x); if (dd < bd) { bd = dd; best = x; } }
+  return bd <= 2 ? best : k;
+}
+function editDist(a, b) { const d = Array.from({ length: a.length + 1 }, (_, i) => [i, ...Array(b.length).fill(0)]); for (let j = 1; j <= b.length; j++) d[0][j] = j;
+  for (let i = 1; i <= a.length; i++) for (let j = 1; j <= b.length; j++) d[i][j] = Math.min(d[i - 1][j] + 1, d[i][j - 1] + 1, d[i - 1][j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1)); return d[a.length][b.length]; }
+/** Report date = the Friday on or after the latest "last meeting entered" date in the lines. */
+function fridayFromLines(lines) {
+  const M = { jan: 0, feb: 1, mar: 2, apr: 3, may: 4, jun: 5, jul: 6, aug: 7, sep: 8, oct: 9, nov: 10, dec: 11 };
+  let max = null;
+  for (const l of lines) { const m = /([A-Za-z]{3})[a-z]*\.?\s+(\d{1,2})\s*[,.]?\s*(\d{4})/.exec(l); if (!m || !(m[1].toLowerCase() in M)) continue;
+    const t = Date.UTC(+m[3], M[m[1].toLowerCase()], +m[2]); if (max === null || t > max) max = t; }
+  if (max === null) return null;
+  const d = new Date(max); while (d.getUTCDay() !== 5) d.setUTCDate(d.getUTCDate() + 1);
+  return d.toISOString().slice(0, 10);
 }
 function loadSheetJS() {
   if (window.XLSX) return Promise.resolve();

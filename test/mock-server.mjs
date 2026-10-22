@@ -2,7 +2,7 @@
 // node test/mock-server.mjs  -> http://localhost:4173
 import http from 'http'; import fs from 'fs'; import path from 'path';
 import { scoreEntry, nextBandHints, DEFAULT_SETTINGS } from '../api/_lib/scoring.js';
-import { parseChapterStatistics, parseTrainingReport, trainingPercents, parseTrafficLights, parsePalmsStatus } from '../api/_lib/parsers.js';
+import { parseChapterStatistics, parseTrainingReport, trainingPercents, parseTrafficLights, parsePalmsStatus, closestKey } from '../api/_lib/parsers.js';
 import { scoreSdcEntry, nextSdcBandHints, meetingDates, weekCounts, mergeSdcSettings, palmsFromReport } from '../api/_lib/scoring_sdc.js';
 
 const PUB = path.resolve(new URL('../public', import.meta.url).pathname);
@@ -87,8 +87,8 @@ http.createServer(async (req, res) => {
     if (p === '/api/admin/months') { if (body.action === 'create' && !months[body.ym]) months[body.ym] = { ym: body.ym, status: 'draft', uploads: [], entries: chapters.map((c, i) => ({ id: Date.now() + i, chapter_id: c.id, sa_user_id: 100 + i, legacy: false, member_score: null, online_pct: null, offline_pct: null, retention_pct: null, one_to_one_per_member: null, ltrt_attended: null, jotform_done: null, new_members: 0, renewals: 0 })) };
       if (body.action === 'publish') months[body.ym].status = 'published'; if (body.action === 'unpublish') months[body.ym].status = 'draft'; return json(res, 200, { ok: true }); }
     if (p === '/api/admin/entries' && body.programme === 'sdc' && body.action === 'palms_report') { const m = sdcMonths[body.ym]; const rows = parsePalmsStatus(body.text);
-      const km = {}; chapters.forEach(c => km[c.key] = c.id); const r = palmsFromReport(m.weeks, rows, km, body.as_of); for (const u of r.updates) m.weeks.find(w => w.id === u.week_id).palms_done = u.palms_done;
-      return json(res, 200, { ok: true, updates: r.updates.map(u => ({ chapter: chapters[u.chapter_id - 1].name, week_date: u.week_date, last: u.last, on_time: u.palms_done })), skipped: r.skipped, missing: chapters.filter(c => !rows.some(x => x.key === c.key)).map(c => c.name) }); }
+      const km = {}; chapters.forEach(c => km[c.key] = c.id); const corrected = []; for (const x of rows) { const k = closestKey(x.key, Object.keys(km)); if (k && k !== x.key) { corrected.push(x.chapter + ' → ' + k); x.key = k; } } const r = palmsFromReport(m.weeks, rows, km, body.as_of); for (const u of r.updates) m.weeks.find(w => w.id === u.week_id).palms_done = u.palms_done;
+      return json(res, 200, { ok: true, corrected, updates: r.updates.map(u => ({ chapter: chapters[u.chapter_id - 1].name, week_date: u.week_date, last: u.last, on_time: u.palms_done })), skipped: r.skipped, missing: chapters.filter(c => !rows.some(x => x.key === c.key)).map(c => c.name) }); }
     if (p === '/api/admin/entries' && body.programme === 'sdc') { for (const m of Object.values(sdcMonths)) { if (body.week_id) { const w = m.weeks.find(x => x.id === Number(body.week_id)); if (w) { for (const k of ['no_meeting', 'telebridge_done', 'palms_done']) if (k in body) w[k] = body[k]; if ('telebridge_done' in body) w.telebridge_auto = false; } }
         const e = m.entries.find(x => x.id === Number(body.id)); if (e) { for (const k of Object.keys(body)) if (!['id', 'programme'].includes(k)) e[k] = body[k] === '' ? null : (['ltrt_attended', 'visit_done', 'notes', 'tl_status'].includes(k) ? body[k] : Number(body[k])); if ('tl_status' in body) e.tl_auto = false; } } return json(res, 200, { ok: true }); }
     if (p === '/api/admin/entries') { for (const m of Object.values(months)) { const e = m.entries.find(x => x.id === Number(body.id)); if (e) { for (const k of Object.keys(body)) if (k !== 'id') e[k] = body[k] === '' ? null : (['ltrt_attended', 'jotform_done', 'notes'].includes(k) ? body[k] : Number(body[k])); } } return json(res, 200, { ok: true }); }
@@ -106,6 +106,15 @@ http.createServer(async (req, res) => {
     if (p === '/api/admin/users' && req.method === 'GET') return json(res, 200, { users: [{ id: 1, role: 'admin', name: 'Mohamed Riaz', email: 'riaz@thekingsgroup.in', active: true }, ...sas, ...sdcs] });
     if (p === '/api/admin/users') return json(res, 200, { ok: true });
     return json(res, 404, { error: 'no mock for ' + p });
+  }
+  if (p.startsWith('/__tess/') && process.env.TESS_DIR) { // local Tesseract assets for offline OCR tests
+    const map = { script: 'node_modules/tesseract.js/dist/tesseract.min.js', worker: 'node_modules/tesseract.js/dist/worker.min.js' };
+    const rest = p.slice(8); let fp;
+    if (map[rest]) fp = path.join(process.env.TESS_DIR, map[rest]);
+    else if (rest.startsWith('core/')) fp = path.join(process.env.TESS_DIR, 'node_modules/tesseract.js-core', rest.slice(5));
+    else if (rest.startsWith('lang/')) fp = path.join(process.env.TESS_DIR, 'node_modules/@tesseract.js-data/eng/4.0.0_best_int', rest.slice(5));
+    if (fp && fs.existsSync(fp)) { res.writeHead(200, { 'Content-Type': fp.endsWith('.js') ? 'application/javascript' : fp.endsWith('.wasm') ? 'application/wasm' : 'application/octet-stream' }); return fs.createReadStream(fp).pipe(res); }
+    res.writeHead(404); return res.end('nf ' + rest);
   }
   const f = path.join(PUB, p === '/' || p === '/admin' || p === '/login' ? 'index.html' : p);
   if (fs.existsSync(f)) { res.writeHead(200, { 'Content-Type': f.endsWith('.html') ? 'text/html' : 'text/plain' }); fs.createReadStream(f).pipe(res); } else { res.writeHead(404); res.end('not found'); }

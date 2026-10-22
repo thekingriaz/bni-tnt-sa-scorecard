@@ -229,7 +229,7 @@ export function readDate(str) {
   const s = String(str || '').trim(); let m;
   if ((m = /^(\d{4})-(\d{1,2})-(\d{1,2})/.exec(s))) return `${m[1]}-${m[2].padStart(2, '0')}-${m[3].padStart(2, '0')}`;
   const mon = w => MONTHS[String(w).toLowerCase().slice(0, 4)] || MONTHS[String(w).toLowerCase().slice(0, 3)];
-  if ((m = /([A-Za-z]{3,9})\.?\s+(\d{1,2}),?\s+(\d{4})/.exec(s)) && mon(m[1]))
+  if ((m = /([A-Za-z]{3,9})\.?\s*(\d{1,2})\s*[,.]?\s*(\d{4})/.exec(s)) && mon(m[1]))
     return `${m[3]}-${String(mon(m[1])).padStart(2, '0')}-${m[2].padStart(2, '0')}`;
   if ((m = /(\d{1,2})\s+([A-Za-z]{3,9})\.?,?\s+(\d{4})/.exec(s)) && mon(m[2]))
     return `${m[3]}-${String(mon(m[2])).padStart(2, '0')}-${m[1].padStart(2, '0')}`;
@@ -245,7 +245,7 @@ export function readDate(str) {
 export function parsePalmsStatus(text) {
   const out = [];
   for (const line of String(text || '').split(/\r?\n/)) {
-    const cm = /\bBNI\s+([A-Za-z][A-Za-z .'-]*?)(?=\t|\s{2,}|\s+[A-Z][a-z]{2,8}\.?\s+\d{1,2},?\s+\d{4}|\s+\d{1,2}[\/ -]|$)/.exec(line);
+    const cm = /\bBNI\s+([A-Za-z][A-Za-z .'-]*?)(?=\t|\s{2,}|\s+[A-Z][a-z]{2,8}\.?\s*\d{1,2}\s*[,.]?\s*\d{4}|\s+\d{1,2}[\/ -]|$)/.exec(line);
     if (!cm) continue;
     const rest = line.slice(cm.index + cm[0].length);
     const last = readDate(rest);
@@ -293,4 +293,21 @@ export function parseMembershipActivity(text) {
   }
   if (!out.length) throw new Error('No chapter rows found in the report.');
   return { report: 'membership_activity', region, month: fm, rows: out };
+}
+
+/** Levenshtein distance (for OCR'd chapter names: "Kumani" -> "kumari"). */
+export function editDistance(a, b) {
+  a = String(a); b = String(b);
+  const d = Array.from({ length: a.length + 1 }, (_, i) => [i, ...Array(b.length).fill(0)]);
+  for (let j = 1; j <= b.length; j++) d[0][j] = j;
+  for (let i = 1; i <= a.length; i++) for (let j = 1; j <= b.length; j++)
+    d[i][j] = Math.min(d[i - 1][j] + 1, d[i][j - 1] + 1, d[i - 1][j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1));
+  return d[a.length][b.length];
+}
+/** Closest known chapter key within 2 edits, or null if none / ambiguous. */
+export function closestKey(key, keys) {
+  if (keys.includes(key)) return key;
+  let best = null, bestD = 99, tie = false;
+  for (const k of keys) { const dd = editDistance(key, k); if (dd < bestD) { best = k; bestD = dd; tie = false; } else if (dd === bestD) tie = true; }
+  return bestD <= 2 && !tie ? best : null;
 }

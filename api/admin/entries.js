@@ -1,5 +1,5 @@
 import { db, handler, fail, audit } from '../_lib/db.js';
-import { parsePalmsStatus } from '../_lib/parsers.js';
+import { parsePalmsStatus, closestKey } from '../_lib/parsers.js';
 import { palmsFromReport } from '../_lib/scoring_sdc.js';
 
 const EDITABLE = ['member_score', 'online_pct', 'offline_pct', 'training_unique', 'member_count', 'mentoring_pct', 'retention_pct',
@@ -28,13 +28,16 @@ export default handler(async ({ req, session, body }) => {
       db.from('sa_chapters').select('id,key,name'),
     ]);
     const keyMap = {}; for (const c of chapters || []) keyMap[c.key] = c.id;
+    // screenshots are read by OCR: snap slightly misread names ("Kumani", "Sarai") to the nearest chapter
+    const corrected = [];
+    for (const r of rows) { const k = closestKey(r.key, Object.keys(keyMap)); if (k && k !== r.key) { corrected.push(`${r.chapter} → ${(chapters.find(c => c.key === k) || {}).name}`); r.key = k; } }
     const { updates, skipped } = palmsFromReport(weeks, rows, keyMap, asOf);
     await Promise.all(updates.map(u => db.from('sdc_weeks').update({ palms_done: u.palms_done, updated_at: now, updated_by: session.uid }).eq('id', u.week_id)));
     const seen = new Set(rows.map(r => keyMap[r.key]).filter(Boolean));
     const missing = (chapters || []).filter(c => !seen.has(c.id)).map(c => c.name);
     await audit(session.uid, 'sdc_palms.report', { ym, as_of: asOf, on_time: updates.filter(u => u.palms_done).length, late: updates.filter(u => !u.palms_done).length });
     const name = id => (chapters || []).find(c => c.id === id)?.name || id;
-    return { ok: true, as_of: asOf, updates: updates.map(u => ({ chapter: name(u.chapter_id), week_date: u.week_date, last: u.last, on_time: u.palms_done })), skipped, missing };
+    return { ok: true, as_of: asOf, corrected, updates: updates.map(u => ({ chapter: name(u.chapter_id), week_date: u.week_date, last: u.last, on_time: u.palms_done })), skipped, missing };
   }
 
   if (body.programme === 'sdc' && body.week_id) {
