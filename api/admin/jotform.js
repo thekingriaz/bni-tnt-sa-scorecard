@@ -2,6 +2,7 @@ import { db, handler, fail, audit, loadSettings } from '../_lib/db.js';
 import { ensureMonth } from '../_lib/compute.js';
 import { ensureSdcMonth } from '../_lib/compute_sdc.js';
 import { normChapter } from '../_lib/parsers.js';
+import { telebridgeDeadlineUtc, zonedToUtcMs, istLabel, TELEBRIDGE_DEADLINE } from '../_lib/scoring_sdc.js';
 
 // POST { ym }                    -> SA: pulls "BNI Chapter Visit Report" submissions for that month and marks jotform_done
 //                                   for chapters where the submitter matches the SA's jotform_alias.
@@ -57,10 +58,22 @@ export default handler(async ({ req, session, body }) => {
 
   const tbForm = sdc ? settings.telebridge_form_id : null;
   const tbAfter = new Date(Date.UTC(y, m, 15)).toISOString().slice(0, 10); // calls happen after the meeting, sometimes next month
-  const [{ data: chapters }, visitSubs, tbSubs] = await Promise.all([
+  // Jotform stamps created_at in the account's time zone; read it so deadlines are judged in IST.
+  const fetchTz = async () => {
+    if (settings.jotform_timezone) return settings.jotform_timezone;
+    try {
+      const r = await fetch(`https://api.jotform.com/user/settings/time_zone?apiKey=${apiKey}`);
+      const j = await r.json(); const c = j.content;
+      const tz = typeof c === 'string' ? c : (c && (c.time_zone || c.timezone || Object.values(c)[0]));
+      if (tz) { new Intl.DateTimeFormat('en-US', { timeZone: tz }); return tz; }
+    } catch { /* fall through */ }
+    return 'America/New_York'; // Jotform default for accounts with no time zone set
+  };
+  const [{ data: chapters }, visitSubs, tbSubs, jotTz] = await Promise.all([
     db.from('sa_chapters').select('id,name,key'),
     fetchSubs(settings.jotform_form_id, `${ym}-01 00:00:00`, `${nextYm}-01 00:00:00`),
     tbForm ? fetchSubs(tbForm, `${ym}-01 00:00:00`, `${tbAfter} 00:00:00`) : Promise.resolve([]),
+    sdc ? fetchTz() : Promise.resolve(null),
   ]);
   const results = [];
 
@@ -107,18 +120,19 @@ export default handler(async ({ req, session, body }) => {
 
   // ---------- SDC: tele-bridge weeks ----------
   let weeksTouched = 0, tbUnmatched = []; const tbDetail = [];
-  const today = new Date(Date.now() + 5.5 * 3600 * 1000).toISOString().slice(0, 10); // IST
   if (tbForm) {
     const byChapter = {}; for (const w of weeks || []) (byChapter[w.chapter_id] = byChapter[w.chapter_id] || []).push(w);
-    const hit = new Map(); // week id -> submission id
+    const hit = new Map(); // week id -> on-time submission id
+    const late = new Set(); // week ids with only late submissions
     for (const s of tbSubs) {
       const chapterRaw = findAnswer(s, 'select your chapter', 'chapter');
       const key = normChapter(chapterRaw);
       const c = chapters.find(x => x.key === key);
       const meetingRaw = findAnswer(s, 'date of the chapter meeting', 'meeting');
       const md = toDate(meetingRaw);
-      const row = { submitted: (s.created_at || '').slice(0, 16), chapter: c ? c.name : chapterRaw, meeting_entered: md || meetingRaw || null,
-        submitted_by: findAnswer(s, 'submitted by'), sdc_attended: findAnswer(s, 'support dc'), week: null, result: '' };
+      const createdUtc = zonedToUtcMs(s.created_at, jotTz);
+      const row = { submitted: istLabel(createdUtc), chapter: c ? c.name : chapterRaw, meeting_entered: md || meetingRaw || null,
+        submitted_by: findAnswer(s, 'submitted by'), week: null, deadline: null, result: '' };
       tbDetail.push(row);
       if (!c) { row.result = 'chapter not recognised'; tbUnmatched.push({ chapter: chapterRaw, date: md }); continue; }
       if (!md) { row.result = 'meeting date unreadable'; tbUnmatched.push({ chapter: chapterRaw, date: meetingRaw }); continue; }
@@ -128,13 +142,17 @@ export default handler(async ({ req, session, body }) => {
       for (const w of ws) { const d = Math.abs(dayDiff(md, w.week_date)); if (d < bestD) { best = w; bestD = d; } }
       if (!best || bestD > 3) { row.result = 'no meeting of this chapter within 3 days of that date'; continue; }
       row.week = String(best.week_date);
+      const deadline = telebridgeDeadlineUtc(best.week_date);
+      row.deadline = istLabel(deadline);
+      if (createdUtc > deadline) { row.result = `late: deadline was ${istLabel(deadline)}`; late.add(best.id); continue; }
       if (hit.has(best.id)) { row.result = 'duplicate: week already counted'; continue; }
       hit.set(best.id, s.id); row.result = bestD === 0 ? 'counted' : `counted (date entered was ${bestD} day${bestD === 1 ? '' : 's'} off the meeting)`;
     }
     const weekPatches = [];
     for (const w of weeks || []) {
       if (w.telebridge_auto === false && w.telebridge_done !== null) continue; // manual
-      const done = hit.has(w.id) ? true : (w.week_date > today ? null : false); // future weeks stay blank
+      // ✓ on-time submission; ✗ deadline passed with none on time; blank while the 48-hour window is still open
+      const done = hit.has(w.id) ? true : (Date.now() > telebridgeDeadlineUtc(w.week_date) ? false : null);
       if (w.telebridge_done === done && w.telebridge_auto) continue;
       weekPatches.push({ id: w.id, telebridge_done: done, telebridge_auto: true, telebridge_submission_id: hit.get(w.id) || null, updated_at: new Date().toISOString(), updated_by: session.uid });
     }
@@ -144,6 +162,6 @@ export default handler(async ({ req, session, body }) => {
   await audit(session.uid, 'jotform.sync_sdc', { ym, visits: visitSubs.length, telebridge: tbSubs.length });
   timing.total = Date.now() - t0;
   return { ok: true, ym, programme: 'sdc', total_submissions: visitSubs.length, results, timing,
-    telebridge: { form: tbForm || null, submissions: tbSubs.length, weeks_updated: weeksTouched, unmatched: tbUnmatched.slice(0, 20),
+    telebridge: { form: tbForm || null, submissions: tbSubs.length, weeks_updated: weeksTouched, jotform_timezone: jotTz, rule: 'meeting date + 2 days, 09:30 IST', unmatched: tbUnmatched.slice(0, 20),
       detail: tbDetail.sort((a, b) => String(a.chapter).localeCompare(String(b.chapter)) || String(a.meeting_entered).localeCompare(String(b.meeting_entered))) } };
 }, { role: 'admin' });

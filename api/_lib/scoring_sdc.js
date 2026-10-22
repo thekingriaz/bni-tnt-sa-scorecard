@@ -161,3 +161,34 @@ export function palmsFromReport(weeks, rows, keyToChapterId, asOf) {
   }
   return { updates, skipped };
 }
+
+// ---------- Tele-Bridge 48-hour deadline ----------
+export const TELEBRIDGE_DEADLINE = { days: 2, time: '09:30', tz_offset_min: 330 }; // meeting date + 2 days, 09:30 IST
+
+/** UTC ms of the Tele-Bridge deadline for a meeting date (YYYY-MM-DD). */
+export function telebridgeDeadlineUtc(weekDate, rule = TELEBRIDGE_DEADLINE) {
+  const [y, m, d] = String(weekDate).slice(0, 10).split('-').map(Number);
+  const [hh, mm] = rule.time.split(':').map(Number);
+  return Date.UTC(y, m - 1, d + rule.days, hh, mm) - rule.tz_offset_min * 60000;
+}
+
+/** Offset (ms) of an IANA time zone from UTC at a given instant. */
+function tzOffsetMs(ms, tz) {
+  const p = {}; for (const x of new Intl.DateTimeFormat('en-US', { timeZone: tz, hourCycle: 'h23', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit' }).formatToParts(new Date(ms))) p[x.type] = x.value;
+  return Date.UTC(+p.year, +p.month - 1, +p.day, +p.hour % 24, +p.minute, +p.second) - Math.floor(ms / 1000) * 1000;
+}
+/** "YYYY-MM-DD HH:MM:SS" wall-clock time in zone tz -> UTC ms. */
+export function zonedToUtcMs(str, tz) {
+  const [d, t = '00:00:00'] = String(str).trim().split(/[ T]/);
+  const [y, mo, da] = d.split('-').map(Number); const [h, mi, se = 0] = t.split(':').map(Number);
+  const guess = Date.UTC(y, mo - 1, da, h, mi, se);
+  if (!tz) return guess;
+  let utc = guess - tzOffsetMs(guess, tz);
+  const off2 = tzOffsetMs(utc, tz); if (guess - off2 !== utc) utc = guess - off2; // DST edge
+  return utc;
+}
+/** UTC ms -> "DD Mon, HH:MM" in IST, for display. */
+export function istLabel(ms) {
+  const d = new Date(ms + 330 * 60000);
+  return `${String(d.getUTCDate()).padStart(2, '0')} ${['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'][d.getUTCMonth()]}, ${String(d.getUTCHours()).padStart(2, '0')}:${String(d.getUTCMinutes()).padStart(2, '0')}`;
+}

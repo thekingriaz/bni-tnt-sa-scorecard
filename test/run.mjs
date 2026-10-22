@@ -91,3 +91,15 @@ const res = palmsFromReport(wk, pr, { comorin: 12, kanya: 11, bambookottai: 2, d
 assert.deepEqual(res.updates.map(u => [u.week_id, u.palms_done]), [[2, true], [3, true], [5, false]]);
 assert.deepEqual(res.skipped.map(s => s.chapter), ['BNI Bamboo Kottai', 'BNI Cmy Veli']);
 console.log('PALMS report checks passed ✓');
+
+// ---------- Tele-Bridge 48h deadline ----------
+import { telebridgeDeadlineUtc, zonedToUtcMs, istLabel } from '../api/_lib/scoring_sdc.js';
+const dl = telebridgeDeadlineUtc('2026-10-20'); // Ainthinai Tue 20 Oct -> Thu 22 Oct 09:30 IST
+assert.equal(new Date(dl).toISOString(), '2026-10-22T04:00:00.000Z'); assert.equal(istLabel(dl), '22 Oct, 09:30');
+assert.equal(telebridgeDeadlineUtc('2026-10-30'), Date.UTC(2026, 10, 1, 4, 0)); // month rollover: 1 Nov 09:30 IST
+assert.equal(zonedToUtcMs('2026-10-22 09:29:00', 'Asia/Kolkata') <= dl, true);
+assert.equal(zonedToUtcMs('2026-10-22 09:31:00', 'Asia/Kolkata') <= dl, false);
+// Jotform account on US Eastern: 21 Oct 23:59 EDT = 22 Oct 09:29 IST -> on time; 22 Oct 00:05 EDT = 09:35 IST -> late
+assert.equal(zonedToUtcMs('2026-10-21 23:59:00', 'America/New_York') <= dl, true);
+assert.equal(zonedToUtcMs('2026-10-22 00:05:00', 'America/New_York') <= dl, false);
+console.log('Tele-Bridge deadline checks passed ✓');

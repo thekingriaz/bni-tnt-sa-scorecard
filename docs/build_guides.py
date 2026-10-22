@@ -90,7 +90,7 @@ SDC_SCORING_TABLE = """
 <tr><td>2</td><td class='k'>All India Traffic Light</td><td>Your chapter's colour on the monthly All India Chapter Traffic Lights report (uploaded by admin)</td><td>GREEN = 15 pts<br>AMBER or RED = 0</td><td>15</td></tr>
 <tr><td>3</td><td class='k'>Overall Renewal Rate</td><td>Chapter's overall retention % as published in the monthly 3+1 Traffic Lights (admin enters)</td><td>80% or more = 20 pts<br>70% to 79.9% = 10 pts<br>Below 70% = 0</td><td>20</td></tr>
 <tr><td>4</td><td class='k'>Your own Member Score</td><td>Your Traffic Light score as a member (admin enters)</td><td>80 or more = 10 pts<br>70 to 79 = 5 pts<br>Below 70 = 0</td><td>10</td></tr>
-<tr><td>5</td><td class='k'>Weekly Tele-Bridge call with LT</td><td>Your weekly "Support DC Tele-bridge Call" Jotform submissions, matched to each chapter meeting date automatically</td><td>Weeks done ÷ meetings held × 10</td><td>10</td></tr>
+<tr><td>5</td><td class='k'>Weekly Tele-Bridge call with LT</td><td>The weekly "Support DC Tele-bridge Call" Jotform submission, matched to each chapter meeting date automatically. Counts only if submitted <b>by 09:30 AM IST, two days after the meeting</b> (Tuesday meeting: by Thursday 09:30).</td><td>Weeks done on time ÷ meetings held × 10</td><td>10</td></tr>
 <tr><td>6</td><td class='k'>PALMS submitted on time</td><td>Admin ticks each meeting week on Friday evening</td><td>Weeks on time ÷ meetings held × 10</td><td>10</td></tr>
 <tr><td>7</td><td class='k'>Chapter Visit within 24 hours</td><td>Your BNI Chapter Visit Report on Jotform, matched to your name; counts only if submitted on the visit day or the next day</td><td>Done = 10 pts<br>Not done or late = 0</td><td>10</td></tr>
 <tr><td>8</td><td class='k'>LTRT / DCRT attendance</td><td>Admin marks attendance</td><td>Attended = 5 pts<br>Not attended = 0</td><td>5</td></tr>
@@ -256,7 +256,7 @@ sdc_body += """
 
 <h3>6.1 Tele-Bridge call every week: 10 points</h3>
 <ul>
-<li>After every chapter meeting, hold the tele-bridge call with the Leadership Team and submit the <b>Support DC Tele-bridge Call</b> form the same day. Pick the right chapter and the right <b>meeting date</b> on the form: the app matches your submission to that meeting week.</li>
+<li>After every chapter meeting, hold the tele-bridge call with the Leadership Team and submit the <b>Support DC Tele-bridge Call</b> form <b>within 48 hours: by 09:30 AM IST two days after the meeting</b> (meeting Tuesday 20 Oct, deadline Thursday 22 Oct 09:30). A submission after that scores 0 for the week. Pick the right chapter and the right <b>meeting date</b> on the form: the app matches your submission to that meeting week.</li>
 <li>Two submissions for the same week count once. A missed week cannot be made up later.</li>
 <li>If the chapter did not meet (holiday), tell the office so the week is marked "no meeting" and does not count against you.</li>
 </ul>
@@ -432,7 +432,7 @@ admin_body += """
 <p>Months → pick the month → <b>Open month</b>. The app creates one row per chapter and the <b>weekly grid</b>: one cell per chapter meeting date (Ainthinai Tue, Bamboo Kottai Wed, Cmy Veli Thu, and so on; meeting days are in Settings).</p>
 <h3>Step 2: Every Friday evening during the month</h3>
 <ol>
-<li>Click <b>Sync Jotform</b>. Tele-bridge submissions are matched to the meeting week by chapter and meeting date and ticked <b>TB ✓</b>. Future weeks stay blank.</li>
+<li>Click <b>Sync Jotform</b>. Tele-bridge submissions are matched to the meeting week by chapter and meeting date. <b>TB ✓</b> only if submitted by 09:30 AM IST two days after the meeting; <b>TB ✗</b> once that deadline passes with nothing on time; blank while the window is still open. Expand <b>Show all Tele-bridge submissions</b> to see every submission, its deadline and why it did or didn't count.</li>
 <li><b>PALMS:</b> on BNI Connect open the <b>Last Meeting Entered</b> report, select the whole table and copy it. In the <b>PALMS on time · Friday check</b> box, set the report date to today (Friday), paste, and click <b>Apply PALMS</b>. Each chapter's meeting that week is ticked ✓ if it was entered, ✗ if the last meeting entered is older. The result lists the late chapters. Single cells can still be clicked by hand.</li>
 <li>If a chapter did not meet this week (holiday), click <b>no meeting</b> under that cell. The week drops out of both denominators.</li>
 <li>A wrong automatic tick can be clicked to change it; manual ticks survive later syncs.</li>
