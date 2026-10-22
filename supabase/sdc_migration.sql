@@ -108,3 +108,8 @@ where not exists (select 1 from sa_users u where u.role='sdc' and u.name = v.nam
 
 alter table sdc_entries enable row level security;
 alter table sdc_weeks   enable row level security;
+
+-- 8. (22 Oct 2026) Net growth from BNI Connect "Membership Activity by Chapter": joined / left per month
+alter table sdc_entries add column if not exists joined int;
+alter table sdc_entries add column if not exists left_count int;
+alter table sdc_entries add column if not exists net_add_auto boolean default false;  -- true when net_add came from the report

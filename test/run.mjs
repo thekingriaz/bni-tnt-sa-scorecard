@@ -103,3 +103,16 @@ assert.equal(zonedToUtcMs('2026-10-22 09:31:00', 'Asia/Kolkata') <= dl, false);
 assert.equal(zonedToUtcMs('2026-10-21 23:59:00', 'America/New_York') <= dl, true);
 assert.equal(zonedToUtcMs('2026-10-22 00:05:00', 'America/New_York') <= dl, false);
 console.log('Tele-Bridge deadline checks passed ✓');
+
+// ---------- Membership Activity by Chapter (net growth source) ----------
+import { parseMembershipActivity } from '../api/_lib/parsers.js';
+const ma1 = parseMembershipActivity(F('membership-activity-tirunelveli-sep2026.xls'));
+assert.equal(ma1.region, 'Tirunelveli'); assert.equal(ma1.month, '2026-09'); assert.equal(ma1.rows.length, 8);
+assert.deepEqual(ma1.rows.find(r => r.key === 'ainthinai'), { chapter: 'BNI Ainthinai', key: 'ainthinai', start: 100, joined: 2, left: 0, end: 102, change: 2 });
+assert.deepEqual(ma1.rows.find(r => r.key === 'bambookottai'), { chapter: 'BNI Bamboo Kottai', key: 'bambookottai', start: 62, joined: 0, left: 1, end: 61, change: -1 });
+const ma2 = parseMembershipActivity(F('membership-activity-nagercoil-tuticorin-sep2026.xls'));
+assert.equal(ma2.region, 'Nagercoil & Tuticorin'); assert.equal(ma2.rows.length, 6);
+assert.deepEqual(['kings', 'nanjil'].map(k => { const r = ma2.rows.find(x => x.key === k); return [r.joined, r.left, r.change, r.end]; }), [[0, 8, -8, 38], [3, 2, 1, 47]]);
+for (const r of [...ma1.rows, ...ma2.rows]) assert.equal(r.change, r.joined - r.left);
+assert.throws(() => parseMembershipActivity(F('chapter-statistics-tirunelveli-sep2026.xls')), /not a Membership Activity/);
+console.log('Membership Activity checks passed ✓');

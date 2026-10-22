@@ -75,6 +75,7 @@ export default handler(async ({ req, session, body }) => {
     }
     if ('visit_done' in patch) patch.visit_auto = false;
     if ('tl_status' in patch) patch.tl_auto = false;
+    if ('net_add' in patch) patch.net_add_auto = false; // typed by admin: kept on later report uploads (clear it to go back)
     const r = await db.from('sdc_entries').update(patch).eq('id', id);
     if (r.error) throw r.error;
     await audit(session.uid, 'sdc_entry.update', { id, ym: existing.month.ym, patch });

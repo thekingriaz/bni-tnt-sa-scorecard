@@ -1,6 +1,6 @@
 import { db, handler, fail, audit, loadSettings } from '../_lib/db.js';
 import { ensureMonth } from '../_lib/compute.js';
-import { parseChapterStatistics, parseTrainingReport, parseTrafficLights, trainingPercents, normChapter } from '../_lib/parsers.js';
+import { parseChapterStatistics, parseTrainingReport, parseTrafficLights, parseMembershipActivity, trainingPercents, normChapter } from '../_lib/parsers.js';
 import { ensureSdcMonth } from '../_lib/compute_sdc.js';
 import { recomputeTraining } from '../_lib/training.js';
 
@@ -68,6 +68,25 @@ export default handler(async ({ req, session, body }) => {
     // Chapters in this region with zero attendances: set 0/0 so the month is complete
     summary = { region: parsed.region, month: parsed.month, chapters: updated.length, unmatched, event_types: parsed.event_types,
       attendances: parsed.attendances.map(a => ({ key: a.key, member_key: a.member_key, event_type: a.event_type })) };
+  } else if (kind === 'membership_activity') {
+    // SDC Chapter Net Growth = Joined minus Left for the month, straight from BNI Connect
+    parsed = parseMembershipActivity(text);
+    month = await ensureSdcMonth(parsed.month, session.uid);
+    const baseline = parsed.month < settings.go_live_ym;
+    if (!baseline && month.sdc_status === 'published') throw fail(`${parsed.month} is already published for SDCs. Unpublish it first if you need to re-upload.`);
+    const { data: entries } = await db.from('sdc_entries').select('id,chapter_id,net_add,net_add_auto').eq('month_id', month.id);
+    for (const r of parsed.rows) {
+      const c = byKey[r.key];
+      if (!c) { unmatched.push(r.chapter); continue; }
+      const e = (entries || []).find(x => x.chapter_id === c.id); if (!e) continue;
+      const manual = e.net_add_auto === false && e.net_add !== null && e.net_add !== undefined;
+      const patch = { joined: r.joined, left_count: r.left, member_count: r.end, updated_at: new Date().toISOString(), updated_by: session.uid };
+      if (!manual) { patch.net_add = r.change; patch.net_add_auto = true; }
+      const up = await db.from('sdc_entries').update(patch).eq('id', e.id);
+      if (up.error) throw up.error;
+      updated.push({ chapter: c.name, joined: r.joined, left: r.left, change: r.change, end: r.end, kept_manual: manual });
+    }
+    summary = { region: parsed.region, month: parsed.month, chapters: updated.length, unmatched };
   } else if (kind === 'traffic_lights') {
     if (!/^\d{4}-\d{2}$/.test(body.ym || '')) throw fail('Pick the month this Traffic Lights report is for');
     parsed = parseTrafficLights(body.rows, body.ym);
@@ -89,7 +108,7 @@ export default handler(async ({ req, session, body }) => {
     unmatched = chapters.filter(c => !found.has(c.key)).map(c => c.name);
     parsed.region = 'All India';
     summary = { month: parsed.month, chapters: updated.length, missing: unmatched, rows_in_file: parsed.rows.length, header: parsed.header };
-  } else throw fail('kind must be chapter_statistics, training or traffic_lights');
+  } else throw fail('kind must be chapter_statistics, training, membership_activity or traffic_lights');
 
   await db.from('sa_uploads').insert({ month_id: month.id, kind, region: parsed.region, filename, summary, uploaded_by: session.uid });
   await audit(session.uid, 'upload', { kind, filename, month: parsed.month, region: parsed.region });

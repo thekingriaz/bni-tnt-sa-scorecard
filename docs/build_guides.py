@@ -86,7 +86,7 @@ PAYOUT = """
 SDC_SCORING_TABLE = """
 <table class='data'>
 <tr><th>#</th><th>KPI</th><th>Where the number comes from</th><th>Scoring</th><th>Max</th></tr>
-<tr><td>1</td><td class='k'>Chapter Net Growth</td><td>This month's member count minus last month's (BNI Connect Chapter Statistics "Mem Avg"). Admin can override with the exact joiners-minus-leavers figure.</td><td>+2 or more = 20 pts<br>+1 = 10 pts<br>0 or negative = 0</td><td>20</td></tr>
+<tr><td>1</td><td class='k'>Chapter Net Growth</td><td>Members who joined minus members who left in the month, from the BNI Connect <b>Membership Activity by Chapter</b> report (uploaded by admin).</td><td>+2 or more = 20 pts<br>+1 = 10 pts<br>0 or negative = 0</td><td>20</td></tr>
 <tr><td>2</td><td class='k'>All India Traffic Light</td><td>Your chapter's colour on the monthly All India Chapter Traffic Lights report (uploaded by admin)</td><td>GREEN = 15 pts<br>AMBER or RED = 0</td><td>15</td></tr>
 <tr><td>3</td><td class='k'>Overall Renewal Rate</td><td>Chapter's overall retention % as published in the monthly 3+1 Traffic Lights (admin enters)</td><td>80% or more = 20 pts<br>70% to 79.9% = 10 pts<br>Below 70% = 0</td><td>20</td></tr>
 <tr><td>4</td><td class='k'>Your own Member Score</td><td>Your Traffic Light score as a member (admin enters)</td><td>80 or more = 10 pts<br>70 to 79 = 5 pts<br>Below 70 = 0</td><td>10</td></tr>
@@ -428,7 +428,6 @@ admin_body += """
 <h2 class='pb'>9. The SDC month (Support Director Consultants)</h2>
 <p>Switch the console to <b>SDC</b>. The SDC month is a separate page with its own publish button, but it shares the chapter list, the Chapter Statistics upload and the New / Renewals counts with the SA month.</p>
 <h3>Step 1: Open the month</h3>
-<p><b>First month only (October 2026):</b> open <b>September 2026</b> on the SDC switch (marked "baseline") and drop that month's Chapter Statistics for both regions. That gives October its starting member count. Do this once.</p>
 <p>Months → pick the month → <b>Open month</b>. The app creates one row per chapter and the <b>weekly grid</b>: one cell per chapter meeting date (Ainthinai Tue, Bamboo Kottai Wed, Cmy Veli Thu, and so on; meeting days are in Settings).</p>
 <h3>Step 2: Every Friday evening during the month</h3>
 <ol>
@@ -440,7 +439,7 @@ admin_body += """
 <h3>Step 3: First week of the next month</h3>
 <table class='data'>
 <tr><th>Column</th><th>Source</th><th>Rule</th></tr>
-<tr><td class='k'>Net add</td><td>Chapter Statistics upload (both regions), this month minus last month</td><td>Filled automatically once both months have a member count. Type a number to override with the exact joiners-minus-leavers; clear the cell to go back to the derived figure.</td></tr>
+<tr><td class='k'>Net add</td><td>BNI Connect → Reports → Region Meeting Statistics → <b>Membership Activity by Chapter</b>, both regions, From = 1st, To = last day of the month. Drop both .xls files on the SDC month page.</td><td>Filled automatically: Joined minus Left (shown under the number). Type a number only to correct it; a typed number is kept on later uploads.</td></tr>
 <tr><td class='k'>Traffic light</td><td>Upload the <b>All India Chapter Traffic Lights</b> .xlsx on the SDC month page</td><td>GREEN / AMBER / RED per chapter is read from the file (chapter score shown under it). Pick a value by hand to override.</td></tr>
 <tr><td class='k'>Renewal %</td><td>3+1 Traffic Lights report</td><td>Chapter's <b>overall</b> retention % as published (82 for 82%). Leave blank only if the report has no figure.</td></tr>
 <tr><td class='k'>Member score</td><td>Monthly Member Traffic Light report</td><td>The SDC's own score as a member.</td></tr>
@@ -448,7 +447,7 @@ admin_body += """
 <tr><td class='k'>LTRT</td><td>Attendance sheet</td><td>Attended / Not attended.</td></tr>
 <tr><td class='k'>Paid</td><td>Read-only</td><td>New + Renewals typed on the <b>SA</b> month for the same chapter. Enter them there once; both payouts use them.</td></tr>
 </table>
-<p>The Chapter Statistics upload can be dropped on either month page; it updates both programmes. If the SA month is already published, only the SDC member counts are updated.</p>
+<p>The SA month still uses Chapter Statistics and the Training Report as before. The SDC month only needs Membership Activity and Traffic Lights uploads.</p>
 <h3>Step 4: Review and publish</h3>
 <ol>
 <li>No week should be left unticked ("4 unticked" under TB or PALMS means the grid is incomplete; a blank week scores 0).</li>
@@ -470,8 +469,8 @@ admin_body += """
 <li>Payout counts members by <b>payment month</b>, not by renewal date.</li>
 <li>History belongs to the person, not the chapter. A new SA starts with a blank history.</li>
 <li>The Google Sheet is now an archive. The app is the record.</li>
-<li><b>Go-live is October 2026</b> for both programmes. Earlier months are not scored or shown. September 2026 exists only as a <b>baseline</b>: upload its Chapter Statistics (both regions) once so October net growth has a starting point. A baseline month cannot be published.</li>
-<li>SDC net growth is <b>monthly</b> (this month's count minus last month's), not the trailing "Growth" figure printed on the Traffic Lights report.</li>
+<li><b>Go-live is October 2026</b> for both programmes. Earlier months are not scored or shown. September 2026 is marked <b>baseline</b> and cannot be published.</li>
+<li>SDC net growth is the month's <b>joined minus left</b> from Membership Activity by Chapter, not the trailing "Growth" figure printed on the Traffic Lights report.</li>
 <li>Tele-bridge weeks are matched by the <b>meeting date</b> typed on the form, not by the date the form was submitted.</li>
 </ul>
 <div class='footer'>BNI TNT Region · SA &amp; SDC Scorecard Admin Guide v1.1 · Owner Mohamed Riaz · https://sa.bnitnt.in</div>

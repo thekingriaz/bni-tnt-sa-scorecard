@@ -253,7 +253,7 @@ function renderSDC(d) {
   const wk = (x, k) => { const v = x[k]; return `<span class="${x.no_meeting ? 'off' : v === true ? 'y' : v === false ? 'n' : ''}" title="${x.no_meeting ? 'No meeting' : v === true ? 'Done' : v === false ? 'Not done' : 'Not recorded'}">${dmy(x.date)} ${x.no_meeting ? '·' : v === true ? '✓' : v === false ? '✗' : '?'}</span>`; };
   const weeksLine = k => i.weeks && i.weeks.length ? `<div class="wk-dash" style="margin-top:4px">${i.weeks.map(x => wk(x, k)).join('')}</div>` : '';
   const valueOf = k => { switch (k) {
-    case 'net_growth': return `${i.net_add === null || i.net_add === undefined ? '–' : (i.net_add > 0 ? '+' : '') + i.net_add} <span class="auto">${i.prev_member_count !== null && i.member_count !== null ? `${fmt(i.prev_member_count, 0)} → ${fmt(i.member_count, 0)} members` : h.legacy ? 'as entered on the old sheet' : 'from the monthly member count'}</span>`;
+    case 'net_growth': return `${i.net_add === null || i.net_add === undefined ? '–' : (i.net_add > 0 ? '+' : '') + i.net_add} <span class="auto">${i.joined != null ? `${i.joined} joined, ${i.left_count} left this month` : i.prev_member_count != null && i.member_count != null ? `${fmt(i.prev_member_count, 0)} → ${fmt(i.member_count, 0)} members` : 'joined minus left this month'}</span>`;
     case 'traffic_light': return `<span class="tl-${esc(i.tl_status || '')}">${esc(i.tl_status || '–')}</span>${i.tl_score != null ? ` <span class="auto">chapter score ${fmt(i.tl_score, 0)}</span>` : ''}`;
     case 'retention': return i.retention_pct === null || i.retention_pct === undefined ? '–' : fmt(i.retention_pct) + '%';
     case 'member': return fmt(i.member_score, 0);
@@ -343,7 +343,7 @@ async function renderAdmin() {
   </div>
   <div class="card" style="margin-top:14px"><h3>Monthly routine</h3>${state.prog === 'sdc' ? `<ol class="small" style="margin:0;padding-left:18px">
     <li>Open the month. The weekly grid is created from each chapter's meeting day.</li>
-    <li>Upload <b>Chapter Statistics</b> × 2 regions (if not already done on the SA side): member counts give Net Growth. Upload the <b>All India Chapter Traffic Lights</b> .xlsx: GREEN / AMBER / RED per chapter.</li>
+    <li>Upload BNI Connect <b>Membership Activity by Chapter</b> × 2 regions (From 1st, To last day of the month): Joined minus Left gives Net Growth. Upload the <b>All India Chapter Traffic Lights</b> .xlsx: GREEN / AMBER / RED per chapter.</li>
     <li>Click <b>Sync Jotform</b>: ticks Tele-Bridge weeks and the 24-hour chapter visit. Every Friday tick <b>PALMS</b> for the week; mark holiday weeks as <b>no meeting</b>.</li>
     <li>Type Renewal rate % (3+1 report), Member score, LTRT. Members paid for payout come from the SA month (New + Renewals).</li>
     <li>Check the scores, then <b>Publish</b>. SDCs only see published months.</li></ol>` : `<ol class="small" style="margin:0;padding-left:18px">
@@ -449,7 +449,7 @@ async function renderSdcMonth(ym) {
   const yn = (e, k, a, b, autoFlag) => ro(e) ? `<td>${e[k] === null ? '–' : e[k] ? a : b}</td>` : `<td><select class="cell-sel" data-id="${e.id}" data-k="${k}"><option value="" ${e[k] === null ? 'selected' : ''}>–</option><option value="1" ${e[k] === true ? 'selected' : ''}>${a}</option><option value="0" ${e[k] === false ? 'selected' : ''}>${b}</option></select>${autoFlag && e[autoFlag] ? '<span class="auto">auto</span>' : ''}</td>`;
   const tl = e => ro(e) ? `<td><span class="tl-${esc(e.tl_status || '')}">${esc(e.tl_status || '–')}</span>${e.tl_score != null ? `<span class="auto">score ${fmt(e.tl_score, 0)}</span>` : ''}</td>`
     : `<td><select class="cell-sel" data-id="${e.id}" data-k="tl_status"><option value="" ${!e.tl_status ? 'selected' : ''}>–</option>${['GREEN', 'AMBER', 'RED', 'GREY'].map(v => `<option ${e.tl_status === v ? 'selected' : ''}>${v}</option>`).join('')}</select>${e.tl_auto ? `<span class="auto">auto${e.tl_score != null ? ' · ' + fmt(e.tl_score, 0) : ''}</span>` : ''}</td>`;
-  const netExtra = e => `<span class="auto">${e.legacy ? '' : e.net_add_derived !== null && e.net_add_derived !== undefined ? `${fmt(e.prev_member_count, 0)}→${fmt(e.member_count, 0)}${e.net_add !== null && e.net_add !== undefined && e.net_add !== e.net_add_derived ? ' (override)' : ''}` : e.member_count != null ? `${fmt(e.member_count, 0)} members, no previous month` : 'no upload yet'}</span>`;
+  const netExtra = e => `<span class="auto">${e.legacy ? '' : e.net_add_auto && e.joined != null ? `${e.joined} joined, ${e.left_count} left` : e.net_add !== null && e.net_add !== undefined && e.net_add_auto === false ? 'typed by admin' : e.net_add_derived !== null && e.net_add_derived !== undefined ? `${fmt(e.prev_member_count, 0)}→${fmt(e.member_count, 0)} (estimate)` : 'upload Membership Activity'}</span>`;
   const rows = m.entries.map(e => { const c = e.computed; return `<tr data-ch="${e.chapter_id}">
     <td><b>${esc(e.chapter.name.replace(/^BNI\s+/, ''))}</b><span class="auto">${esc(e.sdc?.name || '<no SDC>')}${e.sdc && e.sdc.active === false ? ' (inactive)' : ''} · ${DOW[e.chapter.meeting_day] || '?'}</span></td>
     ${ro(e) ? `<td class="num">${e.net_add ?? '–'}${netExtra(e)}</td>` : `<td class="num"><input class="cell-in" type="number" step="1" data-id="${e.id}" data-k="net_add" value="${e.net_add ?? ''}" placeholder="${e.net_add_derived ?? ''}">${netExtra(e)}</td>`}
@@ -475,10 +475,10 @@ async function renderSdcMonth(ym) {
   <div class="row" style="margin-bottom:12px"><button class="btn ghost sm" id="back">← Months</button><h2 style="margin:0">${monthName(ym)} · SDC</h2><span class="pill ${m.month.sdc_status}">${m.month.sdc_status}</span><div class="spacer"></div>
     <span class="small muted">Region avg <b id="sdc-avg">${fmt(m.region_avg)}</b></span>
     ${base ? '<span class="pill draft">baseline</span>' : pub ? `<button class="btn ghost sm" id="unpub">Unpublish</button>` : `<button class="btn" id="pub">Publish month</button>`}</div>
-  ${base ? `<div class="banner">${monthName(ym)} is before the go-live month (${monthName(m.go_live_ym)}). Upload its <b>Chapter Statistics</b> (both regions) here so ${monthName(m.go_live_ym)} net growth has a starting point. Nothing else is needed; this month is never scored or shown to SDCs.</div>` : ''}
+  ${base ? `<div class="banner">${monthName(ym)} is before the go-live month (${monthName(m.go_live_ym)}). Nothing needs to be entered here: net growth now comes from each month's own Membership Activity report. This month is never scored or shown to SDCs.</div>` : ''}
   ${pub ? '' : `<div class="grid g2" style="margin-bottom:14px">
     <div class="card"><h3>Upload reports</h3>
-      <div class="drop" id="drop">Drop files here or click to choose<br><span class="small"><b>All India Chapter Traffic Lights</b> (.xlsx) for ${monthName(ym)}, and/or BNI Connect <b>Chapter Statistics</b> (.xls, both regions) for member counts.</span></div>
+      <div class="drop" id="drop">Drop files here or click to choose<br><span class="small">BNI Connect <b>Membership Activity by Chapter</b> (.xls, both regions, 1st to last day of ${monthName(ym)}) for net growth, and the <b>All India Chapter Traffic Lights</b> (.xlsx).</span></div>
       <input type="file" id="file" multiple accept=".xls,.xlsx,.xml,.txt" class="hidden">
       <div id="up-log" class="small" style="margin-top:8px">${state.upLog || ''}</div>
       ${m.uploads?.length ? `<div class="divider"></div><div class="small muted">Uploaded: ${m.uploads.map(u => `${esc(u.kind)} · ${esc(u.region || '')} · ${new Date(u.created_at).toLocaleDateString('en-IN')}`).join('<br>')}</div>` : ''}
@@ -494,7 +494,7 @@ async function renderSdcMonth(ym) {
   <div class="card"><div class="tbl-wrap"><table class="month-tbl">
     <thead><tr><th>Chapter / SDC</th><th class="right">Net add</th><th>Traffic light</th><th class="right">Renewal %</th><th class="right">Member score</th><th class="right">TB</th><th class="right">PALMS</th><th>Visit 24h</th><th>LTRT</th><th class="right">Paid</th><th class="right">Score</th><th>Band</th><th class="right">Payout</th><th class="right">Rank</th></tr></thead>
     <tbody>${rows}</tbody></table></div>
-    ${pub ? '' : '<p class="small muted" style="margin-bottom:0">Edits save when you leave the cell. Net add is derived from this month\'s member count minus last month\'s; type a number to override, clear it to go back to derived. Traffic light comes from the upload; pick a value to override. "Paid" (new + renewals) is typed on the SA month.</p>'}</div>
+    ${pub ? '' : '<p class="small muted" style="margin-bottom:0">Edits save when you leave the cell. Net add comes from the Membership Activity upload (joined minus left); type a number to override. Traffic light comes from the upload; pick a value to override. "Paid" (new + renewals) is typed on the SA month.</p>'}</div>
   ${grid}`;
   bindNav();
   $('#back').onclick = () => { state.month = null; state.upLog = ''; renderAdmin(); };
@@ -598,10 +598,10 @@ async function handleSdcFiles(files, ym) {
         log.lastElementChild.innerHTML = `<span class="ok">✓</span> ${esc(f.name)}: Traffic Lights ${monthName(r.month)}, ${r.updated.length} of our chapters found` + (r.updated.length ? ` (${r.updated.map(u => `${esc(u.chapter.replace(/^BNI\s+/, ''))} <span class="tl-${u.status}">${u.status}</span>${u.kept_manual ? '*' : ''}`).join(', ')})` : '') + (r.warning ? ` <span class="bad">${esc(r.warning)}</span>` : '');
       } else {
         const text = await f.text();
-        const kind = /Chapter Statistics/i.test(text) ? 'chapter_statistics' : /Member Training Report/i.test(text) ? 'training' : null;
-        if (!kind) throw new Error('Not a Chapter Statistics export (or an .xlsx Traffic Lights file)');
+        const kind = /Membership Activity by Chapter/i.test(text) ? 'membership_activity' : /Chapter Statistics/i.test(text) ? 'chapter_statistics' : /Member Training Report/i.test(text) ? 'training' : null;
+        if (!kind) throw new Error('Not a Membership Activity by Chapter / Chapter Statistics export (or an .xlsx Traffic Lights file)');
         r = await api('admin/upload', { method: 'POST', body: { kind, filename: f.name, text } });
-        log.lastElementChild.innerHTML = `<span class="ok">✓</span> ${esc(f.name)}: ${esc(r.region || '')} ${r.month}, ${r.updated.length} chapters updated${r.warning ? ` <span class="bad">${esc(r.warning)}</span>` : ''}`;
+        log.lastElementChild.innerHTML = `<span class="ok">✓</span> ${esc(f.name)}: ${kind === 'membership_activity' ? 'Membership Activity · ' : ''}${esc(r.region || '')} ${r.month}, ${r.updated.length} chapters updated${kind === 'membership_activity' ? ' (' + r.updated.map(u => `${esc(u.chapter.replace(/^BNI\s+/, ''))} ${u.change > 0 ? '+' : ''}${u.change}${u.kept_manual ? '*' : ''}`).join(', ') + ')' : ''}${r.warning ? ` <span class="bad">${esc(r.warning)}</span>` : ''}`;
         if (r.month !== ym) { toast(`File was for ${monthName(r.month)}, opening that month`); state.month = r.month; return renderSdcMonth(r.month); }
       }
     } catch (e) { log.lastElementChild.innerHTML = `<span class="bad">✗ ${esc(f.name)}: ${esc(e.message)}</span>`; }

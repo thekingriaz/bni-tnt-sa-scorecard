@@ -240,3 +240,42 @@ export function parsePalmsStatus(text) {
   }
   return out;
 }
+
+/**
+ * Region Meeting Statistics > Membership Activity by Chapter (one calendar month, both From and To in that month).
+ * Header: Chapter | Member Count At Start | Joined (Count, Percent) | Left (Count, Percent) | Member Count At End | Change (Count, Percent) | Joined And Left | Renewed
+ * Returns { report, region, month, rows: [{chapter, key, start, joined, left, end, change}] }.
+ */
+export function parseMembershipActivity(text) {
+  const rows = readSpreadsheetML(text);
+  const title = (rows[0] && rows[0][0]) || '';
+  if (!/Membership Activity by Chapter/i.test(title)) throw new Error(`This is not a Membership Activity by Chapter report (title: "${title}").`);
+  const region = metaValue(rows, 'Region');
+  const from = String(metaValue(rows, 'From') || ''), to = String(metaValue(rows, 'To') || '');
+  const fm = from.slice(0, 7), tm = to.slice(0, 7);
+  if (!/^\d{4}-\d{2}$/.test(fm)) throw new Error(`Could not read the From date "${from}".`);
+  if (fm !== tm) throw new Error(`Report covers ${from.slice(0, 10)} to ${to.slice(0, 10)}. Run it for ONE calendar month (From = 1st, To = last day).`);
+  const hIdx = rows.findIndex(r => r[0] === 'Chapter' && r.some(c => /Member Count At Start/i.test(c || '')));
+  if (hIdx < 0) throw new Error('Header row "Chapter / Member Count At Start" not found.');
+  // Joined, Left and Change each span two data columns (Count, Percent); the others span one
+  const col = {}; let i = 1;
+  for (const label of rows[hIdx].slice(1)) {
+    if (!label) continue;
+    const l = label.trim().toLowerCase(); col[l] = i;
+    i += ['joined', 'left', 'change'].includes(l) ? 2 : 1;
+  }
+  const need = ['member count at start', 'joined', 'left', 'member count at end', 'change'];
+  for (const n of need) if (!(n in col)) throw new Error(`Column "${n}" not found in the report.`);
+  const num = v => (v === null || v === undefined || v === '' ? null : Number(v));
+  const out = [];
+  for (const r of rows.slice(hIdx + 1)) {
+    if (!r[0] || !/^BNI\s/i.test(r[0])) continue;
+    out.push({
+      chapter: r[0].trim(), key: normChapter(r[0].replace(/\.+$/, '')),
+      start: num(r[col['member count at start']]), joined: num(r[col['joined']]), left: num(r[col['left']]),
+      end: num(r[col['member count at end']]), change: num(r[col['change']]),
+    });
+  }
+  if (!out.length) throw new Error('No chapter rows found in the report.');
+  return { report: 'membership_activity', region, month: fm, rows: out };
+}
