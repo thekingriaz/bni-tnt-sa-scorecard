@@ -106,20 +106,30 @@ export default handler(async ({ req, session, body }) => {
   await Promise.all(entryPatches.map(p => db.from('sdc_entries').update(p).eq('id', p.id)));
 
   // ---------- SDC: tele-bridge weeks ----------
-  let weeksTouched = 0, tbUnmatched = [];
+  let weeksTouched = 0, tbUnmatched = []; const tbDetail = [];
   const today = new Date(Date.now() + 5.5 * 3600 * 1000).toISOString().slice(0, 10); // IST
   if (tbForm) {
     const byChapter = {}; for (const w of weeks || []) (byChapter[w.chapter_id] = byChapter[w.chapter_id] || []).push(w);
     const hit = new Map(); // week id -> submission id
     for (const s of tbSubs) {
-      const key = normChapter(findAnswer(s, 'select your chapter', 'chapter'));
+      const chapterRaw = findAnswer(s, 'select your chapter', 'chapter');
+      const key = normChapter(chapterRaw);
       const c = chapters.find(x => x.key === key);
-      const md = toDate(findAnswer(s, 'date of the chapter meeting', 'meeting'));
-      if (!c || !md || md.slice(0, 7) !== ym) { if (c && md) continue; tbUnmatched.push({ chapter: findAnswer(s, 'chapter'), date: md }); continue; }
+      const meetingRaw = findAnswer(s, 'date of the chapter meeting', 'meeting');
+      const md = toDate(meetingRaw);
+      const row = { submitted: (s.created_at || '').slice(0, 16), chapter: c ? c.name : chapterRaw, meeting_entered: md || meetingRaw || null,
+        submitted_by: findAnswer(s, 'submitted by'), sdc_attended: findAnswer(s, 'support dc'), week: null, result: '' };
+      tbDetail.push(row);
+      if (!c) { row.result = 'chapter not recognised'; tbUnmatched.push({ chapter: chapterRaw, date: md }); continue; }
+      if (!md) { row.result = 'meeting date unreadable'; tbUnmatched.push({ chapter: chapterRaw, date: meetingRaw }); continue; }
+      if (md.slice(0, 7) !== ym) { row.result = `meeting in ${md.slice(0, 7)}, not this month`; continue; }
       const ws = byChapter[c.id] || [];
       let best = null, bestD = 99;
       for (const w of ws) { const d = Math.abs(dayDiff(md, w.week_date)); if (d < bestD) { best = w; bestD = d; } }
-      if (best && bestD <= 3 && !hit.has(best.id)) hit.set(best.id, s.id);
+      if (!best || bestD > 3) { row.result = 'no meeting of this chapter within 3 days of that date'; continue; }
+      row.week = String(best.week_date);
+      if (hit.has(best.id)) { row.result = 'duplicate: week already counted'; continue; }
+      hit.set(best.id, s.id); row.result = bestD === 0 ? 'counted' : `counted (date entered was ${bestD} day${bestD === 1 ? '' : 's'} off the meeting)`;
     }
     const weekPatches = [];
     for (const w of weeks || []) {
@@ -134,5 +144,6 @@ export default handler(async ({ req, session, body }) => {
   await audit(session.uid, 'jotform.sync_sdc', { ym, visits: visitSubs.length, telebridge: tbSubs.length });
   timing.total = Date.now() - t0;
   return { ok: true, ym, programme: 'sdc', total_submissions: visitSubs.length, results, timing,
-    telebridge: { form: tbForm || null, submissions: tbSubs.length, weeks_updated: weeksTouched, unmatched: tbUnmatched.slice(0, 20) } };
+    telebridge: { form: tbForm || null, submissions: tbSubs.length, weeks_updated: weeksTouched, unmatched: tbUnmatched.slice(0, 20),
+      detail: tbDetail.sort((a, b) => String(a.chapter).localeCompare(String(b.chapter)) || String(a.meeting_entered).localeCompare(String(b.meeting_entered))) } };
 }, { role: 'admin' });
