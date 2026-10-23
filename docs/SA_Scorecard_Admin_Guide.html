@@ -1,0 +1,239 @@
+<!doctype html><html><head><meta charset='utf-8'><title>SA & SDC Scorecard Admin Guide</title><style>
+@page { size: 8.5in 14in; margin: 1in; }
+* { box-sizing: border-box; }
+body { font-family: Arial, Helvetica, sans-serif; color: #333333; font-size: 14pt; line-height: 1.45; margin: 0; }
+.cover { height: 11.6in; display: flex; flex-direction: column; justify-content: center; page-break-after: always; }
+.badge { display: inline-block; background: #c8102e; color: #fff; font-weight: bold; font-size: 18pt; padding: 6px 16px; border-radius: 6px; margin-bottom: 28px; }
+h1.title { font-size: 26pt; color: #1b3a5c; margin: 0 0 14px; line-height: 1.2; }
+.sub { font-size: 17pt; color: #2e75b6; margin: 0 0 6px; }
+.region { font-size: 17pt; color: #666666; margin: 0 0 40px; }
+table.meta { border-collapse: collapse; width: 100%; font-size: 13pt; }
+table.meta td { border: 1px solid #000; padding: 8px 10px; }
+table.meta tr:nth-child(odd) td { background: #f5f5f5; }
+table.meta td.k { font-weight: bold; color: #1b3a5c; width: 30%; }
+h2 { font-size: 14pt; color: #2e75b6; margin: 26px 0 8px; page-break-after: avoid; }
+h3 { font-size: 14pt; color: #333333; margin: 18px 0 6px; page-break-after: avoid; }
+h2.problem { color: #c8102e; }
+p { margin: 0 0 10px; text-align: justify; }
+ul, ol { margin: 0 0 10px 0; padding-left: 26px; }
+li { margin-bottom: 4px; }
+table.data { border-collapse: collapse; width: 100%; margin: 8px 0 14px; page-break-inside: auto; }
+table.data th { background: #1b3a5c; color: #fff; font-weight: bold; padding: 8px 10px; border: 1px solid #cccccc; text-align: left; vertical-align: middle; }
+table.data td { background: #f5f5f5; padding: 8px 10px; border: 1px solid #cccccc; vertical-align: middle; }
+table.data td.k { font-weight: bold; color: #2e75b6; }
+table.data tr { page-break-inside: avoid; }
+.callout { background: #fff4e5; border-left: 6px solid #c8102e; padding: 10px 14px; margin: 12px 0 16px; }
+.tip { background: #eef5fb; border-left: 6px solid #2e75b6; padding: 10px 14px; margin: 12px 0 16px; }
+.small { font-size: 12pt; color: #666666; }
+.band-Gold { color: #a67c00; font-weight: bold; } .band-Green { color: #1f8a4c; font-weight: bold; }
+.band-Amber { color: #b36b00; font-weight: bold; } .band-Red { color: #c62828; font-weight: bold; } .band-Review { color: #666; font-weight: bold; }
+.pb { page-break-before: always; }
+.footer { margin-top: 30px; font-size: 11pt; color: #666; border-top: 1px solid #ccc; padding-top: 8px; }
+</style></head><body><div class='cover'><span class='badge' style='align-self:flex-start'>ADMIN GUIDE</span>
+<h1 class='title'>SA &amp; SDC Scorecard<br>Monthly operating procedure for admins</h1><p class='sub'>Admin manual: data entry, uploads, publishing, user management, for both programmes</p><p class='region'>BNI TNT Region · Tirunelveli, Nagercoil, Tuticorin, Tenkasi, Marthandam</p>
+<table class='meta'><tr><td class='k'>Version</td><td>1.1</td></tr><tr><td class='k'>Date</td><td>21 October 2026</td></tr><tr><td class='k'>Applies to</td><td>BNI TNT admin team (3 admins + ED)</td></tr><tr><td class='k'>Website</td><td>https://sa.bnitnt.in (Admin tab)</td></tr><tr><td class='k'>Owner</td><td>Mohamed Riaz, Executive Director, BNI TNT</td></tr></table></div>
+<h2>1. Purpose and roles</h2>
+<p>The SA Scorecard app replaces the monthly Google Sheet. Admins enter each month's data, the app computes scores, bands, ranks and payouts, and SAs see only their own results after the month is published. This guide is the complete monthly procedure.</p>
+<table class='data'>
+<tr><th>Role</th><th>Can do</th></tr>
+<tr><td class='k'>Admin</td><td>Open months, upload BNI Connect exports, enter manual inputs, sync Jotform, publish/unpublish, manage users and settings, see all 14 scores.</td></tr>
+<tr><td class='k'>SA</td><td>See own scorecard, rank and region average for published months only.</td></tr>
+<tr><td class='k'>SDC</td><td>Same, on the Support DC tab. Scored on the SDC KPIs (section 9).</td></tr>
+</table>
+<p>The admin console has an <b>SA | SDC</b> switch at the top right. Everything on the Months page belongs to the programme selected there; each month is opened and published separately per programme. Sections 3 to 8 describe the SA month; section 9 describes the SDC month.</p>
+<div class='callout'><b>Golden rules.</b> (1) Never publish before every chapter has a Member Score, Retention %, LTRT and Jotform status. (2) Upload Chapter Statistics <u>before</u> the Training Report (training % needs the member count). (3) Published months are frozen; unpublish, fix, publish again.</div>
+
+<h2>2. Logging in</h2>
+<ol>
+<li>Open <b>https://sa.bnitnt.in</b>, click the <b>Admin</b> tab, sign in with your email and password.</li>
+<li>Change your password on first login: Users → your name → <b>Set password</b>.</li>
+<li>Three menus: <b>Months</b> (monthly work), <b>Settings</b> (commission, thresholds, online event list), <b>Users</b> (SAs, PINs, admins).</li>
+</ol>
+
+<h2 class='pb'>3. Monthly procedure (first week of each month, for the previous month)</h2>
+<h3>Step 1: Export four files from BNI Connect</h3>
+<table class='data'>
+<tr><th>Report</th><th>BNI Connect path and parameters</th><th>Files</th></tr>
+<tr><td class='k'>Chapter Statistics</td><td>Reports → Region Meeting Statistics → <b>Chapter Statistics</b>. Region: Tirunelveli, then Nagercoil &amp; Tuticorin. <b>From = To = the month</b> (e.g. 10/2026). Export to Excel.</td><td>2 (one per region)</td></tr>
+<tr><td class='k'>Member Training Report</td><td>Reports → <b>Region Member Training Report</b>. Region: both, one at a time. All events selected. From = 1st of the month, To = last day of the month. Show: <b>Members who have attended</b>. Export to Excel.</td><td>2 (one per region)</td></tr>
+</table>
+<p class='small'>The files download as .xls. Upload them exactly as downloaded; do not open and re-save in Excel. A file covering more than one month is rejected.</p>
+
+<h3>Step 2: Upload</h3>
+<ol>
+<li><b>Months</b> → drop all four files on the upload box (or click it and select). The app reads the month and the region from each file and opens that month automatically.</li>
+<li>Order matters: Chapter Statistics first, then Training. If you drop all four together, the app handles them in sequence; if a training file shows "no member count yet", re-upload that training file after the Chapter Statistics.</li>
+<li>Check the upload log: "8 chapters updated" (Tirunelveli) and "6 chapters updated" (Nagercoil &amp; Tuticorin). A chapter listed as "not found" means its name in BNI Connect changed; tell the ED.</li>
+</ol>
+<p>What the uploads fill in: <b>Members</b> (Mem Avg), <b>1-2-1 per member</b>, <b>Online %</b> and <b>Offline %</b> (unique members trained ÷ members; the split follows the online event list in Settings).</p>
+
+<h3>Step 3: Sync Jotform</h3>
+<ol>
+<li>Click <b>Sync Jotform</b>. The app pulls that month's "BNI Chapter Visit Report" submissions and ticks every chapter where the submitter's name matches the SA's <i>Jotform name</i> (Users page).</li>
+<li>Read the result list. "Submitted by X, no match for Y" means the SA wrote their name differently: either fix the Jotform name in Users and sync again, or set the Jotform cell to Done by hand. Manual changes are kept on later syncs.</li>
+</ol>
+
+<h3>Step 4: Enter the manual inputs (per chapter)</h3>
+<table class='data'>
+<tr><th>Column</th><th>Source</th><th>Rule</th></tr>
+<tr><td class='k'>Member score</td><td>Monthly Member Traffic Light report</td><td>The SA's own score as a member (0 to 100).</td></tr>
+<tr><td class='k'>Retention %</td><td>3+1 Traffic Lights workbook (.xlsx), uploaded</td><td>Drop the file on the upload box. The app takes the First Year Retention column (the SDC month gets Overall Retention from the same file). Chapters under 12 months show n/a. Type a value only to correct the report.</td></tr>
+<tr><td class='k'>LTRT</td><td>LTRT / DCRT attendance sheet (also in BNI Connect)</td><td>Attended / Not attended. If no LTRT or DCRT was scheduled that month, mark Attended so nobody is penalised.</td></tr>
+<tr><td class='k'>New</td><td>BNI Connect new member report / payment records</td><td>New members whose payment was received <b>in that month</b>.</td></tr>
+<tr><td class='k'>Renewals</td><td>Payment records</td><td>Renewals <b>paid in that month</b>, regardless of renewal date. (A 1 Nov renewal paid on 15 Oct counts in October.)</td></tr>
+</table>
+<p>Cells save when you leave them. Score, band, payout and rank update immediately. You may also override Online %, Offline % and 1-2-1 if an upload was wrong; the override is kept until the next upload of that report.</p>
+
+<h3>Step 5: Review and publish</h3>
+<ol>
+<li>Every row must have a Member score, Retention % (or n/a), LTRT and Jotform value. A blank counts as zero and will be questioned.</li>
+<li>Check the region average and the band spread look sane against last month.</li>
+<li>Click <b>Publish month</b>. SAs see it instantly. Payout figures are now frozen for that month.</li>
+<li>Found a mistake after publishing? <b>Unpublish</b> → correct → <b>Publish</b> again. Tell the affected SA.</li>
+</ol>
+<div class='tip'><b>Time budget:</b> about 45 minutes a month once the four files are exported: 5 min uploads, 2 min Jotform, 25 min manual inputs, 10 min review.</div>
+
+<h2 class='pb'>4. Users</h2>
+<table class='data'>
+<tr><th>Task</th><th>How</th></tr>
+<tr><td class='k'>Reset an SA's PIN</td><td>Users → the SA → <b>Set PIN</b> (4 to 8 digits). Share it privately. All new SAs start on 1234 and must be reset before they get the link.</td></tr>
+<tr><td class='k'>Fix the Jotform name</td><td>Users → <b>Jotform name</b>. Enter the name exactly as the SA types it on the visit form.</td></tr>
+<tr><td class='k'>Replace a chapter's SA</td><td>Users → <b>Replace a chapter's SA</b>: chapter, new name, PIN, "from month". The old SA is deactivated (history kept), the new one starts fresh. Draft months from that month move to the new SA.</td></tr>
+<tr><td class='k'>SA covers two chapters</td><td>Give the person a second login on the second chapter (Replace or Add). One person, two scorecards.</td></tr>
+<tr><td class='k'>Add an admin</td><td>Users → <b>Add admin</b> (name, email, password of 8+ characters).</td></tr>
+<tr><td class='k'>Deactivate / activate</td><td>Users → Deactivate. The person can no longer sign in; nothing is deleted.</td></tr>
+</table>
+
+<h2>5. Settings</h2>
+<table class='data'>
+<tr><th>Setting</th><th>Current</th><th>Notes</th></tr>
+<tr><td class='k'>Membership fee</td><td>₹49,040</td><td>Per member, new or renewal. Change here when the team decides; draft months recalculate at once, published months keep their payout.</td></tr>
+<tr><td class='k'>Commission %</td><td>2.5%</td><td>Per member: ₹1,226.</td></tr>
+<tr><td class='k'>1-2-1 threshold</td><td>8.66 per member per month</td><td>= 2 per week × 4.33 weeks.</td></tr>
+<tr><td class='k'>Mentoring KPI</td><td>Off</td><td>Turn on when the mentoring app provides the %. Score becomes out of 100.</td></tr>
+<tr><td class='k'>Online training events</td><td>Admin-maintained list</td><td>Tick the event types that count as online. Everything else is offline. Only affects the split shown; the score uses the combined %.</td></tr>
+<tr><td class='k'>Jotform form ID</td><td>261212882805052</td><td>BNI Chapter Visit Report.</td></tr>
+</table>
+
+<h2>6. Scoring reference</h2>
+
+<table class='data'>
+<tr><th>#</th><th>KPI</th><th>Where the number comes from</th><th>Scoring</th><th>Max</th></tr>
+<tr><td>1</td><td class='k'>Your own Member Score</td><td>Your Traffic Light score as a member (admin enters monthly)</td><td>80 or more = 10 pts<br>70 to 79 = 5 pts<br>Below 70 = 0</td><td>10</td></tr>
+<tr><td>2</td><td class='k'>Training Attendance</td><td>BNI Connect Member Training Report: unique members of your chapter who attended any training in the month, divided by chapter member count (Online + Offline combined)</td><td>20% or more = 20 pts<br>15% to 19.9% = 15 pts<br>10% to 14.9% = 10 pts<br>Below 10% = 0</td><td>20</td></tr>
+<tr><td>3</td><td class='k'>1st-Year Retention</td><td>Chapter's First Year Retention % from the monthly 3+1 Traffic Lights report (uploaded by the office). Chapters under 12 months have no figure: this KPI is skipped and your other 55 points are scaled to 100</td><td>75% or more = 25 pts<br>70% to 74.9% = 15 pts<br>Below 70% = 0</td><td>25</td></tr>
+<tr><td>4</td><td class='k'>1-2-1 Activity</td><td>BNI Connect Chapter Statistics: "1-2-1 Per Member" for the month</td><td>8.66 or more per member per month (= 2 per week) = 10 pts<br>Below = 0</td><td>10</td></tr>
+<tr><td>5</td><td class='k'>LTRT / DCRT Attendance</td><td>Admin marks attendance</td><td>Attended = 5 pts<br>Not attended = 0</td><td>5</td></tr>
+<tr><td>6</td><td class='k'>Chapter Visit Report (Jotform)</td><td>Your monthly submission on the BNI Chapter Visit Report form, matched to your name automatically</td><td>Submitted = 10 pts<br>Not submitted = 0</td><td>10</td></tr>
+<tr><td>7</td><td class='k'>Mentoring Completion</td><td>Paused until the mentoring app is live</td><td>Not scored for now</td><td>(20)</td></tr>
+</table>
+<p><b>Total: 80 raw points, scaled to 100.</b> Your score on the dashboard = raw points ÷ 80 × 100. Example: 60 raw points shows as 75.</p>
+
+<table class='data'>
+<tr><th>Score (out of 100)</th><th>Band</th><th>Meaning</th><th>Commission multiplier</th></tr>
+<tr><td>85 to 100</td><td class='band-Gold'>🏆 Gold</td><td>Exceptional</td><td>1.00× (full commission)</td></tr>
+<tr><td>70 to 84.9</td><td class='band-Green'>✅ Green</td><td>On Track</td><td>0.80×</td></tr>
+<tr><td>55 to 69.9</td><td class='band-Amber'>🟡 Amber</td><td>Needs Improvement: coaching conversation</td><td>0.60×</td></tr>
+<tr><td>40 to 54.9</td><td class='band-Red'>🔴 Red</td><td>Underperforming: formal review</td><td>0.35×</td></tr>
+<tr><td>Below 40</td><td class='band-Review'>⚠️ Review</td><td>At Risk: improvement plan</td><td>0.15×</td></tr>
+</table>
+
+<h3>Payout</h3>
+
+<p>Your monthly payout has two parts: how many members paid in your chapter that month, and which band you landed in.</p>
+<table class='data'>
+<tr><th>Step</th><th>Calculation</th></tr>
+<tr><td class='k'>1. Members paid</td><td>New member inductions + renewals <b>paid in that month</b> (a renewal due 1 Nov but paid on 15 Oct counts in October)</td></tr>
+<tr><td class='k'>2. Base commission</td><td>Members paid × 2.5% of ₹49,040 = Members paid × ₹1,226</td></tr>
+<tr><td class='k'>3. Band multiplier</td><td>Base commission × your band multiplier (1.00 / 0.80 / 0.60 / 0.35 / 0.15)</td></tr>
+</table>
+<p><b>Example:</b> 1 new member + 3 renewals paid in October = 4 members × ₹1,226 = ₹4,904 base. Score 75 (Green, 0.80×) pays ₹3,923. The same month at Gold would pay ₹4,904. At Red it pays ₹1,716. The band costs you real money.</p>
+<p class='small'>The fee and percentage are set by the regional office and may be revised. The dashboard always shows the current figures.</p>
+
+
+<h2 class='pb'>7. Troubleshooting</h2>
+<table class='data'>
+<tr><th>Symptom</th><th>Cause and fix</th></tr>
+<tr><td class='k'>"Report covers X to Y. Export one month at a time"</td><td>From and To span more than one month. Re-export with the same month in both.</td></tr>
+<tr><td class='k'>"Not a BNI Connect export"</td><td>The file was opened and re-saved in Excel, or the wrong file was chosen. Download again from BNI Connect and upload the original.</td></tr>
+<tr><td class='k'>Training shows 0% for a region</td><td>Chapter Statistics for that region wasn't uploaded first, so there is no member count. Upload it, then re-upload the training file.</td></tr>
+<tr><td class='k'>"Month is already published"</td><td>Unpublish the month before re-uploading or syncing.</td></tr>
+<tr><td class='k'>Jotform shows "no match"</td><td>Name mismatch. Fix the SA's Jotform name in Users, sync again, or set Done manually.</td></tr>
+<tr><td class='k'>SA says "Wrong PIN"</td><td>Reset it in Users. Make sure they picked the right chapter on the login screen.</td></tr>
+<tr><td class='k'>"Chapters not found in the app"</td><td>Chapter name changed in BNI Connect. Inform the ED; the chapter list is updated in Settings.</td></tr>
+<tr><td class='k'>Anything else</td><td>Vercel project "bni-tnt-sa-scorecard" → Logs show the error. Send a screenshot to the ED.</td></tr>
+</table>
+
+<h2 class='pb'>9. The SDC month (Support Director Consultants)</h2>
+<p>Switch the console to <b>SDC</b>. The SDC month is a separate page with its own publish button, but it shares the chapter list, the Chapter Statistics upload and the New / Renewals counts with the SA month.</p>
+<h3>Step 1: Open the month</h3>
+<p>Months → pick the month → <b>Open month</b>. The app creates one row per chapter and the <b>weekly grid</b>: one cell per chapter meeting date (Ainthinai Tue, Bamboo Kottai Wed, Cmy Veli Thu, and so on; meeting days are in Settings).</p>
+<h3>Step 2: Every Friday evening during the month</h3>
+<ol>
+<li>Click <b>Sync Jotform</b>. Tele-bridge submissions are matched to the meeting week by chapter and meeting date. <b>TB ✓</b> only if submitted by 09:30 AM IST two days after the meeting; <b>TB ✗</b> once that deadline passes with nothing on time; blank while the window is still open. Expand <b>Show all Tele-bridge submissions</b> to see every submission, its deadline and why it did or didn't count.</li>
+<li><b>PALMS:</b> drop the Friday <b>Last Meeting Entered</b> screenshot on the <b>PALMS on time · Friday check</b> box. The app reads it (a few seconds), fills one line per chapter and sets the report date. <b>Check the 14 lines against the screenshot</b> (fix any wrong date, type any chapter it lists as "Not read"), then click <b>Apply PALMS</b>. Each chapter's meeting that week is ticked ✓ if it was entered, ✗ if the last meeting entered is older. Slightly misread names are matched to the right chapter automatically. Single cells can still be clicked by hand.</li>
+<li>If a chapter did not meet this week (holiday), click <b>no meeting</b> under that cell. The week drops out of both denominators.</li>
+<li>A wrong automatic tick can be clicked to change it; manual ticks survive later syncs.</li>
+</ol>
+<h3>Step 3: First week of the next month</h3>
+<table class='data'>
+<tr><th>Column</th><th>Source</th><th>Rule</th></tr>
+<tr><td class='k'>Net add</td><td>BNI Connect → Reports → Region Meeting Statistics → <b>Membership Activity by Chapter</b>, both regions, From = 1st, To = last day of the month. Drop both .xls files on the SDC month page.</td><td>Filled automatically: Joined minus Left (shown under the number). Type a number only to correct it; a typed number is kept on later uploads.</td></tr>
+<tr><td class='k'>Traffic light</td><td>Upload the <b>All India Chapter Traffic Lights</b> .xlsx on the SDC month page. Use the report whose latest score column is the month being scored (the October report, released in early November, for October).</td><td>Only our two regions are read (other chapters with the same name elsewhere in India are ignored). Score 70+ = GREEN, 50 to 69 AMBER, 30 to 49 RED. Pick a value by hand to override.</td></tr>
+<tr><td class='k'>Renewal %</td><td>Upload the monthly <b>3+1 Traffic Lights</b> workbook (.xlsx) on the SDC month page</td><td>Filled from the <b>Overall Retention Rates (Rolling)</b> column for each chapter (NPS is not used). A chapter under 12 months has no figure: it shows "n/a" and the KPI is skipped (other 80 points scaled to 100).</td></tr>
+<tr><td class='k'>Member score</td><td>Monthly Member Traffic Light report</td><td>The SDC's own score as a member.</td></tr>
+<tr><td class='k'>Visit 24h</td><td>Sync Jotform</td><td>Done only if the SDC's Chapter Visit Report was submitted on the visit day or the next day. The sync shows late submissions; override by hand if the office accepts a reason.</td></tr>
+<tr><td class='k'>LTRT · DCRT</td><td>Download the LTRT and DCRT attendance sheets as .xlsx and drop both on the month page (SA or SDC; one upload updates both programmes)</td><td>Colours are read: green = attended, red = absent. LTRT is matched by chapter column, DCRT by name. Unmatched names are listed; set them by hand (L / D dropdowns).</td></tr>
+<tr><td class='k'>Paid</td><td>Upload the BNI Connect <b>Region Commission Report</b> (both regions) on either month page</td><td>Each invoice is classed by fee: 41,559 / 66,494 = renewal, 47,558 / 72,493 = new member. Fills New + Renewals on the SA month; both payouts use them.</td></tr>
+</table>
+<p>The SA month still uses Chapter Statistics and the Training Report as before. The SDC month only needs Membership Activity and Traffic Lights uploads.</p>
+<h3>Step 4: Review and publish</h3>
+<ol>
+<li>No week should be left unticked ("4 unticked" under TB or PALMS means the grid is incomplete; a blank week scores 0).</li>
+<li>Every row needs a Traffic light, Renewal %, Member score, Visit and LTRT value.</li>
+<li><b>Publish month</b>. SDCs see it instantly. Unpublish → fix → Publish to correct.</li>
+</ol>
+<h3>SDC users and settings</h3>
+<ul>
+<li>Users page has a <b>Support Director Consultants</b> table with the same Set PIN, Jotform name, Replace and Deactivate actions as SAs. The Jotform name is matched against "Visited By" on the visit form.</li>
+<li>Settings: <b>SDC commission %</b> (7.5% at launch, ₹3,678 per member paid), <b>Tele-bridge form ID</b> (221121498823050) and <b>chapter meeting days</b>.</li>
+</ul>
+<h3>SDC scoring reference</h3>
+
+<table class='data'>
+<tr><th>#</th><th>KPI</th><th>Where the number comes from</th><th>Scoring</th><th>Max</th></tr>
+<tr><td>1</td><td class='k'>Chapter Net Growth</td><td>Members who joined minus members who left in the month, from the BNI Connect <b>Membership Activity by Chapter</b> report (uploaded by admin).</td><td>+2 or more = 20 pts<br>+1 = 10 pts<br>0 or negative = 0</td><td>20</td></tr>
+<tr><td>2</td><td class='k'>All India Traffic Light</td><td>Your chapter's score for the month on the All India Chapter Traffic Lights report (uploaded by admin). 70 or more is GREEN.</td><td>GREEN (70+) = 15 pts<br>AMBER or RED = 0</td><td>15</td></tr>
+<tr><td>3</td><td class='k'>Overall Renewal Rate</td><td>Chapter's overall retention % as published in the monthly 3+1 Traffic Lights (admin enters)</td><td>80% or more = 20 pts<br>70% to 79.9% = 10 pts<br>Below 70% = 0</td><td>20</td></tr>
+<tr><td>4</td><td class='k'>Your own Member Score</td><td>Your Traffic Light score as a member (admin enters)</td><td>80 or more = 10 pts<br>70 to 79 = 5 pts<br>Below 70 = 0</td><td>10</td></tr>
+<tr><td>5</td><td class='k'>Weekly Tele-Bridge call with LT</td><td>The weekly "Support DC Tele-bridge Call" Jotform submission, matched to each chapter meeting date automatically. Counts only if submitted <b>by 09:30 AM IST, two days after the meeting</b> (Tuesday meeting: by Thursday 09:30).</td><td>Weeks done on time ÷ meetings held × 10</td><td>10</td></tr>
+<tr><td>6</td><td class='k'>PALMS submitted on time</td><td>The office checks BNI Connect's "Last Meeting Entered" report every Friday evening: this week's meeting must already be entered</td><td>Weeks on time ÷ meetings held × 10</td><td>10</td></tr>
+<tr><td>7</td><td class='k'>Chapter Visit within 24 hours</td><td>Your BNI Chapter Visit Report on Jotform, matched to your name; counts only if submitted on the visit day or the next day</td><td>Done = 10 pts<br>Not done or late = 0</td><td>10</td></tr>
+<tr><td>8</td><td class='k'>LTRT / DCRT attendance</td><td>The office's LTRT and DCRT attendance sheets (green = attended)</td><td>Each meeting held that month counts equally: both held = 2.5 pts each; only one held = 5 pts</td><td>5</td></tr>
+</table>
+<p><b>Total: 100 points.</b> "Meetings held" is the number of your chapter's meeting weekdays in the month (a Tuesday chapter has 4 or 5), minus any week the office marks as "no meeting" (holiday). A Tuesday chapter with 5 meetings and 4 calls done scores 4 ÷ 5 × 10 = 8.0.</p>
+
+<p>Your monthly payout has two parts: how many members paid in your chapter that month, and which band you landed in.</p>
+<table class='data'>
+<tr><th>Step</th><th>Calculation</th></tr>
+<tr><td class='k'>1. Members paid</td><td>New member inductions + renewals <b>paid in that month</b> in your chapter (the same count the office enters for the SA programme)</td></tr>
+<tr><td class='k'>2. Base commission</td><td>Members paid × 7.5% of ₹49,040 = Members paid × ₹3,678</td></tr>
+<tr><td class='k'>3. Band multiplier</td><td>Base commission × your band multiplier (1.00 / 0.80 / 0.60 / 0.35 / 0.15)</td></tr>
+</table>
+<p><b>Example:</b> 1 new member + 3 renewals paid in October = 4 members × ₹3,678 = ₹14,712 base. Score 75 (Green, 0.80×) pays ₹11,770. The same month at Gold pays ₹14,712. At Red it pays ₹5,149.</p>
+<p class='small'>The fee and percentage are set by the regional office and may be revised. The dashboard always shows the current figures.</p>
+
+
+<h2>10. Data rules worth remembering</h2>
+<ul>
+<li>Training counts <b>unique members</b>. A member attending three workshops counts once.</li>
+<li>1-2-1 is per member per <b>month</b>, straight from BNI Connect. The old sheet's "2 per week" entries were never real; do not type a number by hand unless the upload failed.</li>
+<li>Payout counts members by <b>payment month</b>, not by renewal date.</li>
+<li>History belongs to the person, not the chapter. A new SA starts with a blank history.</li>
+<li>The Google Sheet is now an archive. The app is the record.</li>
+<li><b>Go-live is October 2026</b> for both programmes. Earlier months are not scored or shown. September 2026 is marked <b>baseline</b> and cannot be published.</li>
+<li>SDC net growth is the month's <b>joined minus left</b> from Membership Activity by Chapter, not the trailing "Growth" figure printed on the Traffic Lights report.</li>
+<li>Tele-bridge weeks are matched by the <b>meeting date</b> typed on the form, not by the date the form was submitted.</li>
+</ul>
+<div class='footer'>BNI TNT Region · SA &amp; SDC Scorecard Admin Guide v1.1 · Owner Mohamed Riaz · https://sa.bnitnt.in</div>
+</body></html>

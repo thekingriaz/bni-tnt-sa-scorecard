@@ -50,7 +50,7 @@ SCORING_TABLE = """
 <tr><th>#</th><th>KPI</th><th>Where the number comes from</th><th>Scoring</th><th>Max</th></tr>
 <tr><td>1</td><td class='k'>Your own Member Score</td><td>Your Traffic Light score as a member (admin enters monthly)</td><td>80 or more = 10 pts<br>70 to 79 = 5 pts<br>Below 70 = 0</td><td>10</td></tr>
 <tr><td>2</td><td class='k'>Training Attendance</td><td>BNI Connect Member Training Report: unique members of your chapter who attended any training in the month, divided by chapter member count (Online + Offline combined)</td><td>20% or more = 20 pts<br>15% to 19.9% = 15 pts<br>10% to 14.9% = 10 pts<br>Below 10% = 0</td><td>20</td></tr>
-<tr><td>3</td><td class='k'>1st-Year Retention</td><td>Chapter's first-year retention % (admin enters from the 3+1 Traffic Lights report)</td><td>75% or more = 25 pts<br>70% to 74.9% = 15 pts<br>Below 70% = 0</td><td>25</td></tr>
+<tr><td>3</td><td class='k'>1st-Year Retention</td><td>Chapter's First Year Retention % from the monthly 3+1 Traffic Lights report (uploaded by the office). Chapters under 12 months have no figure: this KPI is skipped and your other 55 points are scaled to 100</td><td>75% or more = 25 pts<br>70% to 74.9% = 15 pts<br>Below 70% = 0</td><td>25</td></tr>
 <tr><td>4</td><td class='k'>1-2-1 Activity</td><td>BNI Connect Chapter Statistics: "1-2-1 Per Member" for the month</td><td>8.66 or more per member per month (= 2 per week) = 10 pts<br>Below = 0</td><td>10</td></tr>
 <tr><td>5</td><td class='k'>LTRT / DCRT Attendance</td><td>Admin marks attendance</td><td>Attended = 5 pts<br>Not attended = 0</td><td>5</td></tr>
 <tr><td>6</td><td class='k'>Chapter Visit Report (Jotform)</td><td>Your monthly submission on the BNI Chapter Visit Report form, matched to your name automatically</td><td>Submitted = 10 pts<br>Not submitted = 0</td><td>10</td></tr>
@@ -369,7 +369,7 @@ admin_body += """
 <table class='data'>
 <tr><th>Column</th><th>Source</th><th>Rule</th></tr>
 <tr><td class='k'>Member score</td><td>Monthly Member Traffic Light report</td><td>The SA's own score as a member (0 to 100).</td></tr>
-<tr><td class='k'>Retention %</td><td>3+1 Traffic Lights report</td><td>Chapter 1st-year retention for the month, as a number (78 for 78%).</td></tr>
+<tr><td class='k'>Retention %</td><td>3+1 Traffic Lights workbook (.xlsx), uploaded</td><td>Drop the file on the upload box. The app takes the First Year Retention column (the SDC month gets Overall Retention from the same file). Chapters under 12 months show n/a. Type a value only to correct the report.</td></tr>
 <tr><td class='k'>LTRT</td><td>LTRT / DCRT attendance sheet (also in BNI Connect)</td><td>Attended / Not attended. If no LTRT or DCRT was scheduled that month, mark Attended so nobody is penalised.</td></tr>
 <tr><td class='k'>New</td><td>BNI Connect new member report / payment records</td><td>New members whose payment was received <b>in that month</b>.</td></tr>
 <tr><td class='k'>Renewals</td><td>Payment records</td><td>Renewals <b>paid in that month</b>, regardless of renewal date. (A 1 Nov renewal paid on 15 Oct counts in October.)</td></tr>
@@ -378,7 +378,7 @@ admin_body += """
 
 <h3>Step 5: Review and publish</h3>
 <ol>
-<li>Every row must have a Member score, Retention %, LTRT and Jotform value. A blank counts as zero and will be questioned.</li>
+<li>Every row must have a Member score, Retention % (or n/a), LTRT and Jotform value. A blank counts as zero and will be questioned.</li>
 <li>Check the region average and the band spread look sane against last month.</li>
 <li>Click <b>Publish month</b>. SAs see it instantly. Payout figures are now frozen for that month.</li>
 <li>Found a mistake after publishing? <b>Unpublish</b> → correct → <b>Publish</b> again. Tell the affected SA.</li>
