@@ -98,13 +98,14 @@ export default handler(async ({ req, session, body }) => {
     const keyOf = {}; for (const c of chapters) keyOf[c.id] = c.key;
     const { matches, unmatched: um } = matchAttendance(body.records, (users || []).map(u => ({ ...u, chapter_key: keyOf[u.chapter_id] })));
     const col = meeting + '_att';
+    const jobs = [];
     for (const m of matches) for (const u of m.users) {
       const tbl = u.role === 'sdc' ? 'sdc_entries' : 'sa_entries', mo = u.role === 'sdc' ? sdcMonth : saMonth;
       if ((u.role === 'sdc' ? mo.sdc_status : mo.status) === 'published') continue;
-      const up = await db.from(tbl).update({ [col]: m.record.attended, updated_at: new Date().toISOString(), updated_by: session.uid }).eq('month_id', mo.id).eq('chapter_id', u.chapter_id);
-      if (up.error) throw up.error;
+      jobs.push(db.from(tbl).update({ [col]: m.record.attended, updated_at: new Date().toISOString(), updated_by: session.uid }).eq('month_id', mo.id).eq('chapter_id', u.chapter_id));
       updated.push({ role: u.role, name: u.name, chapter: chapters.find(c => c.id === u.chapter_id)?.name, as: m.record.name, attended: m.record.attended });
     }
+    for (const r of await Promise.all(jobs)) if (r.error) throw r.error; // parallel: sequential writes came close to the 30 s limit
     unmatched = um.map(r => `${r.name} (${r.programme.toUpperCase()}${r.chapter ? ', ' + r.chapter : ''})`);
     summary = { meeting, month: body.ym, matched: updated.length, unmatched };
   } else if (kind === 'commission') {
@@ -123,12 +124,13 @@ export default handler(async ({ req, session, body }) => {
     // a region file only covers its own chapters: set those (zero for its chapters with no invoices), leave the other region alone
     const { data: regionOf } = await db.from('sa_chapters').select('id,region').eq('active', true);
     const regionsInFile = new Set(Object.keys(per).map(id => regionOf.find(x => x.id === Number(id))?.region));
+    const cjobs = [];
     for (const c of regionOf.filter(x => regionsInFile.has(x.region))) {
       const p = per[c.id] || { chapter: chapters.find(x => x.id === c.id)?.name, new_members: 0, renewals: 0, two_year: 0, fee_total: 0, unknown: 0 };
-      const up = await db.from('sa_entries').update({ new_members: p.new_members, renewals: p.renewals, updated_at: new Date().toISOString(), updated_by: session.uid }).eq('month_id', month.id).eq('chapter_id', c.id);
-      if (up.error) throw up.error;
+      cjobs.push(db.from('sa_entries').update({ new_members: p.new_members, renewals: p.renewals, updated_at: new Date().toISOString(), updated_by: session.uid }).eq('month_id', month.id).eq('chapter_id', c.id));
       updated.push(p);
     }
+    for (const r of await Promise.all(cjobs)) if (r.error) throw r.error;
     parsed.region = [...regionsInFile].join(', ');
     summary = { month: parsed.month, chapters: updated.length, unmatched, unknown_fees: parsed.unknown.map(u => `${u.chapter} ${u.name} ${u.fee}`) };
     if (parsed.unknown.length) unmatched.push(...parsed.unknown.map(u => `fee ${u.fee} not recognised (${u.chapter}, ${u.name})`));
@@ -140,12 +142,13 @@ export default handler(async ({ req, session, body }) => {
     month = await ensureSdcMonth(parsed.month, session.uid);
     const baseline = parsed.month < settings.go_live_ym;
     if (!baseline && month.sdc_status === 'published') throw fail(`${parsed.month} is already published for SDCs. Unpublish it first if you need to re-upload.`);
+    const rjobs = [];
     for (const r of parsed.rows) {
       const c = byKey[r.key]; if (!c) { unmatched.push(r.chapter); continue; }
-      const up = await db.from('sdc_entries').update({ retention_pct: r.overall_pct, retention_na: r.overall_pct === null, updated_at: new Date().toISOString(), updated_by: session.uid }).eq('month_id', month.id).eq('chapter_id', c.id);
-      if (up.error) throw up.error;
+      rjobs.push(db.from('sdc_entries').update({ retention_pct: r.overall_pct, retention_na: r.overall_pct === null, updated_at: new Date().toISOString(), updated_by: session.uid }).eq('month_id', month.id).eq('chapter_id', c.id));
       updated.push({ chapter: c.name, overall_pct: r.overall_pct, first_year_pct: r.first_year_pct, young: r.young });
     }
+    for (const r of await Promise.all(rjobs)) if (r.error) throw r.error;
     const found = new Set(updated.map(u => normChapter(u.chapter)));
     unmatched = chapters.filter(c => !found.has(c.key)).map(c => c.name);
     parsed.region = '3+1';
