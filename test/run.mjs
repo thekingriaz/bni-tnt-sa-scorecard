@@ -146,3 +146,12 @@ assert.equal(closestKey('chennai', keys), null);
 console.log('OCR text checks passed ✓');
 assert.equal(readDate('Oct7, 2026'), '2026-10-07'); assert.deepEqual(parsePalmsStatus('BNI Bamboo Kottai Oct7, 2026').map(r => [r.key, r.last]), [['bambookottai', '2026-10-07']]);
 console.log('OCR spacing checks passed ✓');
+
+// ---------- 3+1 Traffic Lights: chapter overall retention (real Sep 2026 rows) ----------
+import { parseChapterRetention } from '../api/_lib/parsers.js';
+const w31 = parseChapterRetention(JSON.parse(F('three-plus-one-sep2026-chapter-rows.json')), ['Tirunelveli', 'Nagercoil & Tuticorin'], 'New_31_traffic_lights_-_2026-09_Sep_1.xlsx');
+assert.equal(w31.month, '2026-09'); assert.equal(w31.rows.length, 14);
+const wk31 = Object.fromEntries(w31.rows.map(r => [r.key, r]));
+assert.equal(wk31.korkai.overall_pct, 90.5); assert.equal(wk31.ainthinai.overall_pct, 83.5); assert.equal(wk31.tamilan.overall_pct, 72); assert.equal(wk31.comorin.overall_pct, 68.1);
+assert.equal(wk31.kings.overall_pct, null); assert.equal(wk31.kings.young, true); assert.equal(wk31.saral.young, true); assert.equal(wk31.kanya.young, false);
+console.log('3+1 retention checks passed ✓');

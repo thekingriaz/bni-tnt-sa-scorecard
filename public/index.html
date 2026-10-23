@@ -479,7 +479,7 @@ async function renderSdcMonth(ym) {
   ${base ? `<div class="banner">${monthName(ym)} is before the go-live month (${monthName(m.go_live_ym)}). Nothing needs to be entered here: net growth now comes from each month's own Membership Activity report. This month is never scored or shown to SDCs.</div>` : ''}
   ${pub ? '' : `<div class="grid g2" style="margin-bottom:14px">
     <div class="card"><h3>Upload reports</h3>
-      <div class="drop" id="drop">Drop files here or click to choose<br><span class="small">BNI Connect <b>Membership Activity by Chapter</b> (.xls, both regions, 1st to last day of ${monthName(ym)}) for net growth, and the <b>All India Chapter Traffic Lights</b> (.xlsx).</span></div>
+      <div class="drop" id="drop">Drop files here or click to choose<br><span class="small">BNI Connect <b>Membership Activity by Chapter</b> (.xls, both regions, 1st to last day of ${monthName(ym)}) for net growth, the <b>All India Chapter Traffic Lights</b> (.xlsx) and the <b>3+1 Traffic Lights</b> (.xlsx) for renewal % (Overall Retention column).</span></div>
       <input type="file" id="file" multiple accept=".xls,.xlsx,.xml,.txt" class="hidden">
       <div id="up-log" class="small" style="margin-top:8px">${state.upLog || ''}</div>
       ${m.uploads?.length ? `<div class="divider"></div><div class="small muted">Uploaded: ${m.uploads.map(u => `${esc(u.kind)} · ${esc(u.region || '')} · ${new Date(u.created_at).toLocaleDateString('en-IN')}`).join('<br>')}</div>` : ''}
@@ -664,6 +664,20 @@ async function handleSdcFiles(files, ym) {
       if (/\.xlsx$/i.test(f.name)) {
         await loadSheetJS();
         const wb = XLSX.read(await f.arrayBuffer(), { type: 'array' });
+        // 3+1 Traffic Lights workbook: renewal % = the "Overall Retention Rates (Rolling)" column. It sits on the sheet BNI names
+        // "Chapter NPS (Total to Date)" (the only per-chapter sheet); the NPS score itself is not used.
+        const npsName = wb.SheetNames.find(n => /chapter nps/i.test(n));
+        if (npsName) {
+          const all = XLSX.utils.sheet_to_json(wb.Sheets[npsName], { header: 1, defval: null });
+          const regions = [...new Set((state.chapters || []).map(c => String(c.region || '').toLowerCase()))];
+          const hi = all.findIndex(r => r.some(c => /^chapter name$/i.test(String(c ?? '').trim())));
+          const mine = all.filter((r, i) => i <= hi || regions.includes(String(r[1] ?? '').trim().toLowerCase())).map(r => r.slice(0, 20));
+          r = await api('admin/upload', { method: 'POST', body: { kind: 'chapter_retention', filename: f.name, ym, rows: mine } });
+          log.lastElementChild.innerHTML = `<span class="ok">✓</span> ${esc(f.name)}: 3+1 overall retention ${monthName(r.month)}, ${r.updated.length} chapters: ` +
+            r.updated.map(u => `${esc(u.chapter.replace(/^BNI\s+/, ''))} ${u.overall_pct === null ? '<span class="muted">n/a (under 12 months)</span>' : u.overall_pct + '%'}`).join(', ') + (r.warning ? ` <span class="bad">${esc(r.warning)}</span>` : '');
+          if (r.month !== ym && r.month >= (state.goLive || '0000-00')) { toast(`File is for ${monthName(r.month)}, opening that month`); state.month = r.month; state.upLog = log.innerHTML; return renderSdcMonth(r.month); }
+          continue;
+        }
         // pick the sheet that has a Chapter + Score/Status header
         let rows = null;
         for (const name of wb.SheetNames) { const rs = XLSX.utils.sheet_to_json(wb.Sheets[name], { header: 1, defval: null }); if (rs.some(row => row.some(c => /chapter/i.test(String(c ?? ''))) && row.some(c => /score|status/i.test(String(c ?? ''))))) { rows = rs; break; } }

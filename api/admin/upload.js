@@ -1,6 +1,6 @@
 import { db, handler, fail, audit, loadSettings } from '../_lib/db.js';
 import { ensureMonth } from '../_lib/compute.js';
-import { parseChapterStatistics, parseTrainingReport, parseTrafficLights, parseMembershipActivity, trainingPercents, normChapter } from '../_lib/parsers.js';
+import { parseChapterStatistics, parseTrainingReport, parseTrafficLights, parseMembershipActivity, parseChapterRetention, trainingPercents, normChapter } from '../_lib/parsers.js';
 import { ensureSdcMonth } from '../_lib/compute_sdc.js';
 import { recomputeTraining } from '../_lib/training.js';
 
@@ -87,6 +87,24 @@ export default handler(async ({ req, session, body }) => {
       updated.push({ chapter: c.name, joined: r.joined, left: r.left, change: r.change, end: r.end, kept_manual: manual });
     }
     summary = { region: parsed.region, month: parsed.month, chapters: updated.length, unmatched };
+  } else if (kind === 'chapter_retention') {
+    // 3+1 Traffic Lights, sheet "Chapter NPS (Total to Date)": Overall Retention Rate (Rolling) -> SDC Renewal %
+    const { data: chRegions } = await db.from('sa_chapters').select('region').eq('active', true);
+    parsed = parseChapterRetention(body.rows, [...new Set((chRegions || []).map(c => c.region))], filename, body.ym);
+    if (!parsed.month) throw fail('Could not read the month from the file name (expected "... 2026-10 ..."). Rename the file or pick the month.');
+    month = await ensureSdcMonth(parsed.month, session.uid);
+    const baseline = parsed.month < settings.go_live_ym;
+    if (!baseline && month.sdc_status === 'published') throw fail(`${parsed.month} is already published for SDCs. Unpublish it first if you need to re-upload.`);
+    for (const r of parsed.rows) {
+      const c = byKey[r.key]; if (!c) { unmatched.push(r.chapter); continue; }
+      const up = await db.from('sdc_entries').update({ retention_pct: r.overall_pct, updated_at: new Date().toISOString(), updated_by: session.uid }).eq('month_id', month.id).eq('chapter_id', c.id);
+      if (up.error) throw up.error;
+      updated.push({ chapter: c.name, overall_pct: r.overall_pct, first_year_pct: r.first_year_pct, young: r.young });
+    }
+    const found = new Set(updated.map(u => normChapter(u.chapter)));
+    unmatched = chapters.filter(c => !found.has(c.key)).map(c => c.name);
+    parsed.region = '3+1';
+    summary = { month: parsed.month, chapters: updated.length, missing: unmatched };
   } else if (kind === 'traffic_lights') {
     const { data: chRegions } = await db.from('sa_chapters').select('region').eq('active', true);
     const regions = [...new Set((chRegions || []).map(c => c.region))];
@@ -111,7 +129,7 @@ export default handler(async ({ req, session, body }) => {
     unmatched = chapters.filter(c => !found.has(c.key)).map(c => c.name);
     parsed.region = 'All India';
     summary = { month: parsed.month, chapters: updated.length, missing: unmatched, score_column: parsed.score_column };
-  } else throw fail('kind must be chapter_statistics, training, membership_activity or traffic_lights');
+  } else throw fail('kind must be chapter_statistics, training, membership_activity, chapter_retention or traffic_lights');
 
   await db.from('sa_uploads').insert({ month_id: month.id, kind, region: parsed.region, filename, summary, uploaded_by: session.uid });
   await audit(session.uid, 'upload', { kind, filename, month: parsed.month, region: parsed.region });

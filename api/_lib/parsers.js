@@ -311,3 +311,35 @@ export function closestKey(key, keys) {
   for (const k of keys) { const dd = editDistance(key, k); if (dd < bestD) { best = k; bestD = dd; tie = false; } else if (dd === bestD) tie = true; }
   return bestD <= 2 && !tie ? best : null;
 }
+
+/**
+ * BNI "New 3+1 traffic lights" workbook. Only the "Overall Retention Rates (Rolling)" column is used (NPS is ignored).
+ * It lives on the sheet BNI calls "Chapter NPS (Total to Date)", the only per-chapter sheet: one row per chapter worldwide,
+ * retention as fractions ('.' when the chapter is under 12 months old).
+ * rows: that sheet as arrays (SheetJS header:1). regions: our BNI Connect region names. fileName: used for the month ("... 2026-09 Sep ...").
+ * Returns { report, month, rows: [{chapter, key, region, overall_pct, first_year_pct, young}] }.
+ */
+export function parseChapterRetention(rows, regions, fileName, monthHint) {
+  const norm = v => String(v ?? '').replace(/\s+/g, ' ').trim().toLowerCase();
+  const hIdx = (rows || []).findIndex(r => Array.isArray(r) && r.some(c => /^chapter name$/.test(norm(c))) && r.some(c => /overall retention/.test(norm(c))));
+  if (hIdx < 0) throw new Error('This is not the 3+1 Traffic Lights "Chapter NPS (Total to Date)" sheet (no "Chapter Name" / "Overall Retention" header).');
+  const h = rows[hIdx].map(norm);
+  const col = re => h.findIndex(x => re.test(x));
+  const cCountry = col(/^country/), cRegion = col(/^region name/), cChap = col(/^chapter name$/);
+  const cOverall = col(/overall retention/), cFirst = col(/first year retention/), cYoung = col(/launched in last year/);
+  const want = new Set((regions || []).map(norm));
+  const pct = v => { if (v === null || v === undefined || v === '' || String(v).trim() === '.') return null; const n = Number(v); if (Number.isNaN(n)) return null; return Math.round((n <= 1 ? n * 100 : n) * 10) / 10; };
+  const out = [];
+  for (const r of rows.slice(hIdx + 1)) {
+    if (!Array.isArray(r) || !r[cChap]) continue;
+    if (cCountry >= 0 && norm(r[cCountry]) && norm(r[cCountry]) !== 'india') continue;
+    if (want.size && !want.has(norm(r[cRegion]))) continue;
+    const chapter = String(r[cChap]).trim();
+    const overall = pct(r[cOverall]);
+    out.push({ chapter, key: normChapter(chapter.replace(/\.+$/, '')), region: String(r[cRegion] ?? '').trim(), overall_pct: overall,
+      first_year_pct: cFirst >= 0 ? pct(r[cFirst]) : null, young: overall === null || (cYoung >= 0 && Number(r[cYoung]) === 1 && overall === null) });
+  }
+  if (!out.length) throw new Error('None of our regions (' + (regions || []).join(', ') + ') found in the sheet.');
+  const fm = /(\d{4})[-_ ](\d{2})/.exec(String(fileName || ''));
+  return { report: 'chapter_retention', month: fm ? `${fm[1]}-${fm[2]}` : (monthHint || null), rows: out };
+}
