@@ -139,20 +139,27 @@ export default handler(async ({ req, session, body }) => {
     const { data: chRegions } = await db.from('sa_chapters').select('region').eq('active', true);
     parsed = parseChapterRetention(body.rows, [...new Set((chRegions || []).map(c => c.region))], filename, body.ym);
     if (!parsed.month) throw fail('Could not read the month from the file name (expected "... 2026-10 ..."). Rename the file or pick the month.');
-    month = await ensureSdcMonth(parsed.month, session.uid);
+    // one file feeds both programmes: SDC Renewal % = Overall Retention, SA 1st-Year Retention = First Year Retention
+    const sdcMonth = await ensureSdcMonth(parsed.month, session.uid);
+    const saMonth = await ensureMonth(parsed.month, session.uid);
+    month = sdcMonth;
     const baseline = parsed.month < settings.go_live_ym;
-    if (!baseline && month.sdc_status === 'published') throw fail(`${parsed.month} is already published for SDCs. Unpublish it first if you need to re-upload.`);
-    const rjobs = [];
+    const sdcLocked = !baseline && sdcMonth.sdc_status === 'published', saLocked = !baseline && saMonth.status === 'published';
+    if (sdcLocked && saLocked) throw fail(`${parsed.month} is already published for SAs and SDCs. Unpublish it first if you need to re-upload.`);
+    const rjobs = [], now = new Date().toISOString();
     for (const r of parsed.rows) {
       const c = byKey[r.key]; if (!c) { unmatched.push(r.chapter); continue; }
-      rjobs.push(db.from('sdc_entries').update({ retention_pct: r.overall_pct, retention_na: r.overall_pct === null, updated_at: new Date().toISOString(), updated_by: session.uid }).eq('month_id', month.id).eq('chapter_id', c.id));
+      if (!sdcLocked) rjobs.push(db.from('sdc_entries').update({ retention_pct: r.overall_pct, retention_na: r.overall_pct === null, updated_at: now, updated_by: session.uid }).eq('month_id', sdcMonth.id).eq('chapter_id', c.id));
+      if (!saLocked) rjobs.push(db.from('sa_entries').update({ retention_pct: r.first_year_pct, retention_na: r.first_year_pct === null, updated_at: now, updated_by: session.uid }).eq('month_id', saMonth.id).eq('chapter_id', c.id));
       updated.push({ chapter: c.name, overall_pct: r.overall_pct, first_year_pct: r.first_year_pct, young: r.young });
     }
+    if (sdcLocked) parsed.lockNote = 'SDC month is published, so only SA 1st-year retention was updated.';
+    if (saLocked) parsed.lockNote = 'SA month is published, so only SDC renewal % was updated.';
     for (const r of await Promise.all(rjobs)) if (r.error) throw r.error;
     const found = new Set(updated.map(u => normChapter(u.chapter)));
     unmatched = chapters.filter(c => !found.has(c.key)).map(c => c.name);
     parsed.region = '3+1';
-    summary = { month: parsed.month, chapters: updated.length, missing: unmatched };
+    summary = { month: parsed.month, chapters: updated.length, missing: unmatched, sa_locked: saLocked, sdc_locked: sdcLocked };
   } else if (kind === 'traffic_lights') {
     const { data: chRegions } = await db.from('sa_chapters').select('region').eq('active', true);
     const regions = [...new Set((chRegions || []).map(c => c.region))];
@@ -190,6 +197,6 @@ export default handler(async ({ req, session, body }) => {
     const note2 = parsed.month < settings.go_live_ym ? `This is the ${parsed.month} report: that month is before go-live and is not scored. Upload the report whose latest score column is the month you are scoring.` : null;
     return { ok: true, kind, month: parsed.month, region: parsed.region, score_column: parsed.score_column, updated, unmatched, warning: [warning, note2].filter(Boolean).join(' ') || null };
   }
-  const note = summary?.sa_locked ? `${parsed.month} is published for SAs, so only the SDC member counts were updated.` : null;
+  const note = parsed.lockNote || (kind === 'chapter_statistics' && summary?.sa_locked ? `${parsed.month} is published for SAs, so only the SDC member counts were updated.` : null);
   return { ok: true, kind, month: parsed.month, region: parsed.region, updated, unmatched, event_types: parsed.event_types || null, warning: [warning, note].filter(Boolean).join(' ') || null };
 }, { role: 'admin' });

@@ -3,7 +3,7 @@ import { parsePalmsStatus, closestKey } from '../_lib/parsers.js';
 import { palmsFromReport } from '../_lib/scoring_sdc.js';
 
 const EDITABLE = ['member_score', 'online_pct', 'offline_pct', 'training_unique', 'member_count', 'mentoring_pct', 'retention_pct',
-  'one_to_one_per_member', 'ltrt_attended', 'ltrt_att', 'dcrt_att', 'jotform_done', 'new_members', 'renewals', 'notes', 'sa_user_id'];
+  'one_to_one_per_member', 'retention_na', 'ltrt_attended', 'ltrt_att', 'dcrt_att', 'jotform_done', 'new_members', 'renewals', 'notes', 'sa_user_id'];
 const SDC_EDITABLE = ['net_add', 'member_count', 'tl_status', 'tl_score', 'retention_pct', 'retention_na', 'member_score', 'ltrt_attended', 'ltrt_att', 'dcrt_att', 'visit_done', 'notes', 'sdc_user_id'];
 const WEEK_EDITABLE = ['no_meeting', 'telebridge_done', 'palms_done'];
 
@@ -94,11 +94,13 @@ export default handler(async ({ req, session, body }) => {
     if (!(k in body)) continue;
     let v = body[k];
     if (v === '' || v === undefined) v = null;
-    if (['ltrt_attended', 'ltrt_att', 'dcrt_att', 'jotform_done'].includes(k)) v = v === null ? null : Boolean(v);
+    if (k === 'retention_na') v = Boolean(v);
+    else if (['ltrt_attended', 'ltrt_att', 'dcrt_att', 'jotform_done'].includes(k)) v = v === null ? null : Boolean(v);
     else if (k !== 'notes' && v !== null) { v = Number(v); if (Number.isNaN(v)) throw fail(`${k} must be a number`); }
     patch[k] = v;
   }
   if ('jotform_done' in patch) patch.jotform_auto = false; // manual override wins
+  if ('retention_pct' in patch && patch.retention_pct !== null) patch.retention_na = false; // a typed rate means it applies
   const r = await db.from('sa_entries').update(patch).eq('id', id);
   if (r.error) throw r.error;
   await audit(session.uid, 'entry.update', { id, ym: existing.month.ym, patch });

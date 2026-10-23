@@ -68,7 +68,7 @@ export function scoreEntry(entry, settings) {
     member:     tier(e.member_score, s.thresholds.member),
     training:   tier(combined, s.thresholds.training),
     mentoring:  s.mentoring_enabled ? tier(e.mentoring_pct, s.thresholds.mentoring) : 0,
-    retention:  tier(e.retention_pct, s.thresholds.retention),
+    retention:  e.retention_na ? 0 : tier(e.retention_pct, s.thresholds.retention),
     one_to_one: (e.one_to_one_per_member !== null && e.one_to_one_per_member !== undefined &&
                  Number(e.one_to_one_per_member) >= Number(s.one_to_one_threshold)) ? s.max_pts.one_to_one : 0,
     ltrt:       attendancePts(e, s.max_pts.ltrt),
@@ -77,6 +77,7 @@ export function scoreEntry(entry, settings) {
 
   const maxTotal = Object.entries(s.max_pts)
     .filter(([k]) => k !== 'mentoring' || s.mentoring_enabled)
+    .filter(([k]) => k !== 'retention' || !e.retention_na) // chapter under 12 months: no 1st-year retention on the 3+1 report
     .reduce((a, [, v]) => a + v, 0);
 
   const raw = Math.round(Object.values(pts).reduce((a, b) => a + b, 0) * 10) / 10;
@@ -131,7 +132,7 @@ export function nextBandHints(entry, settings) {
     const nextTier = [...s.thresholds.training].reverse().find(t => t.min > combined);
     if (nextTier) hints.push({ kpi: 'training', gain_raw: nextTier.pts - p.training, action: `Get ${nextTier.min}%+ of members into a training (now ${Math.round(combined * 10) / 10}%)` });
   }
-  if (p.retention < s.max_pts.retention) {
+  if (!entry.retention_na && p.retention < s.max_pts.retention) {
     const nextTier = [...s.thresholds.retention].reverse().find(t => t.min > Number(entry.retention_pct || 0));
     if (nextTier) hints.push({ kpi: 'retention', gain_raw: nextTier.pts - p.retention, action: `Push 1st-year retention to ${nextTier.min}%+ (now ${entry.retention_pct ?? 0}%)` });
   }

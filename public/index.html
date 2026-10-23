@@ -186,7 +186,7 @@ async function renderSA() {
     case 'member': return fmt(i.member_score, 0);
     case 'training': return `${fmt(c.combined_training_pct)}% <span class="auto">online ${fmt(i.online_pct)}% + offline ${fmt(i.offline_pct)}%${i.training_unique != null ? ` · ${i.training_unique} of ${fmt(i.member_count, 0)} members` : ''}</span>`;
     case 'mentoring': return fmt(i.mentoring_pct) + '%';
-    case 'retention': return fmt(i.retention_pct) + '%';
+    case 'retention': return i.retention_na ? '<span class="muted">Not applicable: chapter under 12 months (no figure on the 3+1 report). Your score is out of the other 55 points, scaled to 100.</span>' : i.retention_pct === null || i.retention_pct === undefined ? '–' : fmt(i.retention_pct) + '% <span class="auto">1st-year retention, 3+1 report</span>';
     case 'one_to_one': return `${fmt(i.one_to_one_per_member, 2)} <span class="auto">${h.legacy ? 'as entered on the old sheet' : 'per member per month · target ' + s.one_to_one_threshold}</span>`;
     case 'ltrt': return attText(i);
     case 'visit': return i.jotform_done === null ? '–' : i.jotform_done ? 'Submitted' : 'Not submitted'; } };
@@ -221,7 +221,7 @@ async function renderSA() {
   <div class="grid g2" style="margin-top:14px">
     <div class="card"><h3>KPI breakdown</h3><div class="tbl-wrap"><table>
       <thead><tr><th>KPI</th><th>Your value</th><th class="right">Points</th></tr></thead>
-      <tbody>${kpis.map(k => { const p = c.points[k] ?? 0, m = maxOf(k); return `<tr><td>${KPI_LABEL[k]}</td><td>${valueOf(k)}</td><td class="right"><span class="pts ${p === 0 ? 'zero' : p === m ? 'full' : ''}">${p}</span> <span class="kpi-max">/ ${m}</span></td></tr>`; }).join('')}</tbody>
+      <tbody>${kpis.map(k => { const p = c.points[k] ?? 0, m = maxOf(k); const na = k === 'retention' && h.inputs.retention_na; return `<tr><td>${KPI_LABEL[k]}</td><td>${valueOf(k)}</td><td class="right">${na ? '<span class="kpi-max">n/a</span>' : `<span class="pts ${p === 0 ? 'zero' : p === m ? 'full' : ''}">${p}</span> <span class="kpi-max">/ ${m}</span>`}</td></tr>`; }).join('')}</tbody>
     </table></div></div>
     ${hintsHtml}
   </div>
@@ -362,14 +362,14 @@ async function renderMonth(ym) {
   const pub = m.month.status === 'published';
   const base = !!m.baseline;
   const sas = state.users ? state.users.filter(u => u.role === 'sa') : null;
-  const num = (e, k, step = 'any', w = '') => pub || e.legacy ? `<td class="num">${fmt(e[k], 2)}</td>` : `<td class="num"><input class="cell-in ${w}" type="number" step="${step}" data-id="${e.id}" data-k="${k}" value="${e[k] ?? ''}"></td>`;
+  const num = (e, k, step = 'any', extra = '') => pub || e.legacy ? `<td class="num">${fmt(e[k], 2)}${extra}</td>` : `<td class="num"><input class="cell-in" type="number" step="${step}" data-id="${e.id}" data-k="${k}" value="${e[k] ?? ''}">${extra}</td>`;
   const yn = (e, k, a, b) => pub || e.legacy ? `<td>${e[k] === null ? '–' : e[k] ? a : b}</td>` : `<td><select class="cell-sel" data-id="${e.id}" data-k="${k}"><option value="" ${e[k] === null ? 'selected' : ''}>–</option><option value="1" ${e[k] === true ? 'selected' : ''}>${a}</option><option value="0" ${e[k] === false ? 'selected' : ''}>${b}</option></select>${k === 'jotform_done' && e.jotform_auto ? '<span class="auto">auto</span>' : ''}</td>`;
   const rows = m.entries.map(e => { const c = e.computed; return `<tr>
     <td><b>${esc(e.chapter.name.replace(/^BNI\s+/, ""))}</b><span class="auto">${esc(e.sa?.name || '<no SA>')}${e.sa && e.sa.active === false ? ' (inactive)' : ''}</span></td>
     ${num(e, 'member_score', '1')}
     ${num(e, 'online_pct', '0.01')}${num(e, 'offline_pct', '0.01')}
     <td class="num muted">${fmt(e.member_count, 0)}</td>
-    ${num(e, 'retention_pct', '0.01')}
+    ${num(e, 'retention_pct', '0.01', e.retention_na ? '<span class="auto" title="Chapter under 12 months: no First Year Retention on the 3+1 report. KPI skipped, other 55 points scaled to 100.">n/a: under 12 months</span>' : '')}
     ${num(e, 'one_to_one_per_member', '0.01')}
     ${attCell(e, pub || e.legacy)}
     ${yn(e, 'jotform_done', 'Done', 'Not done')}
@@ -385,7 +385,7 @@ async function renderMonth(ym) {
   ${base ? `<div class="banner">${monthName(ym)} is before the go-live month (${monthName(m.go_live_ym)}). It only holds member counts so ${monthName(m.go_live_ym)} net growth can be calculated. It is never scored or shown to SAs or SDCs.</div>` : ''}
   ${pub ? '' : `<div class="grid g2" style="margin-bottom:14px">
     <div class="card"><h3>Upload BNI Connect exports</h3>
-      <div class="drop" id="drop">Drop .xls files here or click to choose<br><span class="small">Chapter Statistics, Region Member Training Report, Region Commission Report (new + renewals), one month, both regions, and the LTRT / DCRT attendance sheets (.xlsx). Type is detected from the file.</span></div>
+      <div class="drop" id="drop">Drop .xls files here or click to choose<br><span class="small">Chapter Statistics, Region Member Training Report, Region Commission Report (new + renewals), one month, both regions, the <b>3+1 Traffic Lights</b> (.xlsx) for 1st-year retention, and the LTRT / DCRT attendance sheets (.xlsx). Type is detected from the file.</span></div>
       <input type="file" id="file" multiple accept=".xls,.xlsx,.xml,.txt" class="hidden">
       <div id="up-log" class="small" style="margin-top:8px">${state.upLog || ''}</div>
       ${m.uploads?.length ? `<div class="divider"></div><div class="small muted">Uploaded: ${m.uploads.map(u => `${esc(u.kind)} · ${esc(u.region || '')} · ${new Date(u.created_at).toLocaleDateString('en-IN')}`).join('<br>')}</div>` : ''}
@@ -427,7 +427,12 @@ async function handleFiles(files, ym) {
   for (const f of files) {
     log.innerHTML += `<div>⏳ ${esc(f.name)}…</div>`;
     try {
-      if (/\.xlsx$/i.test(f.name)) { if (await uploadAttendanceXlsx(f, ym, log)) continue; throw new Error('Not an LTRT / DCRT attendance sheet (on the SA page, .xlsx is only for attendance)'); }
+      if (/\.xlsx$/i.test(f.name)) {
+        if (await uploadAttendanceXlsx(f, ym, log)) continue;
+        const r3 = await upload3plus1(f, ym, log);
+        if (r3) { if (r3.month !== ym && r3.month >= (state.goLive || '0000-00')) { toast(`File is for ${monthName(r3.month)}, opening that month`); state.month = r3.month; state.upLog = log.innerHTML; return renderMonth(r3.month); } continue; }
+        throw new Error('Not an LTRT / DCRT attendance sheet or the 3+1 Traffic Lights workbook');
+      }
       const text = await f.text();
       const kind = /Chapter Statistics/i.test(text) ? 'chapter_statistics' : /Member Training Report/i.test(text) ? 'training' : (/Invoice Ref/i.test(text) && /Commission/i.test(text)) ? 'commission' : null;
       if (!kind) throw new Error('Not a Chapter Statistics, Member Training Report or Region Commission Report export');
@@ -699,6 +704,23 @@ function fridayFromLines(lines) {
   const d = new Date(max); while (d.getUTCDay() !== 5) d.setUTCDate(d.getUTCDate() + 1);
   return d.toISOString().slice(0, 10);
 }
+/** 3+1 Traffic Lights workbook. Sheet "Chapter NPS (Total to Date)" (BNI's name; the NPS score is not used) holds, per chapter,
+ *  Overall Retention (SDC Renewal %) and First Year Retention (SA 1st-Year Retention). One upload fills both. Returns the result, or null if not this file. */
+async function upload3plus1(f, ym, log) {
+  await loadSheetJS();
+  const wb = XLSX.read(await f.arrayBuffer(), { type: 'array' });
+  const npsName = wb.SheetNames.find(n => /chapter nps/i.test(n));
+  if (!npsName) return null;
+  const all = XLSX.utils.sheet_to_json(wb.Sheets[npsName], { header: 1, defval: null });
+  const regions = [...new Set((state.chapters || []).map(c => String(c.region || '').toLowerCase()))];
+  const hi = all.findIndex(r => r.some(c => /^chapter name$/i.test(String(c ?? '').trim())));
+  const mine = all.filter((r, i) => i <= hi || regions.includes(String(r[1] ?? '').trim().toLowerCase())).map(r => r.slice(0, 20));
+  const r = await api('admin/upload', { method: 'POST', body: { kind: 'chapter_retention', filename: f.name, ym, rows: mine } });
+  const v = x => x === null || x === undefined ? '<span class="muted">n/a</span>' : x + '%';
+  log.lastElementChild.innerHTML = `<span class="ok">✓</span> ${esc(f.name)}: 3+1 retention ${monthName(r.month)}, ${r.updated.length} chapters (SA 1st-year / SDC overall): ` +
+    r.updated.map(u => `${esc(u.chapter.replace(/^BNI\s+/, ''))} ${v(u.first_year_pct)} / ${v(u.overall_pct)}`).join(', ') + (r.warning ? ` <span class="bad">${esc(r.warning)}</span>` : '');
+  return r;
+}
 function loadSheetJS() {
   if (window.XLSX) return Promise.resolve();
   return new Promise((res, rej) => { const sc = document.createElement('script'); sc.src = 'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js'; sc.onload = res; sc.onerror = () => rej(new Error('Could not load the spreadsheet reader (offline?)')); document.head.appendChild(sc); });
@@ -711,22 +733,9 @@ async function handleSdcFiles(files, ym) {
       let r;
       if (/\.xlsx$/i.test(f.name)) {
         if (await uploadAttendanceXlsx(f, ym, log)) continue;
-        await loadSheetJS();
+        const r3 = await upload3plus1(f, ym, log);
+        if (r3) { if (r3.month !== ym && r3.month >= (state.goLive || '0000-00')) { toast(`File is for ${monthName(r3.month)}, opening that month`); state.month = r3.month; state.upLog = log.innerHTML; return renderSdcMonth(r3.month); } continue; }
         const wb = XLSX.read(await f.arrayBuffer(), { type: 'array' });
-        // 3+1 Traffic Lights workbook: renewal % = the "Overall Retention Rates (Rolling)" column. It sits on the sheet BNI names
-        // "Chapter NPS (Total to Date)" (the only per-chapter sheet); the NPS score itself is not used.
-        const npsName = wb.SheetNames.find(n => /chapter nps/i.test(n));
-        if (npsName) {
-          const all = XLSX.utils.sheet_to_json(wb.Sheets[npsName], { header: 1, defval: null });
-          const regions = [...new Set((state.chapters || []).map(c => String(c.region || '').toLowerCase()))];
-          const hi = all.findIndex(r => r.some(c => /^chapter name$/i.test(String(c ?? '').trim())));
-          const mine = all.filter((r, i) => i <= hi || regions.includes(String(r[1] ?? '').trim().toLowerCase())).map(r => r.slice(0, 20));
-          r = await api('admin/upload', { method: 'POST', body: { kind: 'chapter_retention', filename: f.name, ym, rows: mine } });
-          log.lastElementChild.innerHTML = `<span class="ok">✓</span> ${esc(f.name)}: 3+1 overall retention ${monthName(r.month)}, ${r.updated.length} chapters: ` +
-            r.updated.map(u => `${esc(u.chapter.replace(/^BNI\s+/, ''))} ${u.overall_pct === null ? '<span class="muted">n/a (under 12 months)</span>' : u.overall_pct + '%'}`).join(', ') + (r.warning ? ` <span class="bad">${esc(r.warning)}</span>` : '');
-          if (r.month !== ym && r.month >= (state.goLive || '0000-00')) { toast(`File is for ${monthName(r.month)}, opening that month`); state.month = r.month; state.upLog = log.innerHTML; return renderSdcMonth(r.month); }
-          continue;
-        }
         // pick the sheet that has a Chapter + Score/Status header
         let rows = null;
         for (const name of wb.SheetNames) { const rs = XLSX.utils.sheet_to_json(wb.Sheets[name], { header: 1, defval: null }); if (rs.some(row => row.some(c => /chapter/i.test(String(c ?? ''))) && row.some(c => /score|status/i.test(String(c ?? ''))))) { rows = rs; break; } }

@@ -154,6 +154,14 @@ assert.equal(w31.month, '2026-09'); assert.equal(w31.rows.length, 14);
 const wk31 = Object.fromEntries(w31.rows.map(r => [r.key, r]));
 assert.equal(wk31.korkai.overall_pct, 90.5); assert.equal(wk31.ainthinai.overall_pct, 83.5); assert.equal(wk31.tamilan.overall_pct, 72); assert.equal(wk31.comorin.overall_pct, 68.1);
 assert.equal(wk31.kings.overall_pct, null); assert.equal(wk31.kings.young, true); assert.equal(wk31.saral.young, true); assert.equal(wk31.kanya.young, false);
+// SA 1st-Year Retention from the same sheet
+assert.equal(wk31.korkai.first_year_pct, 84.6); assert.equal(wk31.tamilan.first_year_pct, 70); assert.equal(wk31.dilnadu.first_year_pct, 50); assert.equal(wk31.kings.first_year_pct, null);
+const saFull = { member_score: 80, online_pct: 12, offline_pct: 10, retention_pct: 84.6, one_to_one_per_member: 9, ltrt_att: true, dcrt_att: true, jotform_done: true };
+const saYoung = { ...saFull, retention_pct: null, retention_na: true };
+const sf = scoreEntry(saFull, DEFAULT_SETTINGS), sy = scoreEntry(saYoung, DEFAULT_SETTINGS);
+assert.equal(sf.max_total, 80); assert.equal(sf.total_raw, 80); assert.equal(sy.max_total, 55); assert.equal(sy.total_raw, 55); assert.equal(sy.total_scaled, 100);
+assert.ok(!nextBandHints({ ...saYoung, member_score: 0 }, DEFAULT_SETTINGS).hints.some(h => h.kpi === 'retention'));
+assert.equal(scoreEntry({ ...saFull, retention_pct: 50 }, DEFAULT_SETTINGS).points.retention, 0);
 console.log('3+1 retention checks passed ✓');
 
 // ---------- Region Commission Report (real Sep 2026, both regions): new vs renewal by fee ----------

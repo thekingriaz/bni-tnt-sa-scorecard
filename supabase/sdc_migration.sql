@@ -122,3 +122,6 @@ alter table sdc_entries add column if not exists ltrt_att boolean;
 alter table sdc_entries add column if not exists dcrt_att boolean;
 alter table sa_entries  add column if not exists ltrt_att boolean;
 alter table sa_entries  add column if not exists dcrt_att boolean;
+
+-- 11. SA 1st-Year Retention from the 3+1 upload: chapters under 12 months have no figure (KPI skipped, scaled to 100)
+alter table sa_entries add column if not exists retention_na boolean not null default false;

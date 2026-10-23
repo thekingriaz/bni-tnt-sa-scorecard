@@ -23,7 +23,7 @@ export default handler(async ({ session }) => {
       ym, chapter: me.chapter.name, legacy: me.legacy,
       inputs: {
         member_score: me.member_score, online_pct: me.online_pct, offline_pct: me.offline_pct, training_unique: me.training_unique,
-        member_count: me.member_count, mentoring_pct: me.mentoring_pct, retention_pct: me.retention_pct,
+        member_count: me.member_count, mentoring_pct: me.mentoring_pct, retention_pct: me.retention_pct, retention_na: !!me.retention_na,
         one_to_one_per_member: me.one_to_one_per_member, ltrt_attended: me.ltrt_attended, ltrt_att: me.ltrt_att, dcrt_att: me.dcrt_att, jotform_done: me.jotform_done,
         new_members: me.new_members, renewals: me.renewals,
       },
