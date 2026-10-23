@@ -1,0 +1,560 @@
+<?xml version="1.0"?>
+<?mso-application progid="Excel.Sheet"?>
+<Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet"
+ xmlns:o="urn:schemas-microsoft-com:office:office"
+ xmlns:x="urn:schemas-microsoft-com:office:excel"
+ xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet"
+ xmlns:html="http://www.w3.org/TR/REC-html40">
+ <DocumentProperties xmlns="urn:schemas-microsoft-com:office:office">
+  <Version>16.00</Version>
+ </DocumentProperties>
+ <OfficeDocumentSettings xmlns="urn:schemas-microsoft-com:office:office">
+  <AllowPNG/>
+ </OfficeDocumentSettings>
+ <ExcelWorkbook xmlns="urn:schemas-microsoft-com:office:excel">
+  <WindowHeight>7812</WindowHeight>
+  <WindowWidth>23040</WindowWidth>
+  <WindowTopX>32767</WindowTopX>
+  <WindowTopY>32767</WindowTopY>
+  <ProtectStructure>False</ProtectStructure>
+  <ProtectWindows>False</ProtectWindows>
+ </ExcelWorkbook>
+ <Styles>
+  <Style ss:ID="Default" ss:Name="Normal">
+   <Alignment ss:Vertical="Bottom"/>
+   <Borders/>
+   <Font ss:FontName="Aptos Narrow" x:Family="Swiss" ss:Size="11"
+    ss:Color="#000000"/>
+   <Interior/>
+   <NumberFormat/>
+   <Protection/>
+  </Style>
+  <Style ss:ID="s63">
+   <Alignment ss:Horizontal="Left" ss:Vertical="Top" ss:WrapText="1"/>
+   <Borders/>
+   <Font ss:FontName="sans-serif" ss:Color="#000000"/>
+   <Interior/>
+   <NumberFormat/>
+   <Protection/>
+  </Style>
+  <Style ss:ID="s64">
+   <Alignment ss:Horizontal="Center" ss:Vertical="Top" ss:WrapText="1"/>
+   <Borders/>
+   <Font ss:FontName="sans-serif" ss:Color="#000000"/>
+   <Interior/>
+   <NumberFormat/>
+   <Protection/>
+  </Style>
+  <Style ss:ID="s65">
+   <Alignment ss:Horizontal="Right" ss:Vertical="Top" ss:WrapText="1"/>
+   <Borders/>
+   <Font ss:FontName="sans-serif" ss:Color="#000000"/>
+   <Interior/>
+   <NumberFormat/>
+   <Protection/>
+  </Style>
+  <Style ss:ID="s66">
+   <Alignment ss:Horizontal="Center" ss:Vertical="Top" ss:WrapText="1"/>
+   <Borders/>
+   <Font ss:FontName="sans-serif" ss:Color="#000000"/>
+   <Interior/>
+   <NumberFormat ss:Format="mmm\ d\,\ yyyy"/>
+   <Protection/>
+  </Style>
+  <Style ss:ID="s67">
+   <Alignment ss:Horizontal="Right" ss:Vertical="Top" ss:WrapText="1"/>
+   <Borders/>
+   <Font ss:FontName="sans-serif" ss:Color="#000000"/>
+   <Interior/>
+   <NumberFormat ss:Format="Fixed"/>
+   <Protection/>
+  </Style>
+ </Styles>
+ <Worksheet ss:Name="Report">
+  <Table ss:ExpandedColumnCount="8" ss:ExpandedRowCount="52" x:FullColumns="1"
+   x:FullRows="1" ss:DefaultRowHeight="14.4">
+   <Column ss:AutoFitWidth="0" ss:Width="82.199999999999989" ss:Span="6"/>
+   <Column ss:Index="8" ss:Hidden="1" ss:AutoFitWidth="0"/>
+   <Row ss:AutoFitHeight="0" ss:Height="15">
+    <Cell ss:StyleID="s63"><Data ss:Type="String">First Name</Data></Cell>
+    <Cell ss:StyleID="s63"><Data ss:Type="String">Last Name</Data></Cell>
+    <Cell ss:StyleID="s63"><Data ss:Type="String">Invoice Ref</Data></Cell>
+    <Cell ss:StyleID="s63"><Data ss:Type="String">Chapter Name</Data></Cell>
+    <Cell ss:StyleID="s64"><Data ss:Type="String">Period Date</Data></Cell>
+    <Cell ss:StyleID="s65"><Data ss:Type="String">Fee</Data></Cell>
+    <Cell ss:StyleID="s65"><Data ss:Type="String">Commission</Data></Cell>
+   </Row>
+   <Row ss:AutoFitHeight="0" ss:Height="15">
+    <Cell ss:StyleID="s63"><Data ss:Type="String">Jijiya</Data></Cell>
+    <Cell ss:StyleID="s63"><Data ss:Type="String">R</Data></Cell>
+    <Cell ss:StyleID="s63"><Data ss:Type="String">INT-971</Data></Cell>
+    <Cell ss:StyleID="s63"><Data ss:Type="String">BNI Comorin</Data></Cell>
+    <Cell ss:StyleID="s66"><Data ss:Type="DateTime">2026-09-02T00:00:00.000</Data></Cell>
+    <Cell ss:StyleID="s67"><Data ss:Type="Number">41559.01</Data></Cell>
+    <Cell ss:StyleID="s67"><Data ss:Type="Number">41559.01</Data></Cell>
+   </Row>
+   <Row ss:AutoFitHeight="0" ss:Height="15">
+    <Cell ss:StyleID="s63"><Data ss:Type="String">Vishnu</Data></Cell>
+    <Cell ss:StyleID="s63"><Data ss:Type="String">Selvaraj</Data></Cell>
+    <Cell ss:StyleID="s63"><Data ss:Type="String">INT-972</Data></Cell>
+    <Cell ss:StyleID="s63"><Data ss:Type="String">BNI Comorin</Data></Cell>
+    <Cell ss:StyleID="s66"><Data ss:Type="DateTime">2026-09-02T00:00:00.000</Data></Cell>
+    <Cell ss:StyleID="s67"><Data ss:Type="Number">41559.01</Data></Cell>
+    <Cell ss:StyleID="s67"><Data ss:Type="Number">41559.01</Data></Cell>
+   </Row>
+   <Row ss:AutoFitHeight="0" ss:Height="15">
+    <Cell ss:StyleID="s63"><Data ss:Type="String">Aswin</Data></Cell>
+    <Cell ss:StyleID="s63"><Data ss:Type="String">A M S</Data></Cell>
+    <Cell ss:StyleID="s63"><Data ss:Type="String">INT-1017</Data></Cell>
+    <Cell ss:StyleID="s63"><Data ss:Type="String">BNI Kanya</Data></Cell>
+    <Cell ss:StyleID="s66"><Data ss:Type="DateTime">2026-09-30T00:00:00.000</Data></Cell>
+    <Cell ss:StyleID="s67"><Data ss:Type="Number">41559.01</Data></Cell>
+    <Cell ss:StyleID="s67"><Data ss:Type="Number">41559.01</Data></Cell>
+   </Row>
+   <Row ss:AutoFitHeight="0" ss:Height="15">
+    <Cell ss:StyleID="s63"><Data ss:Type="String">Muhammed</Data></Cell>
+    <Cell ss:StyleID="s63"><Data ss:Type="String">Aboobucker</Data></Cell>
+    <Cell ss:StyleID="s63"><Data ss:Type="String">INT-999</Data></Cell>
+    <Cell ss:StyleID="s63"><Data ss:Type="String">BNI Kanya</Data></Cell>
+    <Cell ss:StyleID="s66"><Data ss:Type="DateTime">2026-09-30T00:00:00.000</Data></Cell>
+    <Cell ss:StyleID="s67"><Data ss:Type="Number">47558.01</Data></Cell>
+    <Cell ss:StyleID="s67"><Data ss:Type="Number">47558.01</Data></Cell>
+   </Row>
+   <Row ss:AutoFitHeight="0" ss:Height="15">
+    <Cell ss:StyleID="s63"><Data ss:Type="String">Michael</Data></Cell>
+    <Cell ss:StyleID="s63"><Data ss:Type="String">Bellae Jose</Data></Cell>
+    <Cell ss:StyleID="s63"><Data ss:Type="String">INT-1011</Data></Cell>
+    <Cell ss:StyleID="s63"><Data ss:Type="String">BNI Kanya</Data></Cell>
+    <Cell ss:StyleID="s66"><Data ss:Type="DateTime">2026-09-30T00:00:00.000</Data></Cell>
+    <Cell ss:StyleID="s67"><Data ss:Type="Number">66494.080000000002</Data></Cell>
+    <Cell ss:StyleID="s67"><Data ss:Type="Number">66494.080000000002</Data></Cell>
+   </Row>
+   <Row ss:AutoFitHeight="0" ss:Height="15">
+    <Cell ss:StyleID="s63"><Data ss:Type="String">Jimmy</Data></Cell>
+    <Cell ss:StyleID="s63"><Data ss:Type="String">Bonson</Data></Cell>
+    <Cell ss:StyleID="s63"><Data ss:Type="String">INT-978</Data></Cell>
+    <Cell ss:StyleID="s63"><Data ss:Type="String">BNI Kanya</Data></Cell>
+    <Cell ss:StyleID="s66"><Data ss:Type="DateTime">2026-09-11T00:00:00.000</Data></Cell>
+    <Cell ss:StyleID="s67"><Data ss:Type="Number">66494.080000000002</Data></Cell>
+    <Cell ss:StyleID="s67"><Data ss:Type="Number">66494.080000000002</Data></Cell>
+   </Row>
+   <Row ss:AutoFitHeight="0" ss:Height="15">
+    <Cell ss:StyleID="s63"><Data ss:Type="String">Karthick</Data></Cell>
+    <Cell ss:StyleID="s63"><Data ss:Type="String">Gunabalan</Data></Cell>
+    <Cell ss:StyleID="s63"><Data ss:Type="String">INT-1013</Data></Cell>
+    <Cell ss:StyleID="s63"><Data ss:Type="String">BNI Kanya</Data></Cell>
+    <Cell ss:StyleID="s66"><Data ss:Type="DateTime">2026-09-30T00:00:00.000</Data></Cell>
+    <Cell ss:StyleID="s67"><Data ss:Type="Number">41559.01</Data></Cell>
+    <Cell ss:StyleID="s67"><Data ss:Type="Number">41559.01</Data></Cell>
+   </Row>
+   <Row ss:AutoFitHeight="0" ss:Height="15">
+    <Cell ss:StyleID="s63"><Data ss:Type="String">Jegan</Data></Cell>
+    <Cell ss:StyleID="s63"><Data ss:Type="String">H.</Data></Cell>
+    <Cell ss:StyleID="s63"><Data ss:Type="String">INT-979</Data></Cell>
+    <Cell ss:StyleID="s63"><Data ss:Type="String">BNI Kanya</Data></Cell>
+    <Cell ss:StyleID="s66"><Data ss:Type="DateTime">2026-09-12T00:00:00.000</Data></Cell>
+    <Cell ss:StyleID="s67"><Data ss:Type="Number">41559.01</Data></Cell>
+    <Cell ss:StyleID="s67"><Data ss:Type="Number">41559.01</Data></Cell>
+   </Row>
+   <Row ss:AutoFitHeight="0" ss:Height="15">
+    <Cell ss:StyleID="s63"><Data ss:Type="String">Rajesh</Data></Cell>
+    <Cell ss:StyleID="s63"><Data ss:Type="String">Kumar</Data></Cell>
+    <Cell ss:StyleID="s63"><Data ss:Type="String">INT-1020</Data></Cell>
+    <Cell ss:StyleID="s63"><Data ss:Type="String">BNI Kanya</Data></Cell>
+    <Cell ss:StyleID="s66"><Data ss:Type="DateTime">2026-09-30T00:00:00.000</Data></Cell>
+    <Cell ss:StyleID="s67"><Data ss:Type="Number">41559.01</Data></Cell>
+    <Cell ss:StyleID="s67"><Data ss:Type="Number">41559.01</Data></Cell>
+   </Row>
+   <Row ss:AutoFitHeight="0" ss:Height="15">
+    <Cell ss:StyleID="s63"><Data ss:Type="String">Siva</Data></Cell>
+    <Cell ss:StyleID="s63"><Data ss:Type="String">Kumar K</Data></Cell>
+    <Cell ss:StyleID="s63"><Data ss:Type="String">INT-1014</Data></Cell>
+    <Cell ss:StyleID="s63"><Data ss:Type="String">BNI Kanya</Data></Cell>
+    <Cell ss:StyleID="s66"><Data ss:Type="DateTime">2026-09-30T00:00:00.000</Data></Cell>
+    <Cell ss:StyleID="s67"><Data ss:Type="Number">41559.01</Data></Cell>
+    <Cell ss:StyleID="s67"><Data ss:Type="Number">41559.01</Data></Cell>
+   </Row>
+   <Row ss:AutoFitHeight="0" ss:Height="15">
+    <Cell ss:StyleID="s63"><Data ss:Type="String">Thiraviyam</Data></Cell>
+    <Cell ss:StyleID="s63"><Data ss:Type="String">Mani</Data></Cell>
+    <Cell ss:StyleID="s63"><Data ss:Type="String">INT-1021</Data></Cell>
+    <Cell ss:StyleID="s63"><Data ss:Type="String">BNI Kanya</Data></Cell>
+    <Cell ss:StyleID="s66"><Data ss:Type="DateTime">2026-09-30T00:00:00.000</Data></Cell>
+    <Cell ss:StyleID="s67"><Data ss:Type="Number">41559.01</Data></Cell>
+    <Cell ss:StyleID="s67"><Data ss:Type="Number">41559.01</Data></Cell>
+   </Row>
+   <Row ss:AutoFitHeight="0" ss:Height="15">
+    <Cell ss:StyleID="s63"><Data ss:Type="String">Sethuramalingam</Data></Cell>
+    <Cell ss:StyleID="s63"><Data ss:Type="String">P.</Data></Cell>
+    <Cell ss:StyleID="s63"><Data ss:Type="String">INT-1015</Data></Cell>
+    <Cell ss:StyleID="s63"><Data ss:Type="String">BNI Kanya</Data></Cell>
+    <Cell ss:StyleID="s66"><Data ss:Type="DateTime">2026-09-30T00:00:00.000</Data></Cell>
+    <Cell ss:StyleID="s67"><Data ss:Type="Number">66494.080000000002</Data></Cell>
+    <Cell ss:StyleID="s67"><Data ss:Type="Number">66494.080000000002</Data></Cell>
+   </Row>
+   <Row ss:AutoFitHeight="0" ss:Height="15">
+    <Cell ss:StyleID="s63"><Data ss:Type="String">Krishna</Data></Cell>
+    <Cell ss:StyleID="s63"><Data ss:Type="String">Prasad</Data></Cell>
+    <Cell ss:StyleID="s63"><Data ss:Type="String">INT-977</Data></Cell>
+    <Cell ss:StyleID="s63"><Data ss:Type="String">BNI Kanya</Data></Cell>
+    <Cell ss:StyleID="s66"><Data ss:Type="DateTime">2026-09-11T00:00:00.000</Data></Cell>
+    <Cell ss:StyleID="s67"><Data ss:Type="Number">41559.01</Data></Cell>
+    <Cell ss:StyleID="s67"><Data ss:Type="Number">41559.01</Data></Cell>
+   </Row>
+   <Row ss:AutoFitHeight="0" ss:Height="15">
+    <Cell ss:StyleID="s63"><Data ss:Type="String">RamManoj</Data></Cell>
+    <Cell ss:StyleID="s63"><Data ss:Type="String">Ramachandran</Data></Cell>
+    <Cell ss:StyleID="s63"><Data ss:Type="String">INT-1016</Data></Cell>
+    <Cell ss:StyleID="s63"><Data ss:Type="String">BNI Kanya</Data></Cell>
+    <Cell ss:StyleID="s66"><Data ss:Type="DateTime">2026-09-30T00:00:00.000</Data></Cell>
+    <Cell ss:StyleID="s67"><Data ss:Type="Number">41559.01</Data></Cell>
+    <Cell ss:StyleID="s67"><Data ss:Type="Number">41559.01</Data></Cell>
+   </Row>
+   <Row ss:AutoFitHeight="0" ss:Height="15">
+    <Cell ss:StyleID="s63"><Data ss:Type="String">Sahaya</Data></Cell>
+    <Cell ss:StyleID="s63"><Data ss:Type="String">Ravichandran</Data></Cell>
+    <Cell ss:StyleID="s63"><Data ss:Type="String">INT-980</Data></Cell>
+    <Cell ss:StyleID="s63"><Data ss:Type="String">BNI Kanya</Data></Cell>
+    <Cell ss:StyleID="s66"><Data ss:Type="DateTime">2026-09-12T00:00:00.000</Data></Cell>
+    <Cell ss:StyleID="s67"><Data ss:Type="Number">66494.080000000002</Data></Cell>
+    <Cell ss:StyleID="s67"><Data ss:Type="Number">66494.080000000002</Data></Cell>
+   </Row>
+   <Row ss:AutoFitHeight="0" ss:Height="15">
+    <Cell ss:StyleID="s63"><Data ss:Type="String">Noble</Data></Cell>
+    <Cell ss:StyleID="s63"><Data ss:Type="String">S</Data></Cell>
+    <Cell ss:StyleID="s63"><Data ss:Type="String">INT-1012</Data></Cell>
+    <Cell ss:StyleID="s63"><Data ss:Type="String">BNI Kanya</Data></Cell>
+    <Cell ss:StyleID="s66"><Data ss:Type="DateTime">2026-09-30T00:00:00.000</Data></Cell>
+    <Cell ss:StyleID="s67"><Data ss:Type="Number">66494.080000000002</Data></Cell>
+    <Cell ss:StyleID="s67"><Data ss:Type="Number">66494.080000000002</Data></Cell>
+   </Row>
+   <Row ss:AutoFitHeight="0" ss:Height="15">
+    <Cell ss:StyleID="s63"><Data ss:Type="String">Jawfer</Data></Cell>
+    <Cell ss:StyleID="s63"><Data ss:Type="String">Sadhiq</Data></Cell>
+    <Cell ss:StyleID="s63"><Data ss:Type="String">INT-982</Data></Cell>
+    <Cell ss:StyleID="s63"><Data ss:Type="String">BNI Kanya</Data></Cell>
+    <Cell ss:StyleID="s66"><Data ss:Type="DateTime">2026-09-15T00:00:00.000</Data></Cell>
+    <Cell ss:StyleID="s67"><Data ss:Type="Number">41559.01</Data></Cell>
+    <Cell ss:StyleID="s67"><Data ss:Type="Number">41559.01</Data></Cell>
+   </Row>
+   <Row ss:AutoFitHeight="0" ss:Height="15">
+    <Cell ss:StyleID="s63"><Data ss:Type="String">Mohamed</Data></Cell>
+    <Cell ss:StyleID="s63"><Data ss:Type="String">Shakkil S</Data></Cell>
+    <Cell ss:StyleID="s63"><Data ss:Type="String">INT-1001</Data></Cell>
+    <Cell ss:StyleID="s63"><Data ss:Type="String">BNI Kanya</Data></Cell>
+    <Cell ss:StyleID="s66"><Data ss:Type="DateTime">2026-09-30T00:00:00.000</Data></Cell>
+    <Cell ss:StyleID="s67"><Data ss:Type="Number">72493.08</Data></Cell>
+    <Cell ss:StyleID="s67"><Data ss:Type="Number">72493.08</Data></Cell>
+   </Row>
+   <Row ss:AutoFitHeight="0" ss:Height="15">
+    <Cell ss:StyleID="s63"><Data ss:Type="String">Murugadhas</Data></Cell>
+    <Cell ss:StyleID="s63"><Data ss:Type="String">A</Data></Cell>
+    <Cell ss:StyleID="s63"><Data ss:Type="String">INT-992</Data></Cell>
+    <Cell ss:StyleID="s63"><Data ss:Type="String">BNI Kings</Data></Cell>
+    <Cell ss:StyleID="s66"><Data ss:Type="DateTime">2026-09-17T00:00:00.000</Data></Cell>
+    <Cell ss:StyleID="s67"><Data ss:Type="Number">41559.01</Data></Cell>
+    <Cell ss:StyleID="s67"><Data ss:Type="Number">41559.01</Data></Cell>
+   </Row>
+   <Row ss:AutoFitHeight="0" ss:Height="15">
+    <Cell ss:StyleID="s63"><Data ss:Type="String">KANNAN</Data></Cell>
+    <Cell ss:StyleID="s63"><Data ss:Type="String">AKSHITH R BABU</Data></Cell>
+    <Cell ss:StyleID="s63"><Data ss:Type="String">INT-993</Data></Cell>
+    <Cell ss:StyleID="s63"><Data ss:Type="String">BNI Kings</Data></Cell>
+    <Cell ss:StyleID="s66"><Data ss:Type="DateTime">2026-09-21T00:00:00.000</Data></Cell>
+    <Cell ss:StyleID="s67"><Data ss:Type="Number">66494.080000000002</Data></Cell>
+    <Cell ss:StyleID="s67"><Data ss:Type="Number">66494.080000000002</Data></Cell>
+   </Row>
+   <Row ss:AutoFitHeight="0" ss:Height="15">
+    <Cell ss:StyleID="s63"><Data ss:Type="String">SYLUS</Data></Cell>
+    <Cell ss:StyleID="s63"><Data ss:Type="String">ALBERT</Data></Cell>
+    <Cell ss:StyleID="s63"><Data ss:Type="String">INT-981</Data></Cell>
+    <Cell ss:StyleID="s63"><Data ss:Type="String">BNI Kings</Data></Cell>
+    <Cell ss:StyleID="s66"><Data ss:Type="DateTime">2026-09-14T00:00:00.000</Data></Cell>
+    <Cell ss:StyleID="s67"><Data ss:Type="Number">41559.01</Data></Cell>
+    <Cell ss:StyleID="s67"><Data ss:Type="Number">41559.01</Data></Cell>
+   </Row>
+   <Row ss:AutoFitHeight="0" ss:Height="15">
+    <Cell ss:StyleID="s63"><Data ss:Type="String">AJ</Data></Cell>
+    <Cell ss:StyleID="s63"><Data ss:Type="String">Anish</Data></Cell>
+    <Cell ss:StyleID="s63"><Data ss:Type="String">INT-984</Data></Cell>
+    <Cell ss:StyleID="s63"><Data ss:Type="String">BNI Kings</Data></Cell>
+    <Cell ss:StyleID="s66"><Data ss:Type="DateTime">2026-09-15T00:00:00.000</Data></Cell>
+    <Cell ss:StyleID="s67"><Data ss:Type="Number">66494.080000000002</Data></Cell>
+    <Cell ss:StyleID="s67"><Data ss:Type="Number">66494.080000000002</Data></Cell>
+   </Row>
+   <Row ss:AutoFitHeight="0" ss:Height="15">
+    <Cell ss:StyleID="s63"><Data ss:Type="String">AJITH</Data></Cell>
+    <Cell ss:StyleID="s63"><Data ss:Type="String">ANTONY G</Data></Cell>
+    <Cell ss:StyleID="s63"><Data ss:Type="String">INT-985</Data></Cell>
+    <Cell ss:StyleID="s63"><Data ss:Type="String">BNI Kings</Data></Cell>
+    <Cell ss:StyleID="s66"><Data ss:Type="DateTime">2026-09-15T00:00:00.000</Data></Cell>
+    <Cell ss:StyleID="s67"><Data ss:Type="Number">66494.080000000002</Data></Cell>
+    <Cell ss:StyleID="s67"><Data ss:Type="Number">66494.080000000002</Data></Cell>
+   </Row>
+   <Row ss:AutoFitHeight="0" ss:Height="15">
+    <Cell ss:StyleID="s63"><Data ss:Type="String">Anu</Data></Cell>
+    <Cell ss:StyleID="s63"><Data ss:Type="String">Ashwin</Data></Cell>
+    <Cell ss:StyleID="s63"><Data ss:Type="String">INT-1003</Data></Cell>
+    <Cell ss:StyleID="s63"><Data ss:Type="String">BNI Kings</Data></Cell>
+    <Cell ss:StyleID="s66"><Data ss:Type="DateTime">2026-09-30T00:00:00.000</Data></Cell>
+    <Cell ss:StyleID="s67"><Data ss:Type="Number">41559.01</Data></Cell>
+    <Cell ss:StyleID="s67"><Data ss:Type="Number">41559.01</Data></Cell>
+   </Row>
+   <Row ss:AutoFitHeight="0" ss:Height="15">
+    <Cell ss:StyleID="s63"><Data ss:Type="String">jeyarajan</Data></Cell>
+    <Cell ss:StyleID="s63"><Data ss:Type="String">c</Data></Cell>
+    <Cell ss:StyleID="s63"><Data ss:Type="String">INT-1004</Data></Cell>
+    <Cell ss:StyleID="s63"><Data ss:Type="String">BNI Kings</Data></Cell>
+    <Cell ss:StyleID="s66"><Data ss:Type="DateTime">2026-09-30T00:00:00.000</Data></Cell>
+    <Cell ss:StyleID="s67"><Data ss:Type="Number">41559.01</Data></Cell>
+    <Cell ss:StyleID="s67"><Data ss:Type="Number">41559.01</Data></Cell>
+   </Row>
+   <Row ss:AutoFitHeight="0" ss:Height="15">
+    <Cell ss:StyleID="s63"><Data ss:Type="String">MOHAMMED</Data></Cell>
+    <Cell ss:StyleID="s63"><Data ss:Type="String">HASSAN A</Data></Cell>
+    <Cell ss:StyleID="s63"><Data ss:Type="String">INT-991</Data></Cell>
+    <Cell ss:StyleID="s63"><Data ss:Type="String">BNI Kings</Data></Cell>
+    <Cell ss:StyleID="s66"><Data ss:Type="DateTime">2026-09-17T00:00:00.000</Data></Cell>
+    <Cell ss:StyleID="s67"><Data ss:Type="Number">66494.080000000002</Data></Cell>
+    <Cell ss:StyleID="s67"><Data ss:Type="Number">66494.080000000002</Data></Cell>
+   </Row>
+   <Row ss:AutoFitHeight="0" ss:Height="15">
+    <Cell ss:StyleID="s63"><Data ss:Type="String">Tomlin</Data></Cell>
+    <Cell ss:StyleID="s63"><Data ss:Type="String">Hazel</Data></Cell>
+    <Cell ss:StyleID="s63"><Data ss:Type="String">INT-1002</Data></Cell>
+    <Cell ss:StyleID="s63"><Data ss:Type="String">BNI Kings</Data></Cell>
+    <Cell ss:StyleID="s66"><Data ss:Type="DateTime">2026-09-30T00:00:00.000</Data></Cell>
+    <Cell ss:StyleID="s67"><Data ss:Type="Number">41559.01</Data></Cell>
+    <Cell ss:StyleID="s67"><Data ss:Type="Number">41559.01</Data></Cell>
+   </Row>
+   <Row ss:AutoFitHeight="0" ss:Height="15">
+    <Cell ss:StyleID="s63"><Data ss:Type="String">PALAYAM</Data></Cell>
+    <Cell ss:StyleID="s63"><Data ss:Type="String">JAMES</Data></Cell>
+    <Cell ss:StyleID="s63"><Data ss:Type="String">INT-1005</Data></Cell>
+    <Cell ss:StyleID="s63"><Data ss:Type="String">BNI Kings</Data></Cell>
+    <Cell ss:StyleID="s66"><Data ss:Type="DateTime">2026-09-30T00:00:00.000</Data></Cell>
+    <Cell ss:StyleID="s67"><Data ss:Type="Number">66494.080000000002</Data></Cell>
+    <Cell ss:StyleID="s67"><Data ss:Type="Number">66494.080000000002</Data></Cell>
+   </Row>
+   <Row ss:AutoFitHeight="0" ss:Height="15">
+    <Cell ss:StyleID="s63"><Data ss:Type="String">Maria</Data></Cell>
+    <Cell ss:StyleID="s63"><Data ss:Type="String">Kiran</Data></Cell>
+    <Cell ss:StyleID="s63"><Data ss:Type="String">INT-994</Data></Cell>
+    <Cell ss:StyleID="s63"><Data ss:Type="String">BNI Kings</Data></Cell>
+    <Cell ss:StyleID="s66"><Data ss:Type="DateTime">2026-09-21T00:00:00.000</Data></Cell>
+    <Cell ss:StyleID="s67"><Data ss:Type="Number">66494.080000000002</Data></Cell>
+    <Cell ss:StyleID="s67"><Data ss:Type="Number">66494.080000000002</Data></Cell>
+   </Row>
+   <Row ss:AutoFitHeight="0" ss:Height="15">
+    <Cell ss:StyleID="s63"><Data ss:Type="String">Sunil</Data></Cell>
+    <Cell ss:StyleID="s63"><Data ss:Type="String">Kumar. T</Data></Cell>
+    <Cell ss:StyleID="s63"><Data ss:Type="String">INT-983</Data></Cell>
+    <Cell ss:StyleID="s63"><Data ss:Type="String">BNI Kings</Data></Cell>
+    <Cell ss:StyleID="s66"><Data ss:Type="DateTime">2026-09-15T00:00:00.000</Data></Cell>
+    <Cell ss:StyleID="s67"><Data ss:Type="Number">66494.080000000002</Data></Cell>
+    <Cell ss:StyleID="s67"><Data ss:Type="Number">66494.080000000002</Data></Cell>
+   </Row>
+   <Row ss:AutoFitHeight="0" ss:Height="15">
+    <Cell ss:StyleID="s63"><Data ss:Type="String">Stephin</Data></Cell>
+    <Cell ss:StyleID="s63"><Data ss:Type="String">Mohan</Data></Cell>
+    <Cell ss:StyleID="s63"><Data ss:Type="String">INT-1018</Data></Cell>
+    <Cell ss:StyleID="s63"><Data ss:Type="String">BNI Kings</Data></Cell>
+    <Cell ss:StyleID="s66"><Data ss:Type="DateTime">2026-09-30T00:00:00.000</Data></Cell>
+    <Cell ss:StyleID="s67"><Data ss:Type="Number">41559.01</Data></Cell>
+    <Cell ss:StyleID="s67"><Data ss:Type="Number">41559.01</Data></Cell>
+   </Row>
+   <Row ss:AutoFitHeight="0" ss:Height="15">
+    <Cell ss:StyleID="s63"><Data ss:Type="String">KINGSAR</Data></Cell>
+    <Cell ss:StyleID="s63"><Data ss:Type="String">P</Data></Cell>
+    <Cell ss:StyleID="s63"><Data ss:Type="String">INT-1006</Data></Cell>
+    <Cell ss:StyleID="s63"><Data ss:Type="String">BNI Kings</Data></Cell>
+    <Cell ss:StyleID="s66"><Data ss:Type="DateTime">2026-09-30T00:00:00.000</Data></Cell>
+    <Cell ss:StyleID="s67"><Data ss:Type="Number">41559.01</Data></Cell>
+    <Cell ss:StyleID="s67"><Data ss:Type="Number">41559.01</Data></Cell>
+   </Row>
+   <Row ss:AutoFitHeight="0" ss:Height="15">
+    <Cell ss:StyleID="s63"><Data ss:Type="String">Suresh Kumar</Data></Cell>
+    <Cell ss:StyleID="s63"><Data ss:Type="String">R.R.</Data></Cell>
+    <Cell ss:StyleID="s63"><Data ss:Type="String">INT-995</Data></Cell>
+    <Cell ss:StyleID="s63"><Data ss:Type="String">BNI Kings</Data></Cell>
+    <Cell ss:StyleID="s66"><Data ss:Type="DateTime">2026-09-22T00:00:00.000</Data></Cell>
+    <Cell ss:StyleID="s67"><Data ss:Type="Number">66494.080000000002</Data></Cell>
+    <Cell ss:StyleID="s67"><Data ss:Type="Number">66494.080000000002</Data></Cell>
+   </Row>
+   <Row ss:AutoFitHeight="0" ss:Height="15">
+    <Cell ss:StyleID="s63"><Data ss:Type="String">Jebmarksh</Data></Cell>
+    <Cell ss:StyleID="s63"><Data ss:Type="String">Renju</Data></Cell>
+    <Cell ss:StyleID="s63"><Data ss:Type="String">INT-988</Data></Cell>
+    <Cell ss:StyleID="s63"><Data ss:Type="String">BNI Kings</Data></Cell>
+    <Cell ss:StyleID="s66"><Data ss:Type="DateTime">2026-09-16T00:00:00.000</Data></Cell>
+    <Cell ss:StyleID="s67"><Data ss:Type="Number">66494.080000000002</Data></Cell>
+    <Cell ss:StyleID="s67"><Data ss:Type="Number">66494.080000000002</Data></Cell>
+   </Row>
+   <Row ss:AutoFitHeight="0" ss:Height="15">
+    <Cell ss:StyleID="s63"><Data ss:Type="String">Jenil</Data></Cell>
+    <Cell ss:StyleID="s63"><Data ss:Type="String">RS</Data></Cell>
+    <Cell ss:StyleID="s63"><Data ss:Type="String">INT-1007</Data></Cell>
+    <Cell ss:StyleID="s63"><Data ss:Type="String">BNI Kings</Data></Cell>
+    <Cell ss:StyleID="s66"><Data ss:Type="DateTime">2026-09-30T00:00:00.000</Data></Cell>
+    <Cell ss:StyleID="s67"><Data ss:Type="Number">41559.01</Data></Cell>
+    <Cell ss:StyleID="s67"><Data ss:Type="Number">41559.01</Data></Cell>
+   </Row>
+   <Row ss:AutoFitHeight="0" ss:Height="15">
+    <Cell ss:StyleID="s63"><Data ss:Type="String">Kiran</Data></Cell>
+    <Cell ss:StyleID="s63"><Data ss:Type="String">S</Data></Cell>
+    <Cell ss:StyleID="s63"><Data ss:Type="String">INT-1019</Data></Cell>
+    <Cell ss:StyleID="s63"><Data ss:Type="String">BNI Kings</Data></Cell>
+    <Cell ss:StyleID="s66"><Data ss:Type="DateTime">2026-09-30T00:00:00.000</Data></Cell>
+    <Cell ss:StyleID="s67"><Data ss:Type="Number">41559.01</Data></Cell>
+    <Cell ss:StyleID="s67"><Data ss:Type="Number">41559.01</Data></Cell>
+   </Row>
+   <Row ss:AutoFitHeight="0" ss:Height="15">
+    <Cell ss:StyleID="s63"><Data ss:Type="String">John</Data></Cell>
+    <Cell ss:StyleID="s63"><Data ss:Type="String">Selin</Data></Cell>
+    <Cell ss:StyleID="s63"><Data ss:Type="String">INT-987</Data></Cell>
+    <Cell ss:StyleID="s63"><Data ss:Type="String">BNI Kings</Data></Cell>
+    <Cell ss:StyleID="s66"><Data ss:Type="DateTime">2026-09-16T00:00:00.000</Data></Cell>
+    <Cell ss:StyleID="s67"><Data ss:Type="Number">66494.080000000002</Data></Cell>
+    <Cell ss:StyleID="s67"><Data ss:Type="Number">66494.080000000002</Data></Cell>
+   </Row>
+   <Row ss:AutoFitHeight="0" ss:Height="15">
+    <Cell ss:StyleID="s63"><Data ss:Type="String">Arvind</Data></Cell>
+    <Cell ss:StyleID="s63"><Data ss:Type="String">Subramaniam</Data></Cell>
+    <Cell ss:StyleID="s63"><Data ss:Type="String">INT-1008</Data></Cell>
+    <Cell ss:StyleID="s63"><Data ss:Type="String">BNI Kings</Data></Cell>
+    <Cell ss:StyleID="s66"><Data ss:Type="DateTime">2026-09-30T00:00:00.000</Data></Cell>
+    <Cell ss:StyleID="s67"><Data ss:Type="Number">66494.080000000002</Data></Cell>
+    <Cell ss:StyleID="s67"><Data ss:Type="Number">66494.080000000002</Data></Cell>
+   </Row>
+   <Row ss:AutoFitHeight="0" ss:Height="15">
+    <Cell ss:StyleID="s63"><Data ss:Type="String">John Paulus</Data></Cell>
+    <Cell ss:StyleID="s63"><Data ss:Type="String">T</Data></Cell>
+    <Cell ss:StyleID="s63"><Data ss:Type="String">INT-1009</Data></Cell>
+    <Cell ss:StyleID="s63"><Data ss:Type="String">BNI Kings</Data></Cell>
+    <Cell ss:StyleID="s66"><Data ss:Type="DateTime">2026-09-30T00:00:00.000</Data></Cell>
+    <Cell ss:StyleID="s67"><Data ss:Type="Number">66494.080000000002</Data></Cell>
+    <Cell ss:StyleID="s67"><Data ss:Type="Number">66494.080000000002</Data></Cell>
+   </Row>
+   <Row ss:AutoFitHeight="0" ss:Height="15">
+    <Cell ss:StyleID="s63"><Data ss:Type="String">Albin</Data></Cell>
+    <Cell ss:StyleID="s63"><Data ss:Type="String">Vijai</Data></Cell>
+    <Cell ss:StyleID="s63"><Data ss:Type="String">INT-1010</Data></Cell>
+    <Cell ss:StyleID="s63"><Data ss:Type="String">BNI Kings</Data></Cell>
+    <Cell ss:StyleID="s66"><Data ss:Type="DateTime">2026-09-30T00:00:00.000</Data></Cell>
+    <Cell ss:StyleID="s67"><Data ss:Type="Number">66494.080000000002</Data></Cell>
+    <Cell ss:StyleID="s67"><Data ss:Type="Number">66494.080000000002</Data></Cell>
+   </Row>
+   <Row ss:AutoFitHeight="0" ss:Height="15">
+    <Cell ss:StyleID="s63"><Data ss:Type="String">Jayapal</Data></Cell>
+    <Cell ss:StyleID="s63"><Data ss:Type="String">Y</Data></Cell>
+    <Cell ss:StyleID="s63"><Data ss:Type="String">INT-996</Data></Cell>
+    <Cell ss:StyleID="s63"><Data ss:Type="String">BNI Kings</Data></Cell>
+    <Cell ss:StyleID="s66"><Data ss:Type="DateTime">2026-09-24T00:00:00.000</Data></Cell>
+    <Cell ss:StyleID="s67"><Data ss:Type="Number">41559.01</Data></Cell>
+    <Cell ss:StyleID="s67"><Data ss:Type="Number">41559.01</Data></Cell>
+   </Row>
+   <Row ss:AutoFitHeight="0" ss:Height="15">
+    <Cell ss:StyleID="s63"><Data ss:Type="String">Jeyakumar</Data></Cell>
+    <Cell ss:StyleID="s63"><Data ss:Type="String">KK</Data></Cell>
+    <Cell ss:StyleID="s63"><Data ss:Type="String">INT-975</Data></Cell>
+    <Cell ss:StyleID="s63"><Data ss:Type="String">BNI Korkai</Data></Cell>
+    <Cell ss:StyleID="s66"><Data ss:Type="DateTime">2026-09-11T00:00:00.000</Data></Cell>
+    <Cell ss:StyleID="s67"><Data ss:Type="Number">41559.01</Data></Cell>
+    <Cell ss:StyleID="s67"><Data ss:Type="Number">41559.01</Data></Cell>
+   </Row>
+   <Row ss:AutoFitHeight="0" ss:Height="15">
+    <Cell ss:StyleID="s63"><Data ss:Type="String">Jeya</Data></Cell>
+    <Cell ss:StyleID="s63"><Data ss:Type="String">Prabha</Data></Cell>
+    <Cell ss:StyleID="s63"><Data ss:Type="String">INT-976</Data></Cell>
+    <Cell ss:StyleID="s63"><Data ss:Type="String">BNI Korkai</Data></Cell>
+    <Cell ss:StyleID="s66"><Data ss:Type="DateTime">2026-09-11T00:00:00.000</Data></Cell>
+    <Cell ss:StyleID="s67"><Data ss:Type="Number">41559.01</Data></Cell>
+    <Cell ss:StyleID="s67"><Data ss:Type="Number">41559.01</Data></Cell>
+   </Row>
+   <Row ss:AutoFitHeight="0" ss:Height="15">
+    <Cell ss:StyleID="s63"><Data ss:Type="String">Rithin</Data></Cell>
+    <Cell ss:StyleID="s63"><Data ss:Type="String">Dev</Data></Cell>
+    <Cell ss:StyleID="s63"><Data ss:Type="String">INT-990</Data></Cell>
+    <Cell ss:StyleID="s63"><Data ss:Type="String">BNI Kumari</Data></Cell>
+    <Cell ss:StyleID="s66"><Data ss:Type="DateTime">2026-09-16T00:00:00.000</Data></Cell>
+    <Cell ss:StyleID="s67"><Data ss:Type="Number">47558.01</Data></Cell>
+    <Cell ss:StyleID="s67"><Data ss:Type="Number">47558.01</Data></Cell>
+   </Row>
+   <Row ss:AutoFitHeight="0" ss:Height="15">
+    <Cell ss:StyleID="s63"><Data ss:Type="String">Ramji surat kumar</Data></Cell>
+    <Cell ss:StyleID="s63"><Data ss:Type="String">R</Data></Cell>
+    <Cell ss:StyleID="s63"><Data ss:Type="String">INT-989</Data></Cell>
+    <Cell ss:StyleID="s63"><Data ss:Type="String">BNI Kumari</Data></Cell>
+    <Cell ss:StyleID="s66"><Data ss:Type="DateTime">2026-09-16T00:00:00.000</Data></Cell>
+    <Cell ss:StyleID="s67"><Data ss:Type="Number">47558.01</Data></Cell>
+    <Cell ss:StyleID="s67"><Data ss:Type="Number">47558.01</Data></Cell>
+   </Row>
+   <Row ss:AutoFitHeight="0" ss:Height="15">
+    <Cell ss:StyleID="s63"><Data ss:Type="String">Nicewin</Data></Cell>
+    <Cell ss:StyleID="s63"><Data ss:Type="String">Raja</Data></Cell>
+    <Cell ss:StyleID="s63"><Data ss:Type="String">INT-973</Data></Cell>
+    <Cell ss:StyleID="s63"><Data ss:Type="String">BNI Nanjil</Data></Cell>
+    <Cell ss:StyleID="s66"><Data ss:Type="DateTime">2026-09-10T00:00:00.000</Data></Cell>
+    <Cell ss:StyleID="s67"><Data ss:Type="Number">47558.01</Data></Cell>
+    <Cell ss:StyleID="s67"><Data ss:Type="Number">47558.01</Data></Cell>
+   </Row>
+   <Row ss:AutoFitHeight="0" ss:Height="15">
+    <Cell ss:StyleID="s63"><Data ss:Type="String">Sukumaran</Data></Cell>
+    <Cell ss:StyleID="s63"><Data ss:Type="String">Ramdhas</Data></Cell>
+    <Cell ss:StyleID="s63"><Data ss:Type="String">INT-986</Data></Cell>
+    <Cell ss:StyleID="s63"><Data ss:Type="String">BNI Nanjil</Data></Cell>
+    <Cell ss:StyleID="s66"><Data ss:Type="DateTime">2026-09-16T00:00:00.000</Data></Cell>
+    <Cell ss:StyleID="s67"><Data ss:Type="Number">41559.01</Data></Cell>
+    <Cell ss:StyleID="s67"><Data ss:Type="Number">41559.01</Data></Cell>
+   </Row>
+   <Row ss:AutoFitHeight="0" ss:Height="15">
+    <Cell ss:StyleID="s63"><Data ss:Type="String">Antony</Data></Cell>
+    <Cell ss:StyleID="s63"><Data ss:Type="String">Suthan Peter</Data></Cell>
+    <Cell ss:StyleID="s63"><Data ss:Type="String">INT-998</Data></Cell>
+    <Cell ss:StyleID="s63"><Data ss:Type="String">BNI Nanjil</Data></Cell>
+    <Cell ss:StyleID="s66"><Data ss:Type="DateTime">2026-09-30T00:00:00.000</Data></Cell>
+    <Cell ss:StyleID="s67"><Data ss:Type="Number">47558.01</Data></Cell>
+    <Cell ss:StyleID="s67"><Data ss:Type="Number">47558.01</Data></Cell>
+   </Row>
+   <Row ss:AutoFitHeight="0" ss:Height="15">
+    <Cell ss:StyleID="s63"><Data ss:Type="String">Sundar Singh</Data></Cell>
+    <Cell ss:StyleID="s63"><Data ss:Type="String">Thangaswamy</Data></Cell>
+    <Cell ss:StyleID="s63"><Data ss:Type="String">INT-974</Data></Cell>
+    <Cell ss:StyleID="s63"><Data ss:Type="String">BNI Nanjil</Data></Cell>
+    <Cell ss:StyleID="s66"><Data ss:Type="DateTime">2026-09-10T00:00:00.000</Data></Cell>
+    <Cell ss:StyleID="s67"><Data ss:Type="Number">47558.01</Data></Cell>
+    <Cell ss:StyleID="s67"><Data ss:Type="Number">47558.01</Data></Cell>
+   </Row>
+   <Row ss:AutoFitHeight="0" ss:Height="15">
+    <Cell ss:StyleID="s63"><Data ss:Type="String">Bashil</Data></Cell>
+    <Cell ss:StyleID="s63"><Data ss:Type="String">Viswanath</Data></Cell>
+    <Cell ss:StyleID="s63"><Data ss:Type="String">INT-997</Data></Cell>
+    <Cell ss:StyleID="s63"><Data ss:Type="String">BNI Nanjil</Data></Cell>
+    <Cell ss:StyleID="s66"><Data ss:Type="DateTime">2026-09-30T00:00:00.000</Data></Cell>
+    <Cell ss:StyleID="s67"><Data ss:Type="Number">66494.080000000002</Data></Cell>
+    <Cell ss:StyleID="s67"><Data ss:Type="Number">66494.080000000002</Data></Cell>
+   </Row>
+   <Row ss:AutoFitHeight="0" ss:Height="15">
+    <Cell ss:StyleID="s63"><Data ss:Type="String"></Data></Cell>
+    <Cell ss:StyleID="s63"><Data ss:Type="String">Director Total</Data></Cell>
+    <Cell ss:StyleID="s63"><Data ss:Type="String"></Data></Cell>
+    <Cell ss:StyleID="s63"><Data ss:Type="String"></Data></Cell>
+    <Cell ss:StyleID="s63"><Data ss:Type="String"></Data></Cell>
+    <Cell ss:StyleID="s67"><Data ss:Type="Number">2668515.04</Data></Cell>
+    <Cell ss:StyleID="s67"><Data ss:Type="Number">2668515.04</Data></Cell>
+   </Row>
+  </Table>
+  <WorksheetOptions xmlns="urn:schemas-microsoft-com:office:excel">
+   <Selected/>
+   <Panes>
+    <Pane>
+     <Number>3</Number>
+     <ActiveRow>12</ActiveRow>
+     <ActiveCol>5</ActiveCol>
+    </Pane>
+   </Panes>
+   <ProtectObjects>False</ProtectObjects>
+   <ProtectScenarios>False</ProtectScenarios>
+  </WorksheetOptions>
+ </Worksheet>
+</Workbook>

@@ -59,7 +59,7 @@ async function sdcDashboard(session) {
       ym, chapter: me.chapter.name, legacy: me.legacy, meeting_day: dowName(me.chapter.meeting_day),
       inputs: {
         net_add: me.net_add, net_add_derived: me.net_add_derived, joined: me.joined, left_count: me.left_count, net_add_auto: me.net_add_auto, member_count: me.member_count, prev_member_count: me.prev_member_count,
-        tl_status: me.tl_status, tl_score: me.tl_score, retention_pct: me.retention_pct, member_score: me.member_score,
+        tl_status: me.tl_status, tl_score: me.tl_score, retention_pct: me.retention_pct, retention_na: !!me.retention_na, member_score: me.member_score,
         meetings_total: me.meetings_total, calendar_weeks: me.legacy ? me.meetings_total : me.weeks.length,
         telebridge_weeks: me.telebridge_weeks, palms_weeks: me.palms_weeks,
         visit_done: me.visit_done, visit_hours: me.visit_hours, ltrt_attended: me.ltrt_attended,

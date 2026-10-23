@@ -255,7 +255,7 @@ function renderSDC(d) {
   const valueOf = k => { switch (k) {
     case 'net_growth': return `${i.net_add === null || i.net_add === undefined ? '–' : (i.net_add > 0 ? '+' : '') + i.net_add} <span class="auto">${i.joined != null ? `${i.joined} joined, ${i.left_count} left this month` : i.prev_member_count != null && i.member_count != null ? `${fmt(i.prev_member_count, 0)} → ${fmt(i.member_count, 0)} members` : 'joined minus left this month'}</span>`;
     case 'traffic_light': return `<span class="tl-${esc(i.tl_status || '')}">${esc(i.tl_status || '–')}</span>${i.tl_score != null ? ` <span class="auto">chapter score ${fmt(i.tl_score, 0)}</span>` : ''}`;
-    case 'retention': return i.retention_pct === null || i.retention_pct === undefined ? '–' : fmt(i.retention_pct) + '%';
+    case 'retention': return i.retention_na ? '<span class="muted">Not applicable: chapter under 12 months (no figure on the 3+1 report). Your score is out of the other 80 points, scaled to 100.</span>' : i.retention_pct === null || i.retention_pct === undefined ? '–' : fmt(i.retention_pct) + '% <span class="auto">overall retention, 3+1 report</span>';
     case 'member': return fmt(i.member_score, 0);
     case 'telebridge': return `${i.telebridge_weeks ?? 0} of ${i.meetings_total ?? 0} weeks <span class="auto">${h.meeting_day} meetings in ${monthName(h.ym)}${i.calendar_weeks > i.meetings_total ? `, ${i.calendar_weeks - i.meetings_total} week${i.calendar_weeks - i.meetings_total === 1 ? '' : 's'} with no meeting` : ''}</span>${weeksLine('telebridge')}`;
     case 'palms': return `${i.palms_weeks ?? 0} of ${i.meetings_total ?? 0} weeks${weeksLine('palms')}`;
@@ -292,7 +292,7 @@ function renderSDC(d) {
   <div class="grid g2" style="margin-top:14px">
     <div class="card"><h3>KPI breakdown</h3><div class="tbl-wrap"><table>
       <thead><tr><th>KPI</th><th>Your value</th><th class="right">Points</th></tr></thead>
-      <tbody>${SDC_KPIS.map(k => { const p = c.points[k] ?? 0, m = s.max_pts[k]; return `<tr><td>${SDC_KPI_LABEL[k]}</td><td>${valueOf(k)}</td><td class="right"><span class="pts ${p === 0 ? 'zero' : p === m ? 'full' : ''}">${fmt(p)}</span> <span class="kpi-max">/ ${m}</span></td></tr>`; }).join('')}</tbody>
+      <tbody>${SDC_KPIS.map(k => { const p = c.points[k] ?? 0, m = s.max_pts[k]; const na = k === 'retention' && i.retention_na; return `<tr><td>${SDC_KPI_LABEL[k]}</td><td>${valueOf(k)}</td><td class="right">${na ? '<span class="kpi-max">n/a</span>' : `<span class="pts ${p === 0 ? 'zero' : p === m ? 'full' : ''}">${fmt(p)}</span> <span class="kpi-max">/ ${m}</span>`}</td></tr>`; }).join('')}</tbody>
     </table></div></div>
     ${hintsHtml}
   </div>
@@ -385,7 +385,7 @@ async function renderMonth(ym) {
   ${base ? `<div class="banner">${monthName(ym)} is before the go-live month (${monthName(m.go_live_ym)}). It only holds member counts so ${monthName(m.go_live_ym)} net growth can be calculated. It is never scored or shown to SAs or SDCs.</div>` : ''}
   ${pub ? '' : `<div class="grid g2" style="margin-bottom:14px">
     <div class="card"><h3>Upload BNI Connect exports</h3>
-      <div class="drop" id="drop">Drop .xls files here or click to choose<br><span class="small">Chapter Statistics and Region Member Training Report, one month, both regions. Type is detected from the file.</span></div>
+      <div class="drop" id="drop">Drop .xls files here or click to choose<br><span class="small">Chapter Statistics, Region Member Training Report and Region Commission Report (new + renewals), one month, both regions. Type is detected from the file.</span></div>
       <input type="file" id="file" multiple accept=".xls,.xml,.txt" class="hidden">
       <div id="up-log" class="small" style="margin-top:8px">${state.upLog || ''}</div>
       ${m.uploads?.length ? `<div class="divider"></div><div class="small muted">Uploaded: ${m.uploads.map(u => `${esc(u.kind)} · ${esc(u.region || '')} · ${new Date(u.created_at).toLocaleDateString('en-IN')}`).join('<br>')}</div>` : ''}
@@ -428,10 +428,10 @@ async function handleFiles(files, ym) {
     log.innerHTML += `<div>⏳ ${esc(f.name)}…</div>`;
     try {
       const text = await f.text();
-      const kind = /Chapter Statistics/i.test(text) ? 'chapter_statistics' : /Member Training Report/i.test(text) ? 'training' : null;
-      if (!kind) throw new Error('Not a Chapter Statistics or Member Training Report export');
+      const kind = /Chapter Statistics/i.test(text) ? 'chapter_statistics' : /Member Training Report/i.test(text) ? 'training' : (/Invoice Ref/i.test(text) && /Commission/i.test(text)) ? 'commission' : null;
+      if (!kind) throw new Error('Not a Chapter Statistics, Member Training Report or Region Commission Report export');
       const r = await api('admin/upload', { method: 'POST', body: { kind, filename: f.name, text } });
-      log.lastElementChild.innerHTML = `<span class="ok">✓</span> ${esc(f.name)}: ${esc(r.region || '')} ${r.month}, ${r.updated.length} chapters updated${r.warning ? ` <span class="bad">${esc(r.warning)}</span>` : ''}${kind === 'training' && r.updated.some(u => u.needs_member_count) ? ' <span class="bad">Some chapters have no member count yet: upload Chapter Statistics for this region, then re-upload this file.</span>' : ''}`;
+      log.lastElementChild.innerHTML = `<span class="ok">✓</span> ${esc(f.name)}: ${kind === 'commission' ? 'Commission · ' : ''}${esc(r.region || '')} ${r.month}, ${r.updated.length} chapters updated${kind === 'commission' ? ': ' + r.updated.map(u => `${esc(String(u.chapter).replace(/^BNI\s+/, ''))} ${u.new_members} new + ${u.renewals} ren.`).join(', ') : ''}${r.warning ? ` <span class="bad">${esc(r.warning)}</span>` : ''}${kind === 'training' && r.updated.some(u => u.needs_member_count) ? ' <span class="bad">Some chapters have no member count yet: upload Chapter Statistics for this region, then re-upload this file.</span>' : ''}`;
       if (r.month !== ym) { toast(`File was for ${monthName(r.month)}, opening that month`); state.month = r.month; return renderMonth(r.month); }
     } catch (e) { log.lastElementChild.innerHTML = `<span class="bad">✗ ${esc(f.name)}: ${esc(e.message)}</span>`; }
   }
@@ -455,7 +455,7 @@ async function renderSdcMonth(ym) {
     <td><b>${esc(e.chapter.name.replace(/^BNI\s+/, ''))}</b><span class="auto">${esc(e.sdc?.name || '<no SDC>')}${e.sdc && e.sdc.active === false ? ' (inactive)' : ''} · ${DOW[e.chapter.meeting_day] || '?'}</span></td>
     ${ro(e) ? `<td class="num">${e.net_add ?? '–'}${netExtra(e)}</td>` : `<td class="num"><input class="cell-in" type="number" step="1" data-id="${e.id}" data-k="net_add" value="${e.net_add ?? ''}" placeholder="${e.net_add_derived ?? ''}">${netExtra(e)}</td>`}
     ${tl(e)}
-    ${num(e, 'retention_pct', '0.01')}
+    ${num(e, 'retention_pct', '0.01', e.retention_na ? '<span class="auto" title="Chapter under 12 months: no Overall Retention on the 3+1 report. KPI skipped, other 80 points scaled to 100.">n/a: under 12 months</span>' : '')}
     ${num(e, 'member_score', '1')}
     <td class="num c-tb">${sdcWeekCell(e, 'telebridge')}</td>
     <td class="num c-palms">${sdcWeekCell(e, 'palms')}</td>
@@ -689,10 +689,10 @@ async function handleSdcFiles(files, ym) {
         if (r.month !== ym && r.month >= (state.goLive || '0000-00')) { toast(`File is for ${monthName(r.month)}, opening that month`); state.month = r.month; state.upLog = log.innerHTML; return renderSdcMonth(r.month); }
       } else {
         const text = await f.text();
-        const kind = /Membership Activity by Chapter/i.test(text) ? 'membership_activity' : /Chapter Statistics/i.test(text) ? 'chapter_statistics' : /Member Training Report/i.test(text) ? 'training' : null;
+        const kind = /Membership Activity by Chapter/i.test(text) ? 'membership_activity' : /Chapter Statistics/i.test(text) ? 'chapter_statistics' : /Member Training Report/i.test(text) ? 'training' : (/Invoice Ref/i.test(text) && /Commission/i.test(text)) ? 'commission' : null;
         if (!kind) throw new Error('Not a Membership Activity by Chapter / Chapter Statistics export (or an .xlsx Traffic Lights file)');
         r = await api('admin/upload', { method: 'POST', body: { kind, filename: f.name, text } });
-        log.lastElementChild.innerHTML = `<span class="ok">✓</span> ${esc(f.name)}: ${kind === 'membership_activity' ? 'Membership Activity · ' : ''}${esc(r.region || '')} ${r.month}, ${r.updated.length} chapters updated${kind === 'membership_activity' ? ' (' + r.updated.map(u => `${esc(u.chapter.replace(/^BNI\s+/, ''))} ${u.change > 0 ? '+' : ''}${u.change}${u.kept_manual ? '*' : ''}`).join(', ') + ')' : ''}${r.warning ? ` <span class="bad">${esc(r.warning)}</span>` : ''}`;
+        log.lastElementChild.innerHTML = kind === 'commission' ? `<span class="ok">✓</span> ${esc(f.name)}: Commission · ${esc(r.region || '')} ${r.month}: ${r.updated.map(u => `${esc(String(u.chapter).replace(/^BNI\s+/, ''))} ${u.new_members} new + ${u.renewals} ren.`).join(', ')}${r.warning ? ` <span class="bad">${esc(r.warning)}</span>` : ''}` : `<span class="ok">✓</span> ${esc(f.name)}: ${kind === 'membership_activity' ? 'Membership Activity · ' : ''}${esc(r.region || '')} ${r.month}, ${r.updated.length} chapters updated${kind === 'membership_activity' ? ' (' + r.updated.map(u => `${esc(u.chapter.replace(/^BNI\s+/, ''))} ${u.change > 0 ? '+' : ''}${u.change}${u.kept_manual ? '*' : ''}`).join(', ') + ')' : ''}${r.warning ? ` <span class="bad">${esc(r.warning)}</span>` : ''}`;
         if (r.month !== ym) { toast(`File was for ${monthName(r.month)}, opening that month`); state.month = r.month; return renderSdcMonth(r.month); }
       }
     } catch (e) { log.lastElementChild.innerHTML = `<span class="bad">✗ ${esc(f.name)}: ${esc(e.message)}</span>`; }

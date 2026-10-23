@@ -90,7 +90,10 @@ export function scoreSdcEntry(entry, settings) {
   };
   // A month with no meetings held at all (all weeks marked "no meeting"): the two weekly KPIs drop out and the rest is scaled.
   const weeklyApplies = meetings > 0 || e.legacy;
-  const maxTotal = Object.entries(mp).filter(([k]) => weeklyApplies || (k !== 'telebridge' && k !== 'palms')).reduce((a, [, v]) => a + v, 0);
+  // Chapter under 12 months: BNI publishes no Overall Retention, so Renewal Rate is not applicable and the rest is scaled.
+  const retentionApplies = !e.retention_na;
+  if (!retentionApplies) pts.retention = 0;
+  const maxTotal = Object.entries(mp).filter(([k]) => (weeklyApplies || (k !== 'telebridge' && k !== 'palms')) && (retentionApplies || k !== 'retention')).reduce((a, [, v]) => a + v, 0);
   const raw = Math.round(Object.values(pts).reduce((a, b) => a + b, 0) * 10) / 10;
   const scaled = maxTotal > 0 ? Math.round((raw / maxTotal) * 100 * 100) / 100 : 0;
   const band = bandFor(scaled, s);
@@ -104,7 +107,7 @@ export function scoreSdcEntry(entry, settings) {
     points: pts, total_raw: raw, max_total: maxTotal, total_scaled: scaled,
     band: band.label, band_emoji: band.emoji, band_name: band.name, multiplier: band.multiplier,
     members_paid: members, per_member_commission: Math.round(perMember * 100) / 100, base_payout: Math.round(basePayout), payout,
-    meetings_total: meetings,
+    meetings_total: meetings, retention_na: !retentionApplies,
   };
 }
 
@@ -122,7 +125,7 @@ export function nextSdcBandHints(entry, settings) {
     hints.push({ kpi: 'net_growth', gain_raw: tier(need, s.sdc_thresholds.net_growth) - p.net_growth, action: `Get the chapter to net +${need} this month (now ${entry.net_add ?? 0})` });
   }
   if (p.traffic_light < mp.traffic_light) hints.push({ kpi: 'traffic_light', gain_raw: mp.traffic_light, action: `Bring the chapter to GREEN on the All India Traffic Lights (now ${entry.tl_status || 'not set'})` });
-  if (p.retention < mp.retention) {
+  if (!entry.retention_na && p.retention < mp.retention) {
     const nt = [...s.sdc_thresholds.retention].reverse().find(t => t.min > Number(entry.retention_pct || 0));
     if (nt) hints.push({ kpi: 'retention', gain_raw: nt.pts - p.retention, action: `Push overall renewal rate to ${nt.min}%+ (now ${entry.retention_pct ?? 0}%)` });
   }

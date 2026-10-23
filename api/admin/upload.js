@@ -1,6 +1,6 @@
 import { db, handler, fail, audit, loadSettings } from '../_lib/db.js';
 import { ensureMonth } from '../_lib/compute.js';
-import { parseChapterStatistics, parseTrainingReport, parseTrafficLights, parseMembershipActivity, parseChapterRetention, trainingPercents, normChapter } from '../_lib/parsers.js';
+import { parseChapterStatistics, parseTrainingReport, parseTrafficLights, parseMembershipActivity, parseChapterRetention, parseCommissionReport, trainingPercents, normChapter } from '../_lib/parsers.js';
 import { ensureSdcMonth } from '../_lib/compute_sdc.js';
 import { recomputeTraining } from '../_lib/training.js';
 
@@ -87,6 +87,31 @@ export default handler(async ({ req, session, body }) => {
       updated.push({ chapter: c.name, joined: r.joined, left: r.left, change: r.change, end: r.end, kept_manual: manual });
     }
     summary = { region: parsed.region, month: parsed.month, chapters: updated.length, unmatched };
+  } else if (kind === 'commission') {
+    // Region Commission Report: one row per paid invoice -> New members + Renewals per chapter (SA month; SDC payout reads the same)
+    parsed = parseCommissionReport(text, settings.fee_types || undefined);
+    month = await ensureMonth(parsed.month, session.uid);
+    if (month.status === 'published') throw fail(`${parsed.month} is already published for SAs. Unpublish it first if you need to re-upload.`);
+    const per = {};
+    for (const r of parsed.rows) {
+      const c = byKey[r.key]; if (!c) { if (!unmatched.includes(r.chapter)) unmatched.push(r.chapter); continue; }
+      const p = per[c.id] || (per[c.id] = { chapter: c.name, new_members: 0, renewals: 0, two_year: 0, fee_total: 0, unknown: 0 });
+      if (r.type === 'new') p.new_members++; else if (r.type === 'renewal') p.renewals++; else p.unknown++;
+      if (r.years === 2) p.two_year++;
+      p.fee_total = Math.round((p.fee_total + r.fee) * 100) / 100;
+    }
+    // a region file only covers its own chapters: set those (zero for its chapters with no invoices), leave the other region alone
+    const { data: regionOf } = await db.from('sa_chapters').select('id,region').eq('active', true);
+    const regionsInFile = new Set(Object.keys(per).map(id => regionOf.find(x => x.id === Number(id))?.region));
+    for (const c of regionOf.filter(x => regionsInFile.has(x.region))) {
+      const p = per[c.id] || { chapter: chapters.find(x => x.id === c.id)?.name, new_members: 0, renewals: 0, two_year: 0, fee_total: 0, unknown: 0 };
+      const up = await db.from('sa_entries').update({ new_members: p.new_members, renewals: p.renewals, updated_at: new Date().toISOString(), updated_by: session.uid }).eq('month_id', month.id).eq('chapter_id', c.id);
+      if (up.error) throw up.error;
+      updated.push(p);
+    }
+    parsed.region = [...regionsInFile].join(', ');
+    summary = { month: parsed.month, chapters: updated.length, unmatched, unknown_fees: parsed.unknown.map(u => `${u.chapter} ${u.name} ${u.fee}`) };
+    if (parsed.unknown.length) unmatched.push(...parsed.unknown.map(u => `fee ${u.fee} not recognised (${u.chapter}, ${u.name})`));
   } else if (kind === 'chapter_retention') {
     // 3+1 Traffic Lights, sheet "Chapter NPS (Total to Date)": Overall Retention Rate (Rolling) -> SDC Renewal %
     const { data: chRegions } = await db.from('sa_chapters').select('region').eq('active', true);
@@ -97,7 +122,7 @@ export default handler(async ({ req, session, body }) => {
     if (!baseline && month.sdc_status === 'published') throw fail(`${parsed.month} is already published for SDCs. Unpublish it first if you need to re-upload.`);
     for (const r of parsed.rows) {
       const c = byKey[r.key]; if (!c) { unmatched.push(r.chapter); continue; }
-      const up = await db.from('sdc_entries').update({ retention_pct: r.overall_pct, updated_at: new Date().toISOString(), updated_by: session.uid }).eq('month_id', month.id).eq('chapter_id', c.id);
+      const up = await db.from('sdc_entries').update({ retention_pct: r.overall_pct, retention_na: r.overall_pct === null, updated_at: new Date().toISOString(), updated_by: session.uid }).eq('month_id', month.id).eq('chapter_id', c.id);
       if (up.error) throw up.error;
       updated.push({ chapter: c.name, overall_pct: r.overall_pct, first_year_pct: r.first_year_pct, young: r.young });
     }
@@ -129,12 +154,13 @@ export default handler(async ({ req, session, body }) => {
     unmatched = chapters.filter(c => !found.has(c.key)).map(c => c.name);
     parsed.region = 'All India';
     summary = { month: parsed.month, chapters: updated.length, missing: unmatched, score_column: parsed.score_column };
-  } else throw fail('kind must be chapter_statistics, training, membership_activity, chapter_retention or traffic_lights');
+  } else throw fail('kind must be chapter_statistics, training, membership_activity, commission, chapter_retention or traffic_lights');
 
   await db.from('sa_uploads').insert({ month_id: month.id, kind, region: parsed.region, filename, summary, uploaded_by: session.uid });
   await audit(session.uid, 'upload', { kind, filename, month: parsed.month, region: parsed.region });
   const warning = !unmatched.length ? null
     : kind === 'traffic_lights' ? `Our chapters not found in the file: ${unmatched.join(', ')}. Set their status by hand.`
+    : kind === 'commission' ? `Check: ${unmatched.join('; ')}.`
     : `Chapters not found in the app: ${unmatched.join(', ')}. Add them in Settings > Chapters.`;
   if (kind === 'traffic_lights') {
     const note2 = parsed.month < settings.go_live_ym ? `This is the ${parsed.month} report: that month is before go-live and is not scored. Upload the report whose latest score column is the month you are scoring.` : null;

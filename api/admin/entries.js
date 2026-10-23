@@ -4,7 +4,7 @@ import { palmsFromReport } from '../_lib/scoring_sdc.js';
 
 const EDITABLE = ['member_score', 'online_pct', 'offline_pct', 'training_unique', 'member_count', 'mentoring_pct', 'retention_pct',
   'one_to_one_per_member', 'ltrt_attended', 'jotform_done', 'new_members', 'renewals', 'notes', 'sa_user_id'];
-const SDC_EDITABLE = ['net_add', 'member_count', 'tl_status', 'tl_score', 'retention_pct', 'member_score', 'ltrt_attended', 'visit_done', 'notes', 'sdc_user_id'];
+const SDC_EDITABLE = ['net_add', 'member_count', 'tl_status', 'tl_score', 'retention_pct', 'retention_na', 'member_score', 'ltrt_attended', 'visit_done', 'notes', 'sdc_user_id'];
 const WEEK_EDITABLE = ['no_meeting', 'telebridge_done', 'palms_done'];
 
 // PUT { id, ...fields }                              -> updates one SA entry
@@ -71,14 +71,15 @@ export default handler(async ({ req, session, body }) => {
       if (!(k in body)) continue;
       let v = body[k];
       if (v === '' || v === undefined) v = null;
-      if (['ltrt_attended', 'visit_done'].includes(k)) v = v === null ? null : Boolean(v);
+      if (['ltrt_attended', 'visit_done', 'retention_na'].includes(k)) v = v === null ? (k === 'retention_na' ? false : null) : Boolean(v);
       else if (k === 'tl_status') { v = v === null ? null : String(v).toUpperCase(); if (v && !['GREEN', 'AMBER', 'RED', 'GREY'].includes(v)) throw fail('tl_status must be GREEN, AMBER, RED or GREY'); }
       else if (k !== 'notes' && v !== null) { v = Number(v); if (Number.isNaN(v)) throw fail(`${k} must be a number`); }
       patch[k] = v;
     }
     if ('visit_done' in patch) patch.visit_auto = false;
     if ('tl_status' in patch) patch.tl_auto = false;
-    if ('net_add' in patch) patch.net_add_auto = false; // typed by admin: kept on later report uploads (clear it to go back)
+    if ('net_add' in patch) patch.net_add_auto = false;
+    if ('retention_pct' in patch && patch.retention_pct !== null) patch.retention_na = false; // a typed rate means it applies // typed by admin: kept on later report uploads (clear it to go back)
     const r = await db.from('sdc_entries').update(patch).eq('id', id);
     if (r.error) throw r.error;
     await audit(session.uid, 'sdc_entry.update', { id, ym: existing.month.ym, patch });

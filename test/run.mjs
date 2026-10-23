@@ -155,3 +155,25 @@ const wk31 = Object.fromEntries(w31.rows.map(r => [r.key, r]));
 assert.equal(wk31.korkai.overall_pct, 90.5); assert.equal(wk31.ainthinai.overall_pct, 83.5); assert.equal(wk31.tamilan.overall_pct, 72); assert.equal(wk31.comorin.overall_pct, 68.1);
 assert.equal(wk31.kings.overall_pct, null); assert.equal(wk31.kings.young, true); assert.equal(wk31.saral.young, true); assert.equal(wk31.kanya.young, false);
 console.log('3+1 retention checks passed ✓');
+
+// ---------- Region Commission Report (real Sep 2026, both regions): new vs renewal by fee ----------
+import { parseCommissionReport } from '../api/_lib/parsers.js';
+const cr = [...parseCommissionReport(F('commission-nagercoil-tuticorin-sep2026.xls')).rows, ...parseCommissionReport(F('commission-tirunelveli-sep2026.xls')).rows];
+assert.equal(parseCommissionReport(F('commission-tirunelveli-sep2026.xls')).month, '2026-09');
+const cnt = (k, t) => cr.filter(r => r.key === k && r.type === t).length;
+assert.deepEqual([cnt('ainthinai', 'new'), cnt('ainthinai', 'renewal')], [2, 6]);
+assert.deepEqual([cnt('kings', 'new'), cnt('kings', 'renewal')], [0, 23]);
+assert.equal(cr.filter(r => r.key === 'kings' && r.years === 2).length, 13);
+assert.equal(cr.filter(r => r.type === 'new').length, 18); assert.equal(cr.filter(r => r.type === 'renewal').length, 59);
+assert.equal(cr.filter(r => !r.type).length, 0);
+// new members agree with Membership Activity "Joined" for every chapter
+const joined = Object.fromEntries([...ma1.rows, ...ma2.rows].map(r => [r.key, r.joined]));
+for (const k of Object.keys(joined)) assert.equal(cnt(k, 'new'), joined[k], k);
+console.log('Commission report checks passed ✓');
+
+// ---------- Renewal % not applicable for a chapter under 12 months ----------
+const young = scoreSdcEntry({ net_add: 2, tl_status: 'GREEN', retention_pct: null, retention_na: true, member_score: 80, meetings_total: 4, telebridge_weeks: 4, palms_weeks: 4, visit_done: true, ltrt_attended: true }, sdcS);
+assert.equal(young.max_total, 80); assert.equal(young.total_raw, 80); assert.equal(young.total_scaled, 100); assert.equal(young.retention_na, true);
+const notYet = scoreSdcEntry({ retention_pct: null, member_score: 80, meetings_total: 4 }, sdcS); assert.equal(notYet.max_total, 100); // blank but applicable stays out of 100
+assert.equal(nextSdcBandHints({ retention_na: true, net_add: 0 }, sdcS).hints.some(h => h.kpi === 'retention'), false);
+console.log('Young chapter checks passed ✓');

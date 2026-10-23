@@ -113,3 +113,6 @@ alter table sdc_weeks   enable row level security;
 alter table sdc_entries add column if not exists joined int;
 alter table sdc_entries add column if not exists left_count int;
 alter table sdc_entries add column if not exists net_add_auto boolean default false;  -- true when net_add came from the report
+
+-- 9. (23 Oct 2026) Renewal % not applicable for chapters under 12 months (no Overall Retention figure on the 3+1 report)
+alter table sdc_entries add column if not exists retention_na boolean default false;

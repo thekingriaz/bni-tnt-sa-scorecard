@@ -343,3 +343,42 @@ export function parseChapterRetention(rows, regions, fileName, monthHint) {
   const fm = /(\d{4})[-_ ](\d{2})/.exec(String(fileName || ''));
   return { report: 'chapter_retention', month: fm ? `${fm[1]}-${fm[2]}` : (monthHint || null), rows: out };
 }
+
+/** BNI TNT membership fees (ex-GST) as they appear in the Region Commission Report. Editable in settings as `fee_types`. */
+export const DEFAULT_FEE_TYPES = [
+  { fee: 41559.01, type: 'renewal', years: 1 },
+  { fee: 66494.08, type: 'renewal', years: 2 },
+  { fee: 47558.01, type: 'new', years: 1 },
+  { fee: 72493.08, type: 'new', years: 2 },
+];
+
+/**
+ * BNI Connect Region Commission Report (.xls SpreadsheetML): one row per paid invoice.
+ * Header: First Name | Last Name | Invoice Ref | Chapter Name | Period Date | Fee | Commission; last row "Director Total".
+ * New vs renewal comes from the fee amount (feeTypes). Returns { report, month, rows: [{name, invoice, chapter, key, date, fee, type, years}], unknown: [...] }.
+ */
+export function parseCommissionReport(text, feeTypes = DEFAULT_FEE_TYPES) {
+  const rows = readSpreadsheetML(text);
+  const hIdx = rows.findIndex(r => r.some(c => /^chapter name$/i.test(String(c || '').trim())) && r.some(c => /^fee$/i.test(String(c || '').trim())));
+  if (hIdx < 0) throw new Error('This is not a Region Commission Report (no "Chapter Name" / "Fee" header).');
+  const h = rows[hIdx].map(c => String(c || '').trim().toLowerCase());
+  const ci = n => h.indexOf(n);
+  const cFirst = ci('first name'), cLast = ci('last name'), cInv = ci('invoice ref'), cChap = ci('chapter name'), cDate = ci('period date'), cFee = ci('fee');
+  const out = [], unknown = [], months = {};
+  for (const r of rows.slice(hIdx + 1)) {
+    const chapter = String(r[cChap] || '').trim();
+    if (!/^BNI\s/i.test(chapter)) continue; // skips the "Director Total" line
+    const fee = Math.round(Number(r[cFee]) * 100) / 100;
+    const ft = feeTypes.find(t => Math.abs(Number(t.fee) - fee) < 1);
+    const date = String(r[cDate] || '').slice(0, 10);
+    const row = { name: `${r[cFirst] || ''} ${r[cLast] || ''}`.trim(), invoice: r[cInv] || null, chapter, key: normChapter(chapter.replace(/\.+$/, '')), date, fee,
+      type: ft ? ft.type : null, years: ft ? ft.years : null };
+    if (!ft) unknown.push(row);
+    months[date.slice(0, 7)] = (months[date.slice(0, 7)] || 0) + 1;
+    out.push(row);
+  }
+  if (!out.length) throw new Error('No invoice rows found in the report.');
+  const month = Object.entries(months).sort((a, b) => b[1] - a[1])[0][0];
+  if (Object.keys(months).length > 1) throw new Error(`Report covers ${Object.keys(months).sort().join(', ')}. Run it for ONE month.`);
+  return { report: 'commission', month, rows: out, unknown };
+}
