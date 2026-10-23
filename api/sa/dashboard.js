@@ -24,7 +24,7 @@ export default handler(async ({ session }) => {
       inputs: {
         member_score: me.member_score, online_pct: me.online_pct, offline_pct: me.offline_pct, training_unique: me.training_unique,
         member_count: me.member_count, mentoring_pct: me.mentoring_pct, retention_pct: me.retention_pct,
-        one_to_one_per_member: me.one_to_one_per_member, ltrt_attended: me.ltrt_attended, jotform_done: me.jotform_done,
+        one_to_one_per_member: me.one_to_one_per_member, ltrt_attended: me.ltrt_attended, ltrt_att: me.ltrt_att, dcrt_att: me.dcrt_att, jotform_done: me.jotform_done,
         new_members: me.new_members, renewals: me.renewals,
       },
       computed: me.computed,
@@ -62,7 +62,7 @@ async function sdcDashboard(session) {
         tl_status: me.tl_status, tl_score: me.tl_score, retention_pct: me.retention_pct, retention_na: !!me.retention_na, member_score: me.member_score,
         meetings_total: me.meetings_total, calendar_weeks: me.legacy ? me.meetings_total : me.weeks.length,
         telebridge_weeks: me.telebridge_weeks, palms_weeks: me.palms_weeks,
-        visit_done: me.visit_done, visit_hours: me.visit_hours, ltrt_attended: me.ltrt_attended,
+        visit_done: me.visit_done, visit_hours: me.visit_hours, ltrt_attended: me.ltrt_attended, ltrt_att: me.ltrt_att, dcrt_att: me.dcrt_att,
         new_members: me.new_members, renewals: me.renewals,
         weeks: me.legacy ? [] : me.weeks.map(w => ({ date: w.week_date, no_meeting: w.no_meeting, telebridge: w.telebridge_done, palms: w.palms_done })),
       },

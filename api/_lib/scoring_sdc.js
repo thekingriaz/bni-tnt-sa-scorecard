@@ -1,5 +1,6 @@
 // SDC (Support Director Consultant) scoring engine. Pure functions, mirrors scoring.js.
 import { DEFAULT_SETTINGS, bandFor } from './scoring.js';
+import { attendancePoints } from './parsers.js';
 
 export const SDC_DEFAULTS = {
   sdc_commission_pct: 7.5,     // % of fee_amount per member paid (fee_amount shared with SAs)
@@ -86,7 +87,7 @@ export function scoreSdcEntry(entry, settings) {
     telebridge:    weeklyPts(e.telebridge_weeks, meetings, mp.telebridge),
     palms:         weeklyPts(e.palms_weeks, meetings, mp.palms),
     visit:         e.visit_done ? mp.visit : 0,
-    ltrt:          e.ltrt_attended ? mp.ltrt : 0,
+    ltrt:          attendancePoints(e, mp.ltrt),
   };
   // A month with no meetings held at all (all weeks marked "no meeting"): the two weekly KPIs drop out and the rest is scaled.
   const weeklyApplies = meetings > 0 || e.legacy;
@@ -137,7 +138,7 @@ export function nextSdcBandHints(entry, settings) {
   if (meetings && p.telebridge < mp.telebridge) hints.push({ kpi: 'telebridge', gain_raw: mp.telebridge - p.telebridge, action: `Do the Tele-Bridge call every meeting week (${entry.telebridge_weeks || 0} of ${meetings} done)` });
   if (meetings && p.palms < mp.palms) hints.push({ kpi: 'palms', gain_raw: mp.palms - p.palms, action: `Get PALMS submitted on time every week (${entry.palms_weeks || 0} of ${meetings} on time)` });
   if (!entry.visit_done) hints.push({ kpi: 'visit', gain_raw: mp.visit, action: 'Visit the chapter and submit the Chapter Visit Report within 24 hours' });
-  if (!entry.ltrt_attended) hints.push({ kpi: 'ltrt', gain_raw: mp.ltrt, action: 'Attend the LTRT / DCRT this month' });
+  if (p.ltrt < mp.ltrt) hints.push({ kpi: 'ltrt', gain_raw: mp.ltrt - p.ltrt, action: 'Attend both the LTRT and the DCRT this month' });
   for (const h of hints) h.gain_scaled = toScaled(h.gain_raw);
   hints.sort((a, b) => b.gain_scaled - a.gain_scaled);
   return { next: next.label, next_emoji: next.emoji, next_min: next.min, gap, hints };

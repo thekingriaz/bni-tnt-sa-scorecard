@@ -177,3 +177,24 @@ assert.equal(young.max_total, 80); assert.equal(young.total_raw, 80); assert.equ
 const notYet = scoreSdcEntry({ retention_pct: null, member_score: 80, meetings_total: 4 }, sdcS); assert.equal(notYet.max_total, 100); // blank but applicable stays out of 100
 assert.equal(nextSdcBandHints({ retention_na: true, net_add: 0 }, sdcS).hints.some(h => h.kpi === 'retention'), false);
 console.log('Young chapter checks passed ✓');
+
+// ---------- LTRT / DCRT attendance (real Oct 2026 sheets) ----------
+import { matchAttendance, attendancePoints } from '../api/_lib/parsers.js';
+const att = JSON.parse(F('ltrt-dcrt-oct2026-records.json'));
+const ck = { 1: 'ainthinai', 2: 'bambookottai', 3: 'cmyveli', 4: 'dilnadu', 5: 'tamilan', 6: 'ejamaan', 7: 'thamira', 8: 'saral', 9: 'korkai', 10: 'nanjil', 11: 'kanya', 12: 'comorin', 13: 'kumari', 14: 'kings' };
+const sdcU = [['Max Prince', 1], ['Vijai', 2], ['Esai Kumar', 3], ['Askar Ali', 4], ['Gunaseelan', 5], ['Krain Bigstan', 6], ['Dr.Gopalakrishnan', 7], ['Mariappan Mukesh', 8], ['Rajesh', 9], ['Jimmy Bonson', 10], ['Ramadoss', 11], ['Suresh', 12], ['Allwin', 13], ['Vijai', 14]];
+const saU = [['Vinoth Babu', 1], ['Mohan Babu', 2], ['Valentine', 3], ['Kareem', 4], ['Saravanan Manickam', 5], ['Abusalih', 6], ['Maria Anand', 7], ['Gopinath', 8], ['Valentine', 9], ['Thirugnanasambantham', 10], ['Deva Shibin', 11], ['Ramkumar', 12], ['Suresh Sundar', 13], ['Dr.Ruth', 14]];
+const users = [...sdcU.map(([n, c], i) => ({ id: 100 + i, role: 'sdc', name: n, jotform_alias: n, chapter_id: c, chapter_key: ck[c], active: true })),
+  ...saU.map(([n, c], i) => ({ id: 200 + i, role: 'sa', name: n, jotform_alias: n, chapter_id: c, chapter_key: ck[c], active: true }))];
+const lt = matchAttendance(att.ltrt, users), dc = matchAttendance(att.dcrt, users);
+assert.equal(lt.unmatched.length, 0); assert.equal(lt.matches.length, 28);
+const dcWho = (role, chapterId) => dc.matches.find(m => m.users.some(u => u.role === role && u.chapter_id === chapterId))?.record;
+assert.equal(dcWho('sdc', 6).name, 'Krian'); assert.equal(dcWho('sdc', 7).attended, false); assert.equal(dcWho('sdc', 3).attended, true);  // Krian -> Krain; Dr. Gopala Krishnan absent; Esai present
+assert.equal(dcWho('sdc', 14).name, 'Vijay'); assert.equal(dcWho('sdc', 2).name, 'Vijay');                                              // dual role: both chapters
+assert.equal(dcWho('sa', 4).name, 'Abdul Kareem'); assert.equal(dcWho('sa', 11).name, 'Deiva Shibin'); assert.equal(dcWho('sa', 10).name, 'Thirugnana Sambandam');
+assert.deepEqual(dc.unmatched.map(r => r.name).sort(), ['Mohamed Aneez', 'Selvaratnam']);                                              // no active SA/SDC login (Senior DC, ex-SA): reported, not scored
+const esaiLtrt = lt.matches.find(m => m.users[0].role === 'sdc' && m.users[0].chapter_id === 3).record.attended;
+assert.equal(esaiLtrt, false);
+assert.equal(attendancePoints({ ltrt_att: false, dcrt_att: true }, 5), 2.5); assert.equal(attendancePoints({ ltrt_att: true, dcrt_att: true }, 5), 5);
+assert.equal(attendancePoints({ ltrt_att: true }, 5), 5); assert.equal(attendancePoints({ ltrt_attended: true }, 5), 5); assert.equal(attendancePoints({}, 5), 0);
+console.log('LTRT / DCRT checks passed ✓');

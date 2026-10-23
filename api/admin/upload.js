@@ -1,6 +1,6 @@
 import { db, handler, fail, audit, loadSettings } from '../_lib/db.js';
 import { ensureMonth } from '../_lib/compute.js';
-import { parseChapterStatistics, parseTrainingReport, parseTrafficLights, parseMembershipActivity, parseChapterRetention, parseCommissionReport, trainingPercents, normChapter } from '../_lib/parsers.js';
+import { parseChapterStatistics, parseTrainingReport, parseTrafficLights, parseMembershipActivity, parseChapterRetention, parseCommissionReport, matchAttendance, trainingPercents, normChapter } from '../_lib/parsers.js';
 import { ensureSdcMonth } from '../_lib/compute_sdc.js';
 import { recomputeTraining } from '../_lib/training.js';
 
@@ -12,7 +12,7 @@ export const config = { api: { bodyParser: { sizeLimit: '8mb' } } };
 export default handler(async ({ req, session, body }) => {
   if (req.method !== 'POST') throw fail('POST only', 405);
   const { kind, filename, text } = body;
-  if (!text && kind !== 'traffic_lights') throw fail('No file content received');
+  if (!text && !['traffic_lights', 'chapter_retention', 'attendance'].includes(kind)) throw fail('No file content received');
   const settings = await loadSettings();
   const { data: chapters } = await db.from('sa_chapters').select('id,name,key').eq('active', true);
   const byKey = {}; for (const c of chapters) byKey[c.key] = c;
@@ -87,6 +87,26 @@ export default handler(async ({ req, session, body }) => {
       updated.push({ chapter: c.name, joined: r.joined, left: r.left, change: r.change, end: r.end, kept_manual: manual });
     }
     summary = { region: parsed.region, month: parsed.month, chapters: updated.length, unmatched };
+  } else if (kind === 'attendance') {
+    // LTRT / DCRT attendance sheet (colours read in the browser): one file updates both SDCs and SAs
+    const meeting = body.meeting === 'dcrt' ? 'dcrt' : 'ltrt';
+    if (!/^\d{4}-\d{2}$/.test(body.ym || '')) throw fail('Could not tell which month this attendance sheet is for');
+    parsed = { month: body.ym, region: meeting.toUpperCase() };
+    const saMonth = await ensureMonth(body.ym, session.uid); const sdcMonth = await ensureSdcMonth(body.ym, session.uid);
+    month = saMonth;
+    const { data: users } = await db.from('sa_users').select('id,role,name,jotform_alias,chapter_id,active').in('role', ['sa', 'sdc']).eq('active', true);
+    const keyOf = {}; for (const c of chapters) keyOf[c.id] = c.key;
+    const { matches, unmatched: um } = matchAttendance(body.records, (users || []).map(u => ({ ...u, chapter_key: keyOf[u.chapter_id] })));
+    const col = meeting + '_att';
+    for (const m of matches) for (const u of m.users) {
+      const tbl = u.role === 'sdc' ? 'sdc_entries' : 'sa_entries', mo = u.role === 'sdc' ? sdcMonth : saMonth;
+      if ((u.role === 'sdc' ? mo.sdc_status : mo.status) === 'published') continue;
+      const up = await db.from(tbl).update({ [col]: m.record.attended, updated_at: new Date().toISOString(), updated_by: session.uid }).eq('month_id', mo.id).eq('chapter_id', u.chapter_id);
+      if (up.error) throw up.error;
+      updated.push({ role: u.role, name: u.name, chapter: chapters.find(c => c.id === u.chapter_id)?.name, as: m.record.name, attended: m.record.attended });
+    }
+    unmatched = um.map(r => `${r.name} (${r.programme.toUpperCase()}${r.chapter ? ', ' + r.chapter : ''})`);
+    summary = { meeting, month: body.ym, matched: updated.length, unmatched };
   } else if (kind === 'commission') {
     // Region Commission Report: one row per paid invoice -> New members + Renewals per chapter (SA month; SDC payout reads the same)
     parsed = parseCommissionReport(text, settings.fee_types || undefined);
@@ -161,6 +181,7 @@ export default handler(async ({ req, session, body }) => {
   const warning = !unmatched.length ? null
     : kind === 'traffic_lights' ? `Our chapters not found in the file: ${unmatched.join(', ')}. Set their status by hand.`
     : kind === 'commission' ? `Check: ${unmatched.join('; ')}.`
+    : kind === 'attendance' ? `Not matched to an active SA / SDC (set by hand if needed): ${unmatched.join(', ')}.`
     : `Chapters not found in the app: ${unmatched.join(', ')}. Add them in Settings > Chapters.`;
   if (kind === 'traffic_lights') {
     const note2 = parsed.month < settings.go_live_ym ? `This is the ${parsed.month} report: that month is before go-live and is not scored. Upload the report whose latest score column is the month you are scoring.` : null;

@@ -382,3 +382,45 @@ export function parseCommissionReport(text, feeTypes = DEFAULT_FEE_TYPES) {
   if (Object.keys(months).length > 1) throw new Error(`Report covers ${Object.keys(months).sort().join(', ')}. Run it for ONE month.`);
   return { report: 'commission', month, rows: out, unknown };
 }
+
+// ---------- LTRT / DCRT attendance (Google Sheet downloaded as .xlsx; green = attended, red = absent) ----------
+const personKey = s => String(s || '').toLowerCase().replace(/\bdr\b\.?/g, '').replace(/[^a-z]/g, '');
+/**
+ * Matches attendance records to SA / SDC users.
+ * records: [{programme:'sdc'|'sa', chapter?: 'Dilnadu', name: 'Krian', attended: true|false|null}] (LTRT sheets give the chapter column, DCRT lists give names only)
+ * users: [{id, role, name, jotform_alias, chapter_id, chapter_key, active}]
+ * Returns { matches: [{record, users:[...]}], unmatched: [record] }. A dual-role person (same name on two chapters) matches every chapter.
+ */
+export function matchAttendance(records, users) {
+  const matches = [], unmatched = [];
+  for (const rec of records || []) {
+    if (rec.attended === null || rec.attended === undefined) continue;
+    const pool = users.filter(u => u.active !== false && u.role === rec.programme);
+    let found = [];
+    if (rec.chapter) { // LTRT grid: the chapter column decides; the name is only a cross-check
+      const ck = closestKey(normChapter(rec.chapter), [...new Set(pool.map(u => u.chapter_key))]);
+      found = pool.filter(u => u.chapter_key === ck);
+    } else {
+      const n = personKey(rec.name);
+      const first = v => personKey(String(v || '').replace(/^\s*dr\.?\s*/i, '').split(/[\s.]+/)[0]);
+      const keys = u => [...new Set([personKey(u.name), personKey(u.jotform_alias), first(u.name), first(u.jotform_alias)].filter(k => k && k.length >= 3))];
+      found = pool.filter(u => keys(u).includes(n));
+      if (!found.length && n.length >= 4) found = pool.filter(u => keys(u).some(k => k.startsWith(n) || n.startsWith(k) || k.endsWith(n) || n.endsWith(k)));
+      if (!found.length) {
+        let best = 99; for (const u of pool) for (const k of keys(u)) best = Math.min(best, editDistance(n, k), editDistance(n.slice(0, 6), k.slice(0, 6)));
+        if (best <= 2) found = pool.filter(u => keys(u).some(k => Math.min(editDistance(n, k), editDistance(n.slice(0, 6), k.slice(0, 6))) === best));
+      }
+      // same name, several chapters (dual role) is fine; several different people is ambiguous
+      if (new Set(found.map(u => personKey(u.name))).size > 1) found = [];
+    }
+    if (found.length) matches.push({ record: rec, users: found }); else unmatched.push(rec);
+  }
+  return { matches, unmatched };
+}
+
+/** Points for LTRT / DCRT: each meeting held counts equally (both held: 2.5 + 2.5; one held: 5). Falls back to the single manual flag. */
+export function attendancePoints(e, max) {
+  const held = ['ltrt_att', 'dcrt_att'].filter(k => e[k] === true || e[k] === false);
+  if (held.length) return Math.round(held.filter(k => e[k] === true).length / held.length * max * 10) / 10;
+  return e.ltrt_attended ? max : 0;
+}

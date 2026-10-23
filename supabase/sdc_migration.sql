@@ -116,3 +116,9 @@ alter table sdc_entries add column if not exists net_add_auto boolean default fa
 
 -- 9. (23 Oct 2026) Renewal % not applicable for chapters under 12 months (no Overall Retention figure on the 3+1 report)
 alter table sdc_entries add column if not exists retention_na boolean default false;
+
+-- 10. (23 Oct 2026) LTRT and DCRT attendance tracked separately (uploaded from the attendance sheets); 5 points shared by the meetings held
+alter table sdc_entries add column if not exists ltrt_att boolean;
+alter table sdc_entries add column if not exists dcrt_att boolean;
+alter table sa_entries  add column if not exists ltrt_att boolean;
+alter table sa_entries  add column if not exists dcrt_att boolean;

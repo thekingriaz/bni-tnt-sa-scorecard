@@ -1,0 +1,314 @@
+{
+"ltrt": [
+{
+"programme": "sdc",
+"chapter": "Ainthinai",
+"name": "Max Prince",
+"attended": true
+},
+{
+"programme": "sdc",
+"chapter": "Bamboo Kottai",
+"name": "Vijay",
+"attended": true
+},
+{
+"programme": "sdc",
+"chapter": "Cmy Veli",
+"name": "Esai",
+"attended": false
+},
+{
+"programme": "sdc",
+"chapter": "Dilnadu",
+"name": "Askar Ali",
+"attended": true
+},
+{
+"programme": "sdc",
+"chapter": "Ejamaan",
+"name": "Krian",
+"attended": true
+},
+{
+"programme": "sdc",
+"chapter": "Saral",
+"name": "Mariappan Mukesh",
+"attended": true
+},
+{
+"programme": "sdc",
+"chapter": "Tamilan",
+"name": "Gunaseelan",
+"attended": true
+},
+{
+"programme": "sdc",
+"chapter": "Thamira",
+"name": "Dr. Gopala Krishnan",
+"attended": true
+},
+{
+"programme": "sdc",
+"chapter": "Korkai",
+"name": "Rajesh",
+"attended": true
+},
+{
+"programme": "sdc",
+"chapter": "Comorin",
+"name": "Suresh",
+"attended": true
+},
+{
+"programme": "sdc",
+"chapter": "Kanya",
+"name": "Ramadoss",
+"attended": true
+},
+{
+"programme": "sdc",
+"chapter": "Kings",
+"name": "Vijay",
+"attended": true
+},
+{
+"programme": "sdc",
+"chapter": "Kumari",
+"name": "Allwin",
+"attended": true
+},
+{
+"programme": "sdc",
+"chapter": "Nanjil",
+"name": "Jimmy Bonson",
+"attended": true
+},
+{
+"programme": "sa",
+"chapter": "Ainthinai",
+"name": "Vinoth Babu",
+"attended": false
+},
+{
+"programme": "sa",
+"chapter": "Bamboo Kottai",
+"name": "Mohan Babu",
+"attended": true
+},
+{
+"programme": "sa",
+"chapter": "Cmy Veli",
+"name": "Valentine",
+"attended": true
+},
+{
+"programme": "sa",
+"chapter": "Dilnadu",
+"name": "Abdul Kareem",
+"attended": true
+},
+{
+"programme": "sa",
+"chapter": "Ejamaan",
+"name": "Abusalih",
+"attended": true
+},
+{
+"programme": "sa",
+"chapter": "Saral",
+"name": "Gopinath",
+"attended": true
+},
+{
+"programme": "sa",
+"chapter": "Tamilan",
+"name": "Saravana Manickam",
+"attended": false
+},
+{
+"programme": "sa",
+"chapter": "Thamira",
+"name": "Maria Anand",
+"attended": true
+},
+{
+"programme": "sa",
+"chapter": "Korkai",
+"name": "Valentine",
+"attended": true
+},
+{
+"programme": "sa",
+"chapter": "Comorin",
+"name": "Ram Kumar",
+"attended": true
+},
+{
+"programme": "sa",
+"chapter": "Kanya",
+"name": "Deiva Shibin",
+"attended": true
+},
+{
+"programme": "sa",
+"chapter": "Kings",
+"name": "Dr. Ruth",
+"attended": true
+},
+{
+"programme": "sa",
+"chapter": "Kumari",
+"name": "Suresh Sundar",
+"attended": true
+},
+{
+"programme": "sa",
+"chapter": "Nanjil",
+"name": "Thirugnana Sambandam",
+"attended": true
+}
+],
+"dcrt": [
+{
+"programme": "sdc",
+"name": "Max Prince",
+"attended": true
+},
+{
+"programme": "sdc",
+"name": "Gunaseelan",
+"attended": true
+},
+{
+"programme": "sdc",
+"name": "Mohamed Aneez",
+"attended": true
+},
+{
+"programme": "sdc",
+"name": "Vijay",
+"attended": true
+},
+{
+"programme": "sdc",
+"name": "Esai",
+"attended": true
+},
+{
+"programme": "sdc",
+"name": "Askar Ali",
+"attended": true
+},
+{
+"programme": "sdc",
+"name": "Krian",
+"attended": true
+},
+{
+"programme": "sdc",
+"name": "Mariappan Mukesh",
+"attended": true
+},
+{
+"programme": "sdc",
+"name": "Dr. Gopala Krishnan",
+"attended": false
+},
+{
+"programme": "sdc",
+"name": "Rajesh",
+"attended": true
+},
+{
+"programme": "sdc",
+"name": "Suresh",
+"attended": false
+},
+{
+"programme": "sdc",
+"name": "Ramadoss",
+"attended": true
+},
+{
+"programme": "sdc",
+"name": "Allwin",
+"attended": false
+},
+{
+"programme": "sdc",
+"name": "Jimmy Bonson",
+"attended": true
+},
+{
+"programme": "sa",
+"name": "Thirugnana Sambandam",
+"attended": true
+},
+{
+"programme": "sa",
+"name": "Vinoth Babu",
+"attended": true
+},
+{
+"programme": "sa",
+"name": "Mohan Babu",
+"attended": true
+},
+{
+"programme": "sa",
+"name": "Valentine",
+"attended": true
+},
+{
+"programme": "sa",
+"name": "Abdul Kareem",
+"attended": true
+},
+{
+"programme": "sa",
+"name": "Abusalih",
+"attended": true
+},
+{
+"programme": "sa",
+"name": "Gopinath",
+"attended": true
+},
+{
+"programme": "sa",
+"name": "Saravana Manickam",
+"attended": true
+},
+{
+"programme": "sa",
+"name": "Maria Anand",
+"attended": false
+},
+{
+"programme": "sa",
+"name": "Ram Kumar",
+"attended": false
+},
+{
+"programme": "sa",
+"name": "Deiva Shibin",
+"attended": true
+},
+{
+"programme": "sa",
+"name": "Dr. Ruth",
+"attended": false
+},
+{
+"programme": "sa",
+"name": "Suresh Sundar",
+"attended": false
+},
+{
+"programme": "sa",
+"name": "Selvaratnam",
+"attended": true
+}
+]
+}

@@ -24,6 +24,12 @@ export const DEFAULT_SETTINGS = {
   ],
 };
 
+function attendancePts(e, max) { // LTRT / DCRT: meetings held share the points equally; else the single manual flag
+  const held = ['ltrt_att', 'dcrt_att'].filter(k => e[k] === true || e[k] === false);
+  if (held.length) return Math.round(held.filter(k => e[k] === true).length / held.length * max * 10) / 10;
+  return e.ltrt_attended ? max : 0;
+}
+
 export function mergeSettings(stored) {
   const s = JSON.parse(JSON.stringify(DEFAULT_SETTINGS));
   for (const k of Object.keys(stored || {})) {
@@ -65,7 +71,7 @@ export function scoreEntry(entry, settings) {
     retention:  tier(e.retention_pct, s.thresholds.retention),
     one_to_one: (e.one_to_one_per_member !== null && e.one_to_one_per_member !== undefined &&
                  Number(e.one_to_one_per_member) >= Number(s.one_to_one_threshold)) ? s.max_pts.one_to_one : 0,
-    ltrt:       e.ltrt_attended ? s.max_pts.ltrt : 0,
+    ltrt:       attendancePts(e, s.max_pts.ltrt),
     visit:      e.jotform_done ? s.max_pts.visit : 0,
   };
 
@@ -73,7 +79,7 @@ export function scoreEntry(entry, settings) {
     .filter(([k]) => k !== 'mentoring' || s.mentoring_enabled)
     .reduce((a, [, v]) => a + v, 0);
 
-  const raw = Object.values(pts).reduce((a, b) => a + b, 0);
+  const raw = Math.round(Object.values(pts).reduce((a, b) => a + b, 0) * 10) / 10;
   const scaled = maxTotal > 0 ? Math.round((raw / maxTotal) * 100 * 100) / 100 : 0;
   const band = bandFor(scaled, s);
 
@@ -111,7 +117,7 @@ export function nextBandHints(entry, settings) {
   const p = cur.points;
 
   if (!entry.jotform_done) hints.push({ kpi: 'visit', gain_raw: s.max_pts.visit, action: 'Submit the Chapter Visit Report on Jotform this month' });
-  if (!entry.ltrt_attended) hints.push({ kpi: 'ltrt', gain_raw: s.max_pts.ltrt, action: 'Attend the LTRT / DCRT this month' });
+  if (p.ltrt < s.max_pts.ltrt) hints.push({ kpi: 'ltrt', gain_raw: s.max_pts.ltrt - p.ltrt, action: 'Attend both the LTRT and the DCRT this month' });
   if (p.one_to_one < s.max_pts.one_to_one) {
     hints.push({ kpi: 'one_to_one', gain_raw: s.max_pts.one_to_one,
       action: `Lift chapter 1-2-1s to ${s.one_to_one_threshold} per member per month (now ${entry.one_to_one_per_member ?? 0})` });

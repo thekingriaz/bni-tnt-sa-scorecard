@@ -93,7 +93,7 @@ SDC_SCORING_TABLE = """
 <tr><td>5</td><td class='k'>Weekly Tele-Bridge call with LT</td><td>The weekly "Support DC Tele-bridge Call" Jotform submission, matched to each chapter meeting date automatically. Counts only if submitted <b>by 09:30 AM IST, two days after the meeting</b> (Tuesday meeting: by Thursday 09:30).</td><td>Weeks done on time ÷ meetings held × 10</td><td>10</td></tr>
 <tr><td>6</td><td class='k'>PALMS submitted on time</td><td>The office checks BNI Connect's "Last Meeting Entered" report every Friday evening: this week's meeting must already be entered</td><td>Weeks on time ÷ meetings held × 10</td><td>10</td></tr>
 <tr><td>7</td><td class='k'>Chapter Visit within 24 hours</td><td>Your BNI Chapter Visit Report on Jotform, matched to your name; counts only if submitted on the visit day or the next day</td><td>Done = 10 pts<br>Not done or late = 0</td><td>10</td></tr>
-<tr><td>8</td><td class='k'>LTRT / DCRT attendance</td><td>Admin marks attendance</td><td>Attended = 5 pts<br>Not attended = 0</td><td>5</td></tr>
+<tr><td>8</td><td class='k'>LTRT / DCRT attendance</td><td>The office's LTRT and DCRT attendance sheets (green = attended)</td><td>Each meeting held that month counts equally: both held = 2.5 pts each; only one held = 5 pts</td><td>5</td></tr>
 </table>
 <p><b>Total: 100 points.</b> "Meetings held" is the number of your chapter's meeting weekdays in the month (a Tuesday chapter has 4 or 5), minus any week the office marks as "no meeting" (holiday). A Tuesday chapter with 5 meetings and 4 calls done scores 4 ÷ 5 × 10 = 8.0.</p>
 """
@@ -441,11 +441,11 @@ admin_body += """
 <tr><th>Column</th><th>Source</th><th>Rule</th></tr>
 <tr><td class='k'>Net add</td><td>BNI Connect → Reports → Region Meeting Statistics → <b>Membership Activity by Chapter</b>, both regions, From = 1st, To = last day of the month. Drop both .xls files on the SDC month page.</td><td>Filled automatically: Joined minus Left (shown under the number). Type a number only to correct it; a typed number is kept on later uploads.</td></tr>
 <tr><td class='k'>Traffic light</td><td>Upload the <b>All India Chapter Traffic Lights</b> .xlsx on the SDC month page. Use the report whose latest score column is the month being scored (the October report, released in early November, for October).</td><td>Only our two regions are read (other chapters with the same name elsewhere in India are ignored). Score 70+ = GREEN, 50 to 69 AMBER, 30 to 49 RED. Pick a value by hand to override.</td></tr>
-<tr><td class='k'>Renewal %</td><td>3+1 Traffic Lights report</td><td>Chapter's <b>overall</b> retention % as published (82 for 82%). Leave blank only if the report has no figure.</td></tr>
+<tr><td class='k'>Renewal %</td><td>Upload the monthly <b>3+1 Traffic Lights</b> workbook (.xlsx) on the SDC month page</td><td>Filled from the <b>Overall Retention Rates (Rolling)</b> column for each chapter (NPS is not used). A chapter under 12 months has no figure: it shows "n/a" and the KPI is skipped (other 80 points scaled to 100).</td></tr>
 <tr><td class='k'>Member score</td><td>Monthly Member Traffic Light report</td><td>The SDC's own score as a member.</td></tr>
 <tr><td class='k'>Visit 24h</td><td>Sync Jotform</td><td>Done only if the SDC's Chapter Visit Report was submitted on the visit day or the next day. The sync shows late submissions; override by hand if the office accepts a reason.</td></tr>
-<tr><td class='k'>LTRT</td><td>Attendance sheet</td><td>Attended / Not attended.</td></tr>
-<tr><td class='k'>Paid</td><td>Read-only</td><td>New + Renewals typed on the <b>SA</b> month for the same chapter. Enter them there once; both payouts use them.</td></tr>
+<tr><td class='k'>LTRT · DCRT</td><td>Download the LTRT and DCRT attendance sheets as .xlsx and drop both on the month page (SA or SDC; one upload updates both programmes)</td><td>Colours are read: green = attended, red = absent. LTRT is matched by chapter column, DCRT by name. Unmatched names are listed; set them by hand (L / D dropdowns).</td></tr>
+<tr><td class='k'>Paid</td><td>Upload the BNI Connect <b>Region Commission Report</b> (both regions) on either month page</td><td>Each invoice is classed by fee: 41,559 / 66,494 = renewal, 47,558 / 72,493 = new member. Fills New + Renewals on the SA month; both payouts use them.</td></tr>
 </table>
 <p>The SA month still uses Chapter Statistics and the Training Report as before. The SDC month only needs Membership Activity and Traffic Lights uploads.</p>
 <h3>Step 4: Review and publish</h3>
