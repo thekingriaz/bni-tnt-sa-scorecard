@@ -37,7 +37,7 @@ const SA_ROWS = [
 ];
 const months = { [YM]: { ym: YM, status: 'published', uploads: [], entries: SA_ROWS.map((r, i) => ({ id: 20261000 + i, chapter_id: i + 1, sa_user_id: 100 + i, legacy: false,
   member_score: r[0], online_pct: r[1], offline_pct: r[2], training_unique: r[3], member_count: r[4], retention_pct: r[5], retention_na: r[5] === null, one_to_one_per_member: r[6],
-  ltrt_att: r[7], dcrt_att: r[8], jotform_done: r[9], jotform_auto: true, new_members: r[10], renewals: r[11], notes: null })) } };
+  ltrt_att: r[7], dcrt_att: r[8], jotform_done: r[9], jotform_auto: true, new_members: r[10], renewals: r[11], new_2y: [1, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0][i], ren_2y: [2, 1, 0, 1, 0, 0, 0, 0, 2, 0, 1, 0, 0, 1][i], notes: null })) } };
 
 // SDC October: [joined, left, TL score, overall retention(null = n/a), member, visit, LTRT, DCRT, Tele-Bridge misses, PALMS misses]
 const SDC_ROWS = [
@@ -75,7 +75,7 @@ function loadSdcMonth(ym) {
   const rows = m.entries.map(e => {
     const w = m.weeks.filter(x => x.chapter_id === e.chapter_id); const saE = sa?.entries.find(x => x.chapter_id === e.chapter_id);
     const eff = { ...e, ...weekCounts(w), prev_member_count: e.member_count != null && e.net_add != null ? e.member_count - e.net_add : null, net_add_derived: null,
-      members_paid: (saE?.new_members || 0) + (saE?.renewals || 0), new_members: saE?.new_members ?? null, renewals: saE?.renewals ?? null };
+      members_paid: (saE?.new_members || 0) + (saE?.renewals || 0), new_members: saE?.new_members ?? null, renewals: saE?.renewals ?? null, new_2y: saE?.new_2y ?? 0, ren_2y: saE?.ren_2y ?? 0 };
     return { ...eff, weeks: w, chapter: chapters[e.chapter_id - 1], sdc: sdcs.find(s => s.id === e.sdc_user_id), computed: scoreSdcEntry(eff, sdcSettings()) };
   });
   [...rows].sort((a, b) => b.computed.total_scaled - a.computed.total_scaled).forEach((r, i) => r.computed.rank = i + 1);
@@ -158,7 +158,7 @@ function handle(p, q, method, body) {
   if (p === 'admin/upload') return [400, { error: DEMO_OFF }];
   if (p === 'admin/jotform') return [400, { error: 'Demo: Jotform sync is switched off. On the live app this pulls the Tele-Bridge and visit forms.' }];
   if (p === 'admin/settings' && method === 'GET') return [200, { settings: { ...settings, sdc_commission_pct: 7.5, telebridge_form_id: '(demo)', jotform_form_id: '(demo)' }, chapters, known_event_types: ['Feature Presentation Workshop', 'Member Success Program'] }];
-  if (p === 'admin/settings') return [400, { error: 'Demo: settings are read-only.' }];
+  if (p === 'admin/settings') return [400, { error: 'Demo: settings are read-only. On the live app this saves the fees and percentages.' }];
   if (p === 'admin/users' && method === 'GET') return [200, { users: [{ id: 1, role: 'admin', name: 'Admin (demo)', email: 'admin@example.com', active: true }, ...sas, ...sdcs] }];
   if (p === 'admin/users') return [400, { error: 'Demo: users are read-only.' }];
   return [404, { error: 'Not available in the demo' }];
