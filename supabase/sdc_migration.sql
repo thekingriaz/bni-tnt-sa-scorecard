@@ -125,3 +125,7 @@ alter table sa_entries  add column if not exists dcrt_att boolean;
 
 -- 11. SA 1st-Year Retention from the 3+1 upload: chapters under 12 months have no figure (KPI skipped, scaled to 100)
 alter table sa_entries add column if not exists retention_na boolean not null default false;
+
+-- 12. Commission by fee type (26 Oct 2026): 2-year counts from the Region Commission Report; the rest of New / Renewals count as 1-year
+alter table sa_entries add column if not exists new_2y int not null default 0;
+alter table sa_entries add column if not exists ren_2y int not null default 0;

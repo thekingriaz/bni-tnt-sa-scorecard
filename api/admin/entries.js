@@ -3,7 +3,7 @@ import { parsePalmsStatus, closestKey } from '../_lib/parsers.js';
 import { palmsFromReport } from '../_lib/scoring_sdc.js';
 
 const EDITABLE = ['member_score', 'online_pct', 'offline_pct', 'training_unique', 'member_count', 'mentoring_pct', 'retention_pct',
-  'one_to_one_per_member', 'retention_na', 'ltrt_attended', 'ltrt_att', 'dcrt_att', 'jotform_done', 'new_members', 'renewals', 'notes', 'sa_user_id'];
+  'one_to_one_per_member', 'retention_na', 'ltrt_attended', 'ltrt_att', 'dcrt_att', 'jotform_done', 'new_members', 'renewals', 'new_2y', 'ren_2y', 'notes', 'sa_user_id'];
 const SDC_EDITABLE = ['net_add', 'member_count', 'tl_status', 'tl_score', 'retention_pct', 'retention_na', 'member_score', 'ltrt_attended', 'ltrt_att', 'dcrt_att', 'visit_done', 'notes', 'sdc_user_id'];
 const WEEK_EDITABLE = ['no_meeting', 'telebridge_done', 'palms_done'];
 

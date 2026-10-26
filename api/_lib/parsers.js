@@ -1,3 +1,4 @@
+import { DEFAULT_SETTINGS } from './scoring.js';
 // Parsers for BNI Connect exports. These ".xls" files are actually SpreadsheetML 2003 XML.
 // Both parsers take the raw file text and return structured rows. No external deps.
 
@@ -344,13 +345,8 @@ export function parseChapterRetention(rows, regions, fileName, monthHint) {
   return { report: 'chapter_retention', month: fm ? `${fm[1]}-${fm[2]}` : (monthHint || null), rows: out };
 }
 
-/** BNI TNT membership fees (ex-GST) as they appear in the Region Commission Report. Editable in settings as `fee_types`. */
-export const DEFAULT_FEE_TYPES = [
-  { fee: 41559.01, type: 'renewal', years: 1 },
-  { fee: 66494.08, type: 'renewal', years: 2 },
-  { fee: 47558.01, type: 'new', years: 1 },
-  { fee: 72493.08, type: 'new', years: 2 },
-];
+/** BNI TNT membership fees (ex-GST) as they appear in the Region Commission Report. Defined with the R&D deduction in scoring.js (settings `fee_types`). */
+export const DEFAULT_FEE_TYPES = DEFAULT_SETTINGS.fee_types;
 
 /**
  * BNI Connect Region Commission Report (.xls SpreadsheetML): one row per paid invoice.

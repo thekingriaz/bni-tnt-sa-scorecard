@@ -1,7 +1,7 @@
 import { db, handler, fail, audit, loadSettings } from '../_lib/db.js';
 import { recomputeTraining } from '../_lib/training.js';
 
-const KEYS = ['fee_amount', 'commission_pct', 'sdc_commission_pct', 'telebridge_form_id', 'mentoring_enabled', 'one_to_one_threshold', 'online_event_types', 'jotform_form_id', 'thresholds', 'bands', 'max_pts'];
+const KEYS = ['fee_types', 'fee_amount', 'commission_pct', 'sdc_commission_pct', 'telebridge_form_id', 'mentoring_enabled', 'one_to_one_threshold', 'online_event_types', 'jotform_form_id', 'thresholds', 'bands', 'max_pts'];
 
 // GET -> settings + chapters + known event types (from uploads)
 // PUT { key: value, ... } -> update; recomputes training % for draft months when the online list changes
@@ -19,6 +19,13 @@ export default handler(async ({ req, session, body }) => {
   if ('fee_amount' in patch) patch.fee_amount = Number(patch.fee_amount);
   if ('commission_pct' in patch) patch.commission_pct = Number(patch.commission_pct);
   if ('sdc_commission_pct' in patch) patch.sdc_commission_pct = Number(patch.sdc_commission_pct);
+  if ('fee_types' in patch) {
+    const cur = (await loadSettings()).fee_types;
+    patch.fee_types = cur.map(t => { const u = (patch.fee_types || []).find(x => x.key === t.key) || {};
+      const fee = u.fee === undefined ? t.fee : Number(u.fee), rd = u.rd === undefined ? t.rd : Number(u.rd);
+      if (!(fee > 0) || !(rd >= 0) || rd >= fee) throw fail(`${t.label}: enter a fee above 0 and an R&D amount below the fee`);
+      return { ...t, fee, rd }; });
+  }
   if ('one_to_one_threshold' in patch) patch.one_to_one_threshold = Number(patch.one_to_one_threshold);
   if ('mentoring_enabled' in patch) patch.mentoring_enabled = Boolean(patch.mentoring_enabled);
   if ('online_event_types' in patch) patch.online_event_types = [...new Set((patch.online_event_types || []).map(s => String(s).trim()).filter(Boolean))];

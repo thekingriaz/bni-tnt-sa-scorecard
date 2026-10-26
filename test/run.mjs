@@ -14,9 +14,9 @@ assert.equal(dn.unique_members, 14); assert.equal(dn.online_pct + dn.offline_pct
 // scoring
 const s = DEFAULT_SETTINGS;
 const gold = scoreEntry({ member_score: 90, online_pct: 5, offline_pct: 16, retention_pct: 80, one_to_one_per_member: 9, ltrt_attended: true, jotform_done: true, new_members: 2, renewals: 3 }, s);
-assert.equal(gold.total_raw, 80); assert.equal(gold.total_scaled, 100); assert.equal(gold.band, 'Gold'); assert.equal(gold.payout, Math.round(5 * 1226));
+assert.equal(gold.total_raw, 80); assert.equal(gold.total_scaled, 100); assert.equal(gold.band, 'Gold'); assert.equal(gold.payout, 5109); // 2 new x 1,111.80 + 3 renewals x 961.83 (fee ex GST less R&D, 2.5%)
 const amber = scoreEntry({ member_score: 84, online_pct: 0, offline_pct: 10, retention_pct: 85, one_to_one_per_member: 8.46, ltrt_attended: true, jotform_done: false, new_members: 0, renewals: 2 }, s);
-assert.equal(amber.total_raw, 50); assert.equal(amber.total_scaled, 62.5); assert.equal(amber.band, 'Amber'); assert.equal(amber.payout, Math.round(2 * 1226 * 0.6));
+assert.equal(amber.total_raw, 50); assert.equal(amber.total_scaled, 62.5); assert.equal(amber.band, 'Amber'); assert.equal(amber.payout, Math.round(1924 * 0.6));
 const empty = scoreEntry({}, s); assert.equal(empty.total_scaled, 0); assert.equal(empty.band, 'Review');
 const h = nextBandHints({ member_score: 84, online_pct: 0, offline_pct: 10, retention_pct: 85, one_to_one_per_member: 8.46, ltrt_attended: true, jotform_done: false }, s);
 assert.equal(h.next, 'Green'); assert.equal(h.hints[0].kpi, 'visit'); assert.equal(h.hints[0].gain_scaled, 12.5);
@@ -41,12 +41,12 @@ assert.deepEqual([wc.calendar, wc.meetings_total, wc.telebridge_weeks, wc.palms_
 assert.equal(weeklyPts(4, 5, 10), 8); assert.equal(weeklyPts(3, 4, 10), 7.5); assert.equal(weeklyPts(0, 0, 10), 0); assert.equal(weeklyPts(6, 5, 10), 10);
 // Sep 2026 Ainthinai as on the sheet: 18 net, GREEN, 75%, 95, TB 4/5, PALMS 4/5, Done, Attended -> 86
 const sdcS = { fee_amount: 49040, sdc_commission_pct: 7.5 };
-const ain = scoreSdcEntry({ net_add: 18, tl_status: 'GREEN', retention_pct: 75, member_score: 95, meetings_total: 5, telebridge_weeks: 4, palms_weeks: 4, visit_done: true, ltrt_attended: true, members_paid: 4 }, sdcS);
+const ain = scoreSdcEntry({ net_add: 18, tl_status: 'GREEN', retention_pct: 75, member_score: 95, meetings_total: 5, telebridge_weeks: 4, palms_weeks: 4, visit_done: true, ltrt_attended: true, renewals: 4 }, sdcS);
 assert.equal(ain.total_raw, 86); assert.equal(ain.total_scaled, 86); assert.equal(ain.band, 'Gold'); assert.equal(ain.max_total, 100);
-assert.equal(ain.per_member_commission, 3678); assert.equal(ain.payout, 4 * 3678);
+assert.equal(ain.payout, Math.round(4 * 2885.48)); assert.equal(ain.payout_lines.find(l => l.key === 'ren_1y').per, 2885.48);
 // Sep Saral: 3 net, AMBER, 0%, 65, TB 3/4, PALMS 4/4, Not done, Attended -> 42.5 Red
-const sar = scoreSdcEntry({ net_add: 3, tl_status: 'AMBER', retention_pct: 0, member_score: 65, meetings_total: 4, telebridge_weeks: 3, palms_weeks: 4, visit_done: false, ltrt_attended: true, members_paid: 2 }, sdcS);
-assert.equal(sar.total_raw, 42.5); assert.equal(sar.band, 'Red'); assert.equal(sar.payout, Math.round(2 * 3678 * 0.35));
+const sar = scoreSdcEntry({ net_add: 3, tl_status: 'AMBER', retention_pct: 0, member_score: 65, meetings_total: 4, telebridge_weeks: 3, palms_weeks: 4, visit_done: false, ltrt_attended: true, renewals: 2 }, sdcS);
+assert.equal(sar.total_raw, 42.5); assert.equal(sar.band, 'Red'); assert.equal(sar.payout, Math.round(5771 * 0.35));
 // net add +1 = 10, 0 = 0, null = 0
 assert.equal(scoreSdcEntry({ net_add: 1 }, sdcS).points.net_growth, 10); assert.equal(scoreSdcEntry({ net_add: 0 }, sdcS).points.net_growth, 0); assert.equal(scoreSdcEntry({}, sdcS).points.net_growth, 0);
 // no meetings held at all: weekly KPIs drop out, max 80, scaled
@@ -162,6 +162,13 @@ const sf = scoreEntry(saFull, DEFAULT_SETTINGS), sy = scoreEntry(saYoung, DEFAUL
 assert.equal(sf.max_total, 80); assert.equal(sf.total_raw, 80); assert.equal(sy.max_total, 55); assert.equal(sy.total_raw, 55); assert.equal(sy.total_scaled, 100);
 assert.ok(!nextBandHints({ ...saYoung, member_score: 0 }, DEFAULT_SETTINGS).hints.some(h => h.kpi === 'retention'));
 assert.equal(scoreEntry({ ...saFull, retention_pct: 50 }, DEFAULT_SETTINGS).points.retention, 0);
+// Commission by fee type: base = fee ex GST - R&D
+import { payoutLines } from '../api/_lib/scoring.js';
+const pl = payoutLines({ new_members: 3, renewals: 5, new_2y: 1, ren_2y: 2 }, DEFAULT_SETTINGS, 2.5);
+const per = Object.fromEntries(pl.lines.map(l => [l.key, [l.count, l.base, l.per]]));
+assert.deepEqual(per, { ren_1y: [3, 38473.01, 961.83], ren_2y: [2, 60322.08, 1508.05], new_1y: [2, 44472.01, 1111.8], new_2y: [1, 66321.08, 1658.03] });
+assert.equal(pl.members, 8); assert.equal(pl.base_payout, Math.round(3 * 961.83 + 2 * 1508.05 + 2 * 1111.8 + 1658.03));
+assert.equal(payoutLines({ new_members: 1, renewals: 0, new_2y: 5 }, DEFAULT_SETTINGS, 7.5).lines.find(l => l.key === 'new_2y').count, 1); // 2-year count capped by the total
 console.log('3+1 retention checks passed ✓');
 
 // ---------- Region Commission Report (real Sep 2026, both regions): new vs renewal by fee ----------

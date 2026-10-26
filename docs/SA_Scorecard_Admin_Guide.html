@@ -107,8 +107,8 @@ table.data tr { page-break-inside: avoid; }
 <h2>5. Settings</h2>
 <table class='data'>
 <tr><th>Setting</th><th>Current</th><th>Notes</th></tr>
-<tr><td class='k'>Membership fee</td><td>₹49,040</td><td>Per member, new or renewal. Change here when the team decides; draft months recalculate at once, published months keep their payout.</td></tr>
-<tr><td class='k'>Commission %</td><td>2.5%</td><td>Per member: ₹1,226.</td></tr>
+<tr><td class='k'>Fee types</td><td>4 rows</td><td>Renewal 1 yr ₹41,559.01 − R&amp;D ₹3,086 · Renewal 2 yr ₹66,494.08 − ₹6,172 · New 1 yr ₹47,558.01 − ₹3,086 · New 2 yr ₹72,493.08 − ₹6,172. Fees are without GST, as on the Region Commission Report (the upload also uses them to tell new from renewal and 1 from 2 years). Draft months recalculate at once, published months keep their payout.</td></tr>
+<tr><td class='k'>Commission %</td><td>SA 2.5% · SDC 7.5%</td><td>Of each member's commission base (fee less R&amp;D).</td></tr>
 <tr><td class='k'>1-2-1 threshold</td><td>8.66 per member per month</td><td>= 2 per week × 4.33 weeks.</td></tr>
 <tr><td class='k'>Mentoring KPI</td><td>Off</td><td>Turn on when the mentoring app provides the %. Score becomes out of 100.</td></tr>
 <tr><td class='k'>Online training events</td><td>Admin-maintained list</td><td>Tick the event types that count as online. Everything else is offline. Only affects the split shown; the score uses the combined %.</td></tr>
@@ -144,10 +144,10 @@ table.data tr { page-break-inside: avoid; }
 <table class='data'>
 <tr><th>Step</th><th>Calculation</th></tr>
 <tr><td class='k'>1. Members paid</td><td>New member inductions + renewals <b>paid in that month</b> (a renewal due 1 Nov but paid on 15 Oct counts in October)</td></tr>
-<tr><td class='k'>2. Base commission</td><td>Members paid × 2.5% of ₹49,040 = Members paid × ₹1,226</td></tr>
+<tr><td class='k'>2. Base commission</td><td>2.5% of each member's commission base (fee without GST, less the R&amp;D amount paid to BNI India): Renewal 1 yr ₹962 · Renewal 2 yr ₹1,508 · New 1 yr ₹1,112 · New 2 yr ₹1,658</td></tr>
 <tr><td class='k'>3. Band multiplier</td><td>Base commission × your band multiplier (1.00 / 0.80 / 0.60 / 0.35 / 0.15)</td></tr>
 </table>
-<p><b>Example:</b> 1 new member + 3 renewals paid in October = 4 members × ₹1,226 = ₹4,904 base. Score 75 (Green, 0.80×) pays ₹3,923. The same month at Gold would pay ₹4,904. At Red it pays ₹1,716. The band costs you real money.</p>
+<p><b>Example:</b> 1 new member (1 yr) + 3 renewals (1 yr) paid in October = ₹1,112 + 3 × ₹962 = ₹3,997 base. Score 75 (Green, 0.80×) pays ₹3,198. The same month at Gold would pay ₹3,997. At Red it pays ₹1,399. The band costs you real money.</p>
 <p class='small'>The fee and percentage are set by the regional office and may be revised. The dashboard always shows the current figures.</p>
 
 
@@ -196,7 +196,7 @@ table.data tr { page-break-inside: avoid; }
 <h3>SDC users and settings</h3>
 <ul>
 <li>Users page has a <b>Support Director Consultants</b> table with the same Set PIN, Jotform name, Replace and Deactivate actions as SAs. The Jotform name is matched against "Visited By" on the visit form.</li>
-<li>Settings: <b>SDC commission %</b> (7.5% at launch, ₹3,678 per member paid), <b>Tele-bridge form ID</b> (221121498823050) and <b>chapter meeting days</b>.</li>
+<li>Settings: <b>SDC commission %</b> (7.5% of each member's commission base), <b>Tele-bridge form ID</b> (221121498823050) and <b>chapter meeting days</b>.</li>
 </ul>
 <h3>SDC scoring reference</h3>
 
@@ -217,10 +217,10 @@ table.data tr { page-break-inside: avoid; }
 <table class='data'>
 <tr><th>Step</th><th>Calculation</th></tr>
 <tr><td class='k'>1. Members paid</td><td>New member inductions + renewals <b>paid in that month</b> in your chapter (the same count the office enters for the SA programme)</td></tr>
-<tr><td class='k'>2. Base commission</td><td>Members paid × 7.5% of ₹49,040 = Members paid × ₹3,678</td></tr>
+<tr><td class='k'>2. Base commission</td><td>7.5% of each member's commission base (fee without GST, less the R&amp;D amount paid to BNI India): Renewal 1 yr ₹2,885 · Renewal 2 yr ₹4,524 · New 1 yr ₹3,335 · New 2 yr ₹4,974</td></tr>
 <tr><td class='k'>3. Band multiplier</td><td>Base commission × your band multiplier (1.00 / 0.80 / 0.60 / 0.35 / 0.15)</td></tr>
 </table>
-<p><b>Example:</b> 1 new member + 3 renewals paid in October = 4 members × ₹3,678 = ₹14,712 base. Score 75 (Green, 0.80×) pays ₹11,770. The same month at Gold pays ₹14,712. At Red it pays ₹5,149.</p>
+<p><b>Example:</b> 1 new member (1 yr) + 3 renewals (1 yr) paid in October = ₹3,335 + 3 × ₹2,885 = ₹11,992 base. Score 75 (Green, 0.80×) pays ₹9,594. The same month at Gold pays ₹11,992. At Red it pays ₹4,197.</p>
 <p class='small'>The fee and percentage are set by the regional office and may be revised. The dashboard always shows the current figures.</p>
 
 

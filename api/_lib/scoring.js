@@ -3,8 +3,15 @@
 
 export const DEFAULT_SETTINGS = {
   go_live_ym: '2026-10',      // first scored month for both programmes; earlier months are baseline only (never shown, never published)
-  fee_amount: 49040,          // ₹ per member (new or renewal)
-  commission_pct: 2.5,        // % of fee_amount per member
+  fee_amount: 49040,          // old flat fee (pre 26 Oct 2026); payout now uses fee_types below
+  commission_pct: 2.5,        // SA % of each member's commission base
+  // Commission base per member = fee (ex GST, as on the Region Commission Report) minus the R&D amount paid to BNI India
+  fee_types: [
+    { key: 'ren_1y', label: 'Renewal, 1 year',    type: 'renewal', years: 1, fee: 41559.01, rd: 3086 },
+    { key: 'ren_2y', label: 'Renewal, 2 years',   type: 'renewal', years: 2, fee: 66494.08, rd: 6172 },
+    { key: 'new_1y', label: 'New member, 1 year', type: 'new',     years: 1, fee: 47558.01, rd: 3086 },
+    { key: 'new_2y', label: 'New member, 2 years', type: 'new',    years: 2, fee: 72493.08, rd: 6172 },
+  ],
   mentoring_enabled: false,   // paused: score out of 80, scaled to 100
   one_to_one_threshold: 8.66, // 1-2-1 per member per month (2 per week × 4.33)
   online_event_types: [],     // event types from the Training report counted as "online"
@@ -28,6 +35,20 @@ function attendancePts(e, max) { // LTRT / DCRT: meetings held share the points 
   const held = ['ltrt_att', 'dcrt_att'].filter(k => e[k] === true || e[k] === false);
   if (held.length) return Math.round(held.filter(k => e[k] === true).length / held.length * max * 10) / 10;
   return e.ltrt_attended ? max : 0;
+}
+
+/**
+ * Payout lines by fee type. Entry holds new_members / renewals (totals) and new_2y / ren_2y (2-year counts, from the Commission Report);
+ * the rest of each total counts as 1-year. Returns { lines: [{key,label,count,base,per}], members, base_payout }.
+ */
+export function payoutLines(e, s, pct) {
+  const types = (s && s.fee_types) || DEFAULT_SETTINGS.fee_types;
+  const n = v => Math.max(0, Number(v || 0));
+  const new2 = Math.min(n(e.new_2y), n(e.new_members)), ren2 = Math.min(n(e.ren_2y), n(e.renewals));
+  const counts = { ren_1y: n(e.renewals) - ren2, ren_2y: ren2, new_1y: n(e.new_members) - new2, new_2y: new2 };
+  const lines = types.map(t => { const base = Math.round((Number(t.fee) - Number(t.rd || 0)) * 100) / 100; const per = Math.round(base * Number(pct) / 100 * 100) / 100;
+    return { key: t.key, label: t.label, count: counts[t.key] || 0, base, per, amount: Math.round((counts[t.key] || 0) * per * 100) / 100 }; });
+  return { lines, members: n(e.new_members) + n(e.renewals), base_payout: Math.round(lines.reduce((a, l) => a + l.amount, 0)) };
 }
 
 export function mergeSettings(stored) {
@@ -84,9 +105,8 @@ export function scoreEntry(entry, settings) {
   const scaled = maxTotal > 0 ? Math.round((raw / maxTotal) * 100 * 100) / 100 : 0;
   const band = bandFor(scaled, s);
 
-  const members = Number(e.new_members || 0) + Number(e.renewals || 0);
-  const perMember = Number(s.fee_amount) * Number(s.commission_pct) / 100;
-  const basePayout = members * perMember;
+  const pl = payoutLines(e, s, s.commission_pct);
+  const members = pl.members, basePayout = pl.base_payout;
   const payout = Math.round(basePayout * band.multiplier);
 
   return {
@@ -100,7 +120,7 @@ export function scoreEntry(entry, settings) {
     band_name: band.name,
     multiplier: band.multiplier,
     members_paid: members,
-    per_member_commission: Math.round(perMember * 100) / 100,
+    payout_lines: pl.lines,
     base_payout: Math.round(basePayout),
     payout,
   };

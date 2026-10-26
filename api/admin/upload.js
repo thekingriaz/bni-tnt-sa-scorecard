@@ -116,9 +116,9 @@ export default handler(async ({ req, session, body }) => {
     const per = {};
     for (const r of parsed.rows) {
       const c = byKey[r.key]; if (!c) { if (!unmatched.includes(r.chapter)) unmatched.push(r.chapter); continue; }
-      const p = per[c.id] || (per[c.id] = { chapter: c.name, new_members: 0, renewals: 0, two_year: 0, fee_total: 0, unknown: 0 });
+      const p = per[c.id] || (per[c.id] = { chapter: c.name, new_members: 0, renewals: 0, new_2y: 0, ren_2y: 0, two_year: 0, fee_total: 0, unknown: 0 });
       if (r.type === 'new') p.new_members++; else if (r.type === 'renewal') p.renewals++; else p.unknown++;
-      if (r.years === 2) p.two_year++;
+      if (r.years === 2) { p.two_year++; if (r.type === 'new') p.new_2y++; else if (r.type === 'renewal') p.ren_2y++; }
       p.fee_total = Math.round((p.fee_total + r.fee) * 100) / 100;
     }
     // a region file only covers its own chapters: set those (zero for its chapters with no invoices), leave the other region alone
@@ -126,8 +126,8 @@ export default handler(async ({ req, session, body }) => {
     const regionsInFile = new Set(Object.keys(per).map(id => regionOf.find(x => x.id === Number(id))?.region));
     const cjobs = [];
     for (const c of regionOf.filter(x => regionsInFile.has(x.region))) {
-      const p = per[c.id] || { chapter: chapters.find(x => x.id === c.id)?.name, new_members: 0, renewals: 0, two_year: 0, fee_total: 0, unknown: 0 };
-      cjobs.push(db.from('sa_entries').update({ new_members: p.new_members, renewals: p.renewals, updated_at: new Date().toISOString(), updated_by: session.uid }).eq('month_id', month.id).eq('chapter_id', c.id));
+      const p = per[c.id] || { chapter: chapters.find(x => x.id === c.id)?.name, new_members: 0, renewals: 0, new_2y: 0, ren_2y: 0, two_year: 0, fee_total: 0, unknown: 0 };
+      cjobs.push(db.from('sa_entries').update({ new_members: p.new_members, renewals: p.renewals, new_2y: p.new_2y, ren_2y: p.ren_2y, updated_at: new Date().toISOString(), updated_by: session.uid }).eq('month_id', month.id).eq('chapter_id', c.id));
       updated.push(p);
     }
     for (const r of await Promise.all(cjobs)) if (r.error) throw r.error;

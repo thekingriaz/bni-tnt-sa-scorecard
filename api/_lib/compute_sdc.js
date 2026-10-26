@@ -48,7 +48,7 @@ export async function loadSdcMonths(yms, settings) {
         member_count: memberCount, prev_member_count: prev ?? null, net_add_derived: derived,
         net_add: e.net_add ?? derived,
         members_paid: (Number(sa?.new_members || 0) + Number(sa?.renewals || 0)),
-        new_members: sa?.new_members ?? null, renewals: sa?.renewals ?? null,
+        new_members: sa?.new_members ?? null, renewals: sa?.renewals ?? null, new_2y: sa?.new_2y ?? 0, ren_2y: sa?.ren_2y ?? 0,
       };
       return { ...effective, weeks: w, computed: e.legacy ? legacyComputed(e) : scoreSdcEntry(effective, s) };
     });

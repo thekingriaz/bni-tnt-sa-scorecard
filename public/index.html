@@ -50,6 +50,7 @@ th,td{padding:9px 8px;border-bottom:1px solid var(--line);text-align:left;vertic
 th{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;font-weight:600;background:#FAFBFC}
 tr:last-child td{border-bottom:0}
 .tbl-wrap{overflow:auto;-webkit-overflow-scrolling:touch}
+.pay-lines{width:100%;margin-top:8px}.pay-lines td{padding:3px 0;border:0}.pay-lines tr:nth-last-child(2) td{border-top:1px solid var(--line);padding-top:6px}
 .kpi-max{color:var(--muted);font-size:12px}
 .pts{font-weight:700} .pts.zero{color:var(--redband)} .pts.full{color:var(--green)}
 .hint{display:flex;gap:10px;align-items:flex-start;padding:10px 12px;border:1px solid var(--line);border-radius:10px;margin-bottom:8px;background:#FFFBF5}
@@ -130,6 +131,15 @@ async function api(path, opts = {}) {
 }
 const state = { user: null, chapters: [], view: 'months', sa: null, month: null, months: null, settings: null, users: null, selYm: null, prog: localStorage.getItem('prog') || 'sa' };
 
+/** Payout working, one line per fee type (fee ex GST minus R&D, times the commission %). */
+function payoutHtml(c, members) {
+  const lines = (c.payout_lines || []).filter(l => l.count > 0);
+  if (!members) return `<div class="small muted">No new members or renewals paid this month, so no payout.</div>`;
+  return `<table class="small pay-lines"><tbody>${lines.map(l => `<tr><td>${l.count} × ${esc(l.label)}</td><td class="num">@ ${inr(l.per)}</td><td class="num">${inr(l.amount)}</td></tr>`).join('')}
+    <tr><td><b>${members} member${members === 1 ? '' : 's'} paid</b></td><td></td><td class="num"><b>${inr(c.base_payout)}</b></td></tr>
+    <tr><td colspan="2">× ${c.multiplier.toFixed(2)} for ${esc(c.band)}</td><td class="num"><b>${inr(c.payout)}</b></td></tr></tbody></table>
+    <div class="small muted" style="margin-top:6px">Commission is worked out on each member's fee without GST, less the R&amp;D amount paid to BNI India.</div>`;
+}
 /* =============================== boot =============================== */
 async function boot() {
   try { const me = await api('auth/me'); state.user = me.user; state.chapters = me.chapters || []; }
@@ -213,7 +223,7 @@ async function renderSA() {
     <div class="card"><h3>Payout for ${monthName(h.ym)}</h3>
       ${h.legacy ? '<p class="muted">Not available for legacy months.</p>' : `
       <div style="font-size:30px;font-weight:800;color:${color}">${inr(c.payout)}</div>
-      <div class="small muted">${c.members_paid} member${c.members_paid === 1 ? '' : 's'} (${h.inputs.new_members || 0} new + ${h.inputs.renewals || 0} renewals) × ${inr(c.per_member_commission)} = ${inr(c.base_payout)} × <b>${c.multiplier.toFixed(2)}</b> (${c.band})</div>
+      ${payoutHtml(c, c.members_paid)}
       <div class="divider"></div>
       <div class="small muted">Gold pays 1.00×. Every band below costs you money: Green 0.80×, Amber 0.60×, Red 0.35×, Review 0.15×.</div>`}
     </div>
@@ -284,7 +294,7 @@ function renderSDC(d) {
     <div class="card"><h3>Payout for ${monthName(h.ym)}</h3>
       ${h.legacy ? '<p class="muted">Not available for legacy months.</p>' : `
       <div style="font-size:30px;font-weight:800;color:${color}">${inr(c.payout)}</div>
-      <div class="small muted">${members} member${members === 1 ? '' : 's'} paid (${i.new_members || 0} new + ${i.renewals || 0} renewals) × ${inr(c.per_member_commission)} = ${inr(c.base_payout)} × <b>${c.multiplier.toFixed(2)}</b> (${c.band})</div>
+      ${payoutHtml(c, members)}
       <div class="divider"></div>
       <div class="small muted">Gold pays 1.00×. Every band below costs you money: Green 0.80×, Amber 0.60×, Red 0.35×, Review 0.15×.</div>`}
     </div>
@@ -373,7 +383,7 @@ async function renderMonth(ym) {
     ${num(e, 'one_to_one_per_member', '0.01')}
     ${attCell(e, pub || e.legacy)}
     ${yn(e, 'jotform_done', 'Done', 'Not done')}
-    ${num(e, 'new_members', '1')}${num(e, 'renewals', '1')}
+    ${num(e, 'new_members', '1', e.new_2y ? `<span class="auto">${e.new_2y} × 2 yr</span>` : '')}${num(e, 'renewals', '1', e.ren_2y ? `<span class="auto">${e.ren_2y} × 2 yr</span>` : '')}
     <td class="num"><b>${fmt(c.total_scaled, 0)}</b><span class="auto">${c.total_raw}/${c.max_total}</span></td>
     <td><span class="pill ${c.band}">${c.band}</span></td>
     <td class="num">${inr(c.payout)}</td>
@@ -437,7 +447,7 @@ async function handleFiles(files, ym) {
       const kind = /Chapter Statistics/i.test(text) ? 'chapter_statistics' : /Member Training Report/i.test(text) ? 'training' : (/Invoice Ref/i.test(text) && /Commission/i.test(text)) ? 'commission' : null;
       if (!kind) throw new Error('Not a Chapter Statistics, Member Training Report or Region Commission Report export');
       const r = await api('admin/upload', { method: 'POST', body: { kind, filename: f.name, text } });
-      log.lastElementChild.innerHTML = `<span class="ok">✓</span> ${esc(f.name)}: ${kind === 'commission' ? 'Commission · ' : ''}${esc(r.region || '')} ${r.month}, ${r.updated.length} chapters updated${kind === 'commission' ? ': ' + r.updated.map(u => `${esc(String(u.chapter).replace(/^BNI\s+/, ''))} ${u.new_members} new + ${u.renewals} ren.`).join(', ') : ''}${r.warning ? ` <span class="bad">${esc(r.warning)}</span>` : ''}${kind === 'training' && r.updated.some(u => u.needs_member_count) ? ' <span class="bad">Some chapters have no member count yet: upload Chapter Statistics for this region, then re-upload this file.</span>' : ''}`;
+      log.lastElementChild.innerHTML = `<span class="ok">✓</span> ${esc(f.name)}: ${kind === 'commission' ? 'Commission · ' : ''}${esc(r.region || '')} ${r.month}, ${r.updated.length} chapters updated${kind === 'commission' ? ': ' + r.updated.map(u => `${esc(String(u.chapter).replace(/^BNI\s+/, ''))} ${u.new_members} new + ${u.renewals} ren.${u.two_year ? ` (${u.two_year} × 2 yr)` : ''}`).join(', ') : ''}${r.warning ? ` <span class="bad">${esc(r.warning)}</span>` : ''}${kind === 'training' && r.updated.some(u => u.needs_member_count) ? ' <span class="bad">Some chapters have no member count yet: upload Chapter Statistics for this region, then re-upload this file.</span>' : ''}`;
       if (r.month !== ym) { toast(`File was for ${monthName(r.month)}, opening that month`); state.month = r.month; return renderMonth(r.month); }
     } catch (e) { log.lastElementChild.innerHTML = `<span class="bad">✗ ${esc(f.name)}: ${esc(e.message)}</span>`; }
   }
@@ -750,7 +760,7 @@ async function handleSdcFiles(files, ym) {
         const kind = /Membership Activity by Chapter/i.test(text) ? 'membership_activity' : /Chapter Statistics/i.test(text) ? 'chapter_statistics' : /Member Training Report/i.test(text) ? 'training' : (/Invoice Ref/i.test(text) && /Commission/i.test(text)) ? 'commission' : null;
         if (!kind) throw new Error('Not a Membership Activity by Chapter / Chapter Statistics export (or an .xlsx Traffic Lights file)');
         r = await api('admin/upload', { method: 'POST', body: { kind, filename: f.name, text } });
-        log.lastElementChild.innerHTML = kind === 'commission' ? `<span class="ok">✓</span> ${esc(f.name)}: Commission · ${esc(r.region || '')} ${r.month}: ${r.updated.map(u => `${esc(String(u.chapter).replace(/^BNI\s+/, ''))} ${u.new_members} new + ${u.renewals} ren.`).join(', ')}${r.warning ? ` <span class="bad">${esc(r.warning)}</span>` : ''}` : `<span class="ok">✓</span> ${esc(f.name)}: ${kind === 'membership_activity' ? 'Membership Activity · ' : ''}${esc(r.region || '')} ${r.month}, ${r.updated.length} chapters updated${kind === 'membership_activity' ? ' (' + r.updated.map(u => `${esc(u.chapter.replace(/^BNI\s+/, ''))} ${u.change > 0 ? '+' : ''}${u.change}${u.kept_manual ? '*' : ''}`).join(', ') + ')' : ''}${r.warning ? ` <span class="bad">${esc(r.warning)}</span>` : ''}`;
+        log.lastElementChild.innerHTML = kind === 'commission' ? `<span class="ok">✓</span> ${esc(f.name)}: Commission · ${esc(r.region || '')} ${r.month}: ${r.updated.map(u => `${esc(String(u.chapter).replace(/^BNI\s+/, ''))} ${u.new_members} new + ${u.renewals} ren.${u.two_year ? ` (${u.two_year} × 2 yr)` : ''}`).join(', ')}${r.warning ? ` <span class="bad">${esc(r.warning)}</span>` : ''}` : `<span class="ok">✓</span> ${esc(f.name)}: ${kind === 'membership_activity' ? 'Membership Activity · ' : ''}${esc(r.region || '')} ${r.month}, ${r.updated.length} chapters updated${kind === 'membership_activity' ? ' (' + r.updated.map(u => `${esc(u.chapter.replace(/^BNI\s+/, ''))} ${u.change > 0 ? '+' : ''}${u.change}${u.kept_manual ? '*' : ''}`).join(', ') + ')' : ''}${r.warning ? ` <span class="bad">${esc(r.warning)}</span>` : ''}`;
         if (r.month !== ym) { toast(`File was for ${monthName(r.month)}, opening that month`); state.month = r.month; return renderSdcMonth(r.month); }
       }
     } catch (e) { log.lastElementChild.innerHTML = `<span class="bad">✗ ${esc(f.name)}: ${esc(e.message)}</span>`; }
@@ -766,10 +776,14 @@ async function renderSettings() {
   app.innerHTML = adminNav() + `
   <div class="grid g2">
     <div class="card"><h2>Commission</h2>
-      <div class="field"><label>Membership fee per member (₹)</label><input id="fee" type="number" value="${s.fee_amount}"></div>
-      <div class="field"><label>SA commission % of fee</label><input id="pct" type="number" step="0.01" value="${s.commission_pct}"></div>
-      <div class="field"><label>SDC commission % of fee</label><input id="sdcpct" type="number" step="0.01" value="${s.sdc_commission_pct ?? 7.5}"></div>
-      <p class="small muted">Per member paid: SA ${inr(s.fee_amount * s.commission_pct / 100)}, SDC ${inr(s.fee_amount * (s.sdc_commission_pct ?? 7.5) / 100)}. Payout = (new + renewals) × this × band multiplier. Both programmes use the New / Renewals typed on the SA month.</p>
+      <p class="small muted" style="margin-top:0">Each member's commission base is the fee without GST (as on the Region Commission Report) less the R&amp;D amount paid to BNI India. SA and SDC get their % of that base.</p>
+      <div class="tbl-wrap"><table class="small" id="feetbl"><thead><tr><th>Fee type</th><th class="num">Fee ex GST (₹)</th><th class="num">R&amp;D (₹)</th><th class="num">Base</th><th class="num">SA</th><th class="num">SDC</th></tr></thead>
+      <tbody>${s.fee_types.map(t => `<tr data-k="${t.key}"><td>${esc(t.label)}</td><td class="num"><input class="cell-in ft-fee" style="width:110px" type="number" step="0.01" value="${t.fee}"></td><td class="num"><input class="cell-in ft-rd" style="width:80px" type="number" step="1" value="${t.rd}"></td><td class="num ft-base"></td><td class="num ft-sa"></td><td class="num ft-sdc"></td></tr>`).join('')}</tbody></table></div>
+      <div class="row" style="gap:12px;margin-top:10px">
+        <div class="field" style="flex:1"><label>SA commission %</label><input id="pct" type="number" step="0.01" value="${s.commission_pct}"></div>
+        <div class="field" style="flex:1"><label>SDC commission %</label><input id="sdcpct" type="number" step="0.01" value="${s.sdc_commission_pct ?? 7.5}"></div>
+      </div>
+      <p class="small muted">Payout = each member paid × their type's SA / SDC amount × band multiplier. The Commission Report upload fills New, Renewals and the 2-year counts on the SA month; both programmes use them.</p>
       <h2>Scoring</h2>
       <div class="field"><label>1-2-1 threshold (per member per month)</label><input id="o2o" type="number" step="0.01" value="${s.one_to_one_threshold}"></div>
       <div class="field"><label><input type="checkbox" id="ment" ${s.mentoring_enabled ? 'checked' : ''} style="width:auto;margin-right:8px">Mentoring KPI enabled (score out of 100 instead of 80)</label></div>
@@ -791,8 +805,12 @@ async function renderSettings() {
   </div>`;
   bindNav();
   app.querySelectorAll('.chip').forEach(c => c.onclick = () => c.classList.toggle('on'));
+  const feeCalc = () => { const pa = Number($('#pct').value || 0), pd = Number($('#sdcpct').value || 0);
+    app.querySelectorAll('#feetbl tbody tr').forEach(tr => { const b = Number(tr.querySelector('.ft-fee').value || 0) - Number(tr.querySelector('.ft-rd').value || 0);
+      tr.querySelector('.ft-base').textContent = inr(b); tr.querySelector('.ft-sa').textContent = inr(b * pa / 100); tr.querySelector('.ft-sdc').textContent = inr(b * pd / 100); }); };
+  app.querySelectorAll('#feetbl input, #pct, #sdcpct').forEach(el => el.oninput = feeCalc); feeCalc();
   $('#addtype').onclick = () => { const v = $('#newtype').value.trim(); if (!v) return; const el = document.createElement('span'); el.className = 'chip on'; el.dataset.t = v; el.textContent = v; el.onclick = () => el.classList.toggle('on'); $('#chips').appendChild(el); $('#newtype').value = ''; };
-  $('#save').onclick = async () => { try { await api('admin/settings', { method: 'PUT', body: { fee_amount: $('#fee').value, commission_pct: $('#pct').value, sdc_commission_pct: $('#sdcpct').value, one_to_one_threshold: $('#o2o').value, mentoring_enabled: $('#ment').checked, jotform_form_id: $('#jf').value.trim(), telebridge_form_id: $('#tbf').value.trim(), online_event_types: [...app.querySelectorAll('.chip.on')].map(c => c.dataset.t) } }); toast('Settings saved'); renderSettings(); } catch (e) { toast(e.message, true); } };
+  $('#save').onclick = async () => { try { await api('admin/settings', { method: 'PUT', body: { fee_types: [...app.querySelectorAll('#feetbl tbody tr')].map(tr => ({ key: tr.dataset.k, fee: tr.querySelector('.ft-fee').value, rd: tr.querySelector('.ft-rd').value })), commission_pct: $('#pct').value, sdc_commission_pct: $('#sdcpct').value, one_to_one_threshold: $('#o2o').value, mentoring_enabled: $('#ment').checked, jotform_form_id: $('#jf').value.trim(), telebridge_form_id: $('#tbf').value.trim(), online_event_types: [...app.querySelectorAll('.chip.on')].map(c => c.dataset.t) } }); toast('Settings saved'); renderSettings(); } catch (e) { toast(e.message, true); } };
   $('#savedays').onclick = async () => { try { const chapters = d.chapters.map(c => ({ ...c, meeting_day: app.querySelector(`.md[data-id="${c.id}"]`).value })); await api('admin/settings', { method: 'PUT', body: { chapters } }); toast('Meeting days saved'); renderSettings(); } catch (e) { toast(e.message, true); } };
 }
 

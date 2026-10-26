@@ -1,5 +1,5 @@
 // SDC (Support Director Consultant) scoring engine. Pure functions, mirrors scoring.js.
-import { DEFAULT_SETTINGS, bandFor } from './scoring.js';
+import { DEFAULT_SETTINGS, bandFor, payoutLines } from './scoring.js';
 import { attendancePoints } from './parsers.js';
 
 export const SDC_DEFAULTS = {
@@ -23,6 +23,7 @@ export function mergeSdcSettings(stored) {
   for (const k of Object.keys(stored || {})) if (stored[k] !== null && stored[k] !== undefined) s[k] = stored[k];
   if (!s.fee_amount) s.fee_amount = DEFAULT_SETTINGS.fee_amount;
   if (!s.bands) s.bands = DEFAULT_SETTINGS.bands;
+  if (!s.fee_types) s.fee_types = DEFAULT_SETTINGS.fee_types;
   return s;
 }
 
@@ -99,15 +100,14 @@ export function scoreSdcEntry(entry, settings) {
   const scaled = maxTotal > 0 ? Math.round((raw / maxTotal) * 100 * 100) / 100 : 0;
   const band = bandFor(scaled, s);
 
-  const members = Number(e.members_paid || 0);
-  const perMember = Number(s.fee_amount) * Number(s.sdc_commission_pct) / 100;
-  const basePayout = members * perMember;
+  const pl = payoutLines(e, s, s.sdc_commission_pct); // counts come from the SA month (Commission Report upload)
+  const members = pl.members, basePayout = pl.base_payout;
   const payout = Math.round(basePayout * band.multiplier);
 
   return {
     points: pts, total_raw: raw, max_total: maxTotal, total_scaled: scaled,
     band: band.label, band_emoji: band.emoji, band_name: band.name, multiplier: band.multiplier,
-    members_paid: members, per_member_commission: Math.round(perMember * 100) / 100, base_payout: Math.round(basePayout), payout,
+    members_paid: members, payout_lines: pl.lines, base_payout: Math.round(basePayout), payout,
     meetings_total: meetings, retention_na: !retentionApplies,
   };
 }
