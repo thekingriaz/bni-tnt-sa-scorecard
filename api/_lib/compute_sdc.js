@@ -22,7 +22,7 @@ export async function loadSdcMonths(yms, settings) {
   const [{ data: entries, error }, { data: weeks }, { data: saRows }, { data: prevSdc }] = await Promise.all([
     db.from('sdc_entries').select('*, chapter:sa_chapters(id,name,region,sort_order,meeting_day), sdc:sa_users!sdc_entries_sdc_user_id_fkey(id,name,active)').in('month_id', ids),
     db.from('sdc_weeks').select('*').in('month_id', ids).order('week_date'),
-    db.from('sa_entries').select('month_id,chapter_id,new_members,renewals,member_count').in('month_id', ids),
+    db.from('sa_entries').select('month_id,chapter_id,new_members,renewals,new_2y,ren_2y,member_count').in('month_id', ids),
     db.from('sdc_entries').select('month_id,chapter_id,member_count').in('month_id', ids),
   ]);
   if (error) throw error;
