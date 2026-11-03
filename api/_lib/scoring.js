@@ -5,12 +5,15 @@ export const DEFAULT_SETTINGS = {
   go_live_ym: '2026-10',      // first scored month for both programmes; earlier months are baseline only (never shown, never published)
   fee_amount: 49040,          // old flat fee (pre 26 Oct 2026); payout now uses fee_types below
   commission_pct: 2.5,        // SA % of each member's commission base
-  // Commission base per member = fee (ex GST, as on the Region Commission Report) minus the R&D amount paid to BNI India
+  // Commission base per member = region nett before the support team (BNI TNT Region Nett Calculator, Nov 2026):
+  //   fee ex GST − BNI tech fee (`rd`, taken upfront) − BNI royalty (royalty_pct of fee minus tech fee).
+  // Tech fee back-calculated from Oct 2026 BNI invoices IND82714 / IND82715.
+  royalty_pct: 20,
   fee_types: [
-    { key: 'ren_1y', label: 'Renewal, 1 year',    type: 'renewal', years: 1, fee: 41559.01, rd: 3086 },
-    { key: 'ren_2y', label: 'Renewal, 2 years',   type: 'renewal', years: 2, fee: 66494.08, rd: 6172 },
-    { key: 'new_1y', label: 'New member, 1 year', type: 'new',     years: 1, fee: 47558.01, rd: 3086 },
-    { key: 'new_2y', label: 'New member, 2 years', type: 'new',    years: 2, fee: 72493.08, rd: 6172 },
+    { key: 'ren_1y', label: 'Renewal, 1 year',    type: 'renewal', years: 1, fee: 41559.01, rd: 3857.01 },
+    { key: 'ren_2y', label: 'Renewal, 2 years',   type: 'renewal', years: 2, fee: 66494.08, rd: 7714.02 },
+    { key: 'new_1y', label: 'New member, 1 year', type: 'new',     years: 1, fee: 47558.01, rd: 3857.01 },
+    { key: 'new_2y', label: 'New member, 2 years', type: 'new',    years: 2, fee: 72493.08, rd: 7714.02 },
   ],
   mentoring_enabled: false,   // paused: score out of 80, scaled to 100
   one_to_one_threshold: 8.66, // 1-2-1 per member per month (2 per week × 4.33)
@@ -46,7 +49,9 @@ export function payoutLines(e, s, pct) {
   const n = v => Math.max(0, Number(v || 0));
   const new2 = Math.min(n(e.new_2y), n(e.new_members)), ren2 = Math.min(n(e.ren_2y), n(e.renewals));
   const counts = { ren_1y: n(e.renewals) - ren2, ren_2y: ren2, new_1y: n(e.new_members) - new2, new_2y: new2 };
-  const lines = types.map(t => { const base = Math.round((Number(t.fee) - Number(t.rd || 0)) * 100) / 100; const per = Math.round(base * Number(pct) / 100 * 100) / 100;
+  const royaltyPct = Number((s && s.royalty_pct) ?? DEFAULT_SETTINGS.royalty_pct);
+  const r2 = v => Math.round(v * 100) / 100;
+  const lines = types.map(t => { const afterTech = r2(Number(t.fee) - Number(t.rd || 0)); const royalty = r2(afterTech * royaltyPct / 100); const base = r2(afterTech - royalty); const per = Math.round(base * Number(pct) / 100 * 100) / 100;
     return { key: t.key, label: t.label, count: counts[t.key] || 0, base, per, amount: Math.round((counts[t.key] || 0) * per * 100) / 100 }; });
   return { lines, members: n(e.new_members) + n(e.renewals), base_payout: Math.round(lines.reduce((a, l) => a + l.amount, 0)) };
 }

@@ -131,14 +131,14 @@ async function api(path, opts = {}) {
 }
 const state = { user: null, chapters: [], view: 'months', sa: null, month: null, months: null, settings: null, users: null, selYm: null, prog: localStorage.getItem('prog') || 'sa' };
 
-/** Payout working, one line per fee type (fee ex GST minus R&D, times the commission %). */
+/** Payout working, one line per fee type (fee ex GST minus BNI tech fee and royalty, times the commission %). */
 function payoutHtml(c, members) {
   const lines = (c.payout_lines || []).filter(l => l.count > 0);
   if (!members) return `<div class="small muted">No new members or renewals paid this month, so no payout.</div>`;
   return `<table class="small pay-lines"><tbody>${lines.map(l => `<tr><td>${l.count} × ${esc(l.label)}</td><td class="num">@ ${inr(l.per)}</td><td class="num">${inr(l.amount)}</td></tr>`).join('')}
     <tr><td><b>${members} member${members === 1 ? '' : 's'} paid</b></td><td></td><td class="num"><b>${inr(c.base_payout)}</b></td></tr>
     <tr><td colspan="2">× ${c.multiplier.toFixed(2)} for ${esc(c.band)}</td><td class="num"><b>${inr(c.payout)}</b></td></tr></tbody></table>
-    <div class="small muted" style="margin-top:6px">Commission is worked out on each member's fee without GST, less the R&amp;D amount paid to BNI India.</div>`;
+    <div class="small muted" style="margin-top:6px">Commission is worked out on each member's fee without GST, less BNI India's tech fee and royalty.</div>`;
 }
 /* =============================== boot =============================== */
 async function boot() {
@@ -780,9 +780,10 @@ async function renderSettings() {
   app.innerHTML = adminNav() + `
   <div class="grid g2">
     <div class="card"><h2>Commission</h2>
-      <p class="small muted" style="margin-top:0">Each member's commission base is the fee without GST (as on the Region Commission Report) less the R&amp;D amount paid to BNI India. SA and SDC get their % of that base.</p>
-      <div class="tbl-wrap"><table class="small" id="feetbl"><thead><tr><th>Fee type</th><th class="num">Fee ex GST (₹)</th><th class="num">R&amp;D (₹)</th><th class="num">Base</th><th class="num">SA</th><th class="num">SDC</th></tr></thead>
-      <tbody>${s.fee_types.map(t => `<tr data-k="${t.key}"><td>${esc(t.label)}</td><td class="num"><input class="cell-in ft-fee" style="width:110px" type="number" step="0.01" value="${t.fee}"></td><td class="num"><input class="cell-in ft-rd" style="width:80px" type="number" step="1" value="${t.rd}"></td><td class="num ft-base"></td><td class="num ft-sa"></td><td class="num ft-sdc"></td></tr>`).join('')}</tbody></table></div>
+      <p class="small muted" style="margin-top:0">Each member's commission base is the region nett before the support team: the fee without GST, less BNI India's tech fee (taken upfront), less BNI's royalty on what remains. SA and SDC get their % of that base.</p>
+      <div class="tbl-wrap"><table class="small" id="feetbl"><thead><tr><th>Fee type</th><th class="num">Fee ex GST (₹)</th><th class="num">BNI tech fee (₹)</th><th class="num">Royalty</th><th class="num">Base</th><th class="num">SA</th><th class="num">SDC</th></tr></thead>
+      <tbody>${s.fee_types.map(t => `<tr data-k="${t.key}"><td>${esc(t.label)}</td><td class="num"><input class="cell-in ft-fee" style="width:110px" type="number" step="0.01" value="${t.fee}"></td><td class="num"><input class="cell-in ft-rd" style="width:95px" type="number" step="0.01" value="${t.rd}"></td><td class="num ft-roy"></td><td class="num ft-base"></td><td class="num ft-sa"></td><td class="num ft-sdc"></td></tr>`).join('')}</tbody></table></div>
+      <div class="field" style="margin-top:10px"><label for="roy">BNI royalty % (on fee minus tech fee)</label><input id="roy" type="number" step="0.01" style="width:120px" value="${s.royalty_pct ?? 20}"></div>
       <div class="row" style="gap:12px;margin-top:10px">
         <div class="field" style="flex:1"><label>SA commission %</label><input id="pct" type="number" step="0.01" value="${s.commission_pct}"></div>
         <div class="field" style="flex:1"><label>SDC commission %</label><input id="sdcpct" type="number" step="0.01" value="${s.sdc_commission_pct ?? 7.5}"></div>
@@ -810,11 +811,12 @@ async function renderSettings() {
   bindNav();
   app.querySelectorAll('.chip').forEach(c => c.onclick = () => c.classList.toggle('on'));
   const feeCalc = () => { const pa = Number($('#pct').value || 0), pd = Number($('#sdcpct').value || 0);
-    app.querySelectorAll('#feetbl tbody tr').forEach(tr => { const b = Number(tr.querySelector('.ft-fee').value || 0) - Number(tr.querySelector('.ft-rd').value || 0);
-      tr.querySelector('.ft-base').textContent = inr(b); tr.querySelector('.ft-sa').textContent = inr(b * pa / 100); tr.querySelector('.ft-sdc').textContent = inr(b * pd / 100); }); };
-  app.querySelectorAll('#feetbl input, #pct, #sdcpct').forEach(el => el.oninput = feeCalc); feeCalc();
+    const rp = Number($('#roy').value || 0);
+    app.querySelectorAll('#feetbl tbody tr').forEach(tr => { const at = Number(tr.querySelector('.ft-fee').value || 0) - Number(tr.querySelector('.ft-rd').value || 0); const roy = at * rp / 100, b = at - roy;
+      tr.querySelector('.ft-roy').textContent = inr(roy); tr.querySelector('.ft-base').textContent = inr(b); tr.querySelector('.ft-sa').textContent = inr(b * pa / 100); tr.querySelector('.ft-sdc').textContent = inr(b * pd / 100); }); };
+  app.querySelectorAll('#feetbl input, #pct, #sdcpct, #roy').forEach(el => el.oninput = feeCalc); feeCalc();
   $('#addtype').onclick = () => { const v = $('#newtype').value.trim(); if (!v) return; const el = document.createElement('span'); el.className = 'chip on'; el.dataset.t = v; el.textContent = v; el.onclick = () => el.classList.toggle('on'); $('#chips').appendChild(el); $('#newtype').value = ''; };
-  $('#save').onclick = async () => { try { await api('admin/settings', { method: 'PUT', body: { fee_types: [...app.querySelectorAll('#feetbl tbody tr')].map(tr => ({ key: tr.dataset.k, fee: tr.querySelector('.ft-fee').value, rd: tr.querySelector('.ft-rd').value })), commission_pct: $('#pct').value, sdc_commission_pct: $('#sdcpct').value, one_to_one_threshold: $('#o2o').value, mentoring_enabled: $('#ment').checked, jotform_form_id: $('#jf').value.trim(), telebridge_form_id: $('#tbf').value.trim(), online_event_types: [...app.querySelectorAll('.chip.on')].map(c => c.dataset.t) } }); toast('Settings saved'); renderSettings(); } catch (e) { toast(e.message, true); } };
+  $('#save').onclick = async () => { try { await api('admin/settings', { method: 'PUT', body: { royalty_pct: $('#roy').value, fee_types: [...app.querySelectorAll('#feetbl tbody tr')].map(tr => ({ key: tr.dataset.k, fee: tr.querySelector('.ft-fee').value, rd: tr.querySelector('.ft-rd').value })), commission_pct: $('#pct').value, sdc_commission_pct: $('#sdcpct').value, one_to_one_threshold: $('#o2o').value, mentoring_enabled: $('#ment').checked, jotform_form_id: $('#jf').value.trim(), telebridge_form_id: $('#tbf').value.trim(), online_event_types: [...app.querySelectorAll('.chip.on')].map(c => c.dataset.t) } }); toast('Settings saved'); renderSettings(); } catch (e) { toast(e.message, true); } };
   $('#savedays').onclick = async () => { try { const chapters = d.chapters.map(c => ({ ...c, meeting_day: app.querySelector(`.md[data-id="${c.id}"]`).value })); await api('admin/settings', { method: 'PUT', body: { chapters } }); toast('Meeting days saved'); renderSettings(); } catch (e) { toast(e.message, true); } };
 }
 

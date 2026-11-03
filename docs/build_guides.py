@@ -75,10 +75,10 @@ PAYOUT = """
 <table class='data'>
 <tr><th>Step</th><th>Calculation</th></tr>
 <tr><td class='k'>1. Members paid</td><td>New member inductions + renewals <b>paid in that month</b> (a renewal due 1 Nov but paid on 15 Oct counts in October)</td></tr>
-<tr><td class='k'>2. Base commission</td><td>2.5% of each member's commission base (fee without GST, less the R&amp;D amount paid to BNI India): Renewal 1 yr ₹962 · Renewal 2 yr ₹1,508 · New 1 yr ₹1,112 · New 2 yr ₹1,658</td></tr>
+<tr><td class='k'>2. Base commission</td><td>2.5% of each member's commission base (fee without GST, less BNI India's tech fee, less BNI's 20% royalty on the rest): Renewal 1 yr ₹754 · Renewal 2 yr ₹1,176 · New 1 yr ₹874 · New 2 yr ₹1,296</td></tr>
 <tr><td class='k'>3. Band multiplier</td><td>Base commission × your band multiplier (1.00 / 0.80 / 0.60 / 0.35 / 0.15)</td></tr>
 </table>
-<p><b>Example:</b> 1 new member (1 yr) + 3 renewals (1 yr) paid in October = ₹1,112 + 3 × ₹962 = ₹3,997 base. Score 75 (Green, 0.80×) pays ₹3,198. The same month at Gold would pay ₹3,997. At Red it pays ₹1,399. The band costs you real money.</p>
+<p><b>Example:</b> 1 new member (1 yr) + 3 renewals (1 yr) paid in October = ₹874 + 3 × ₹754 = ₹3,136 base. Score 75 (Green, 0.80×) pays ₹2,509. The same month at Gold would pay ₹3,136. At Red it pays ₹1,098. The band costs you real money.</p>
 <p class='small'>The fee and percentage are set by the regional office and may be revised. The dashboard always shows the current figures.</p>
 """
 
@@ -103,10 +103,10 @@ SDC_PAYOUT = """
 <table class='data'>
 <tr><th>Step</th><th>Calculation</th></tr>
 <tr><td class='k'>1. Members paid</td><td>New member inductions + renewals <b>paid in that month</b> in your chapter (the same count the office enters for the SA programme)</td></tr>
-<tr><td class='k'>2. Base commission</td><td>7.5% of each member's commission base (fee without GST, less the R&amp;D amount paid to BNI India): Renewal 1 yr ₹2,885 · Renewal 2 yr ₹4,524 · New 1 yr ₹3,335 · New 2 yr ₹4,974</td></tr>
+<tr><td class='k'>2. Base commission</td><td>7.5% of each member's commission base (fee without GST, less BNI India's tech fee, less BNI's 20% royalty on the rest): Renewal 1 yr ₹2,262 · Renewal 2 yr ₹3,527 · New 1 yr ₹2,622 · New 2 yr ₹3,887</td></tr>
 <tr><td class='k'>3. Band multiplier</td><td>Base commission × your band multiplier (1.00 / 0.80 / 0.60 / 0.35 / 0.15)</td></tr>
 </table>
-<p><b>Example:</b> 1 new member (1 yr) + 3 renewals (1 yr) paid in October = ₹3,335 + 3 × ₹2,885 = ₹11,992 base. Score 75 (Green, 0.80×) pays ₹9,594. The same month at Gold pays ₹11,992. At Red it pays ₹4,197.</p>
+<p><b>Example:</b> 1 new member (1 yr) + 3 renewals (1 yr) paid in October = ₹2,622 + 3 × ₹2,262 = ₹9,408 base. Score 75 (Green, 0.80×) pays ₹7,526. The same month at Gold pays ₹9,408. At Red it pays ₹3,293.</p>
 <p class='small'>The fee and percentage are set by the regional office and may be revised. The dashboard always shows the current figures.</p>
 """
 
@@ -399,8 +399,8 @@ admin_body += """
 <h2>5. Settings</h2>
 <table class='data'>
 <tr><th>Setting</th><th>Current</th><th>Notes</th></tr>
-<tr><td class='k'>Fee types</td><td>4 rows</td><td>Renewal 1 yr ₹41,559.01 − R&amp;D ₹3,086 · Renewal 2 yr ₹66,494.08 − ₹6,172 · New 1 yr ₹47,558.01 − ₹3,086 · New 2 yr ₹72,493.08 − ₹6,172. Fees are without GST, as on the Region Commission Report (the upload also uses them to tell new from renewal and 1 from 2 years). Draft months recalculate at once, published months keep their payout.</td></tr>
-<tr><td class='k'>Commission %</td><td>SA 2.5% · SDC 7.5%</td><td>Of each member's commission base (fee less R&amp;D).</td></tr>
+<tr><td class='k'>Fee types</td><td>4 rows</td><td>Fee ex GST and BNI tech fee: Renewal 1 yr ₹41,559.01 / ₹3,857.01 · Renewal 2 yr ₹66,494.08 / ₹7,714.02 · New 1 yr ₹47,558.01 / ₹3,857.01 · New 2 yr ₹72,493.08 / ₹7,714.02. BNI royalty 20% of (fee − tech fee). Base = fee − tech fee − royalty (BNI TNT Region Nett Calculator, Nov 2026). Fees are without GST, as on the Region Commission Report (the upload also uses them to tell new from renewal and 1 from 2 years). Draft months recalculate at once, published months keep their payout.</td></tr>
+<tr><td class='k'>Commission %</td><td>SA 2.5% · SDC 7.5%</td><td>Of each member's commission base (region nett before the support team).</td></tr>
 <tr><td class='k'>1-2-1 threshold</td><td>8.66 per member per month</td><td>= 2 per week × 4.33 weeks.</td></tr>
 <tr><td class='k'>Mentoring KPI</td><td>Off</td><td>Turn on when the mentoring app provides the %. Score becomes out of 100.</td></tr>
 <tr><td class='k'>Online training events</td><td>Old list</td><td>Used only for training reports uploaded before November 2026. Each report is now marked Online or In-person when it is uploaded.</td></tr>

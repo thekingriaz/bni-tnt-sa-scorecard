@@ -1,7 +1,7 @@
 import { db, handler, fail, audit, loadSettings } from '../_lib/db.js';
 import { recomputeTraining } from '../_lib/training.js';
 
-const KEYS = ['fee_types', 'fee_amount', 'commission_pct', 'sdc_commission_pct', 'telebridge_form_id', 'mentoring_enabled', 'one_to_one_threshold', 'online_event_types', 'jotform_form_id', 'thresholds', 'bands', 'max_pts'];
+const KEYS = ['fee_types', 'royalty_pct', 'fee_amount', 'commission_pct', 'sdc_commission_pct', 'telebridge_form_id', 'mentoring_enabled', 'one_to_one_threshold', 'online_event_types', 'jotform_form_id', 'thresholds', 'bands', 'max_pts'];
 
 // GET -> settings + chapters + known event types (from uploads)
 // PUT { key: value, ... } -> update; recomputes training % for draft months when the online list changes
@@ -23,9 +23,10 @@ export default handler(async ({ req, session, body }) => {
     const cur = (await loadSettings()).fee_types;
     patch.fee_types = cur.map(t => { const u = (patch.fee_types || []).find(x => x.key === t.key) || {};
       const fee = u.fee === undefined ? t.fee : Number(u.fee), rd = u.rd === undefined ? t.rd : Number(u.rd);
-      if (!(fee > 0) || !(rd >= 0) || rd >= fee) throw fail(`${t.label}: enter a fee above 0 and an R&D amount below the fee`);
+      if (!(fee > 0) || !(rd >= 0) || rd >= fee) throw fail(`${t.label}: enter a fee above 0 and a BNI tech fee below the fee`);
       return { ...t, fee, rd }; });
   }
+  if ('royalty_pct' in patch) { patch.royalty_pct = Number(patch.royalty_pct); if (!(patch.royalty_pct >= 0 && patch.royalty_pct < 100)) throw fail('BNI royalty % must be between 0 and 99'); }
   if ('one_to_one_threshold' in patch) patch.one_to_one_threshold = Number(patch.one_to_one_threshold);
   if ('mentoring_enabled' in patch) patch.mentoring_enabled = Boolean(patch.mentoring_enabled);
   if ('online_event_types' in patch) patch.online_event_types = [...new Set((patch.online_event_types || []).map(s => String(s).trim()).filter(Boolean))];
