@@ -213,3 +213,10 @@ assert.equal(esaiLtrt, false);
 assert.equal(attendancePoints({ ltrt_att: false, dcrt_att: true }, 5), 2.5); assert.equal(attendancePoints({ ltrt_att: true, dcrt_att: true }, 5), 5);
 assert.equal(attendancePoints({ ltrt_att: true }, 5), 5); assert.equal(attendancePoints({ ltrt_attended: true }, 5), 5); assert.equal(attendancePoints({}, 5), 0);
 console.log('LTRT / DCRT checks passed ✓');
+// Jotform visit names (real Oct 2026 spellings)
+import { nameMatches } from '../api/_lib/parsers.js';
+for (const [typed, known] of [['Valentin Machado', 'Valentine'], ['THIRUGNANASAMBANDAM T', 'Thirugnanasambantham'], ['Deva  Shibhin', 'Deva Shibin'], ['Mohan D', 'Mohan Babu'], ['Abdul Kareem', 'Kareem'], ['Maria anand', 'Maria Anand'], ['Gopinath  S', 'Gopinath'], ['Abusalih OMK', 'Abusalih'], ['MAX PRINCE', 'Max Prince'], ['S. MARIAPPAN', 'Mariappan Mukesh'], ['Krain  Bigstan', 'Krain Bigstan'], ['Gopalakrishnan K', 'Dr.Gopalakrishnan']])
+  assert.ok(nameMatches(typed, known), typed + ' ~ ' + known);
+for (const [typed, known] of [['ESAI KUMAR S', 'Valentine'], ['MAX PRINCE', 'Vinoth Babu'], ['Gunaseelan Selvaraju', 'Saravanan Manickam'], ['Vijai K', 'Mohan Babu'], ['Mohamed Riaz', 'Dr.Ruth'], ['Jimmy Bonson', 'Thirugnanasambantham']])
+  assert.ok(!nameMatches(typed, known), typed + ' !~ ' + known);
+console.log('Jotform name checks passed ✓');

@@ -1,7 +1,7 @@
 import { db, handler, fail, audit, loadSettings } from '../_lib/db.js';
 import { ensureMonth } from '../_lib/compute.js';
 import { ensureSdcMonth } from '../_lib/compute_sdc.js';
-import { normChapter } from '../_lib/parsers.js';
+import { normChapter, nameMatches } from '../_lib/parsers.js';
 import { telebridgeDeadlineUtc, zonedToUtcMs, istLabel, TELEBRIDGE_DEADLINE } from '../_lib/scoring_sdc.js';
 
 // POST { ym }                    -> SA: pulls "BNI Chapter Visit Report" submissions for that month and marks jotform_done
@@ -88,8 +88,8 @@ export default handler(async ({ req, session, body }) => {
     for (const c of chapters) {
       const e = entries.find(x => x.chapter_id === c.id); if (!e) continue;
       const mine = visitSubs.filter(s => normChapter(findAnswer(s, 'select chapter', 'chapter')) === c.key);
-      const alias = (e.sa?.jotform_alias || e.sa?.name || '').toLowerCase().trim();
-      const match = mine.find(s => { const who = (findAnswer(s, 'visited by') + ' ' + findAnswer(s, 'name')).toLowerCase(); return alias && who.includes(alias); });
+      const names = [e.sa?.jotform_alias, e.sa?.name].filter(Boolean);
+      const match = mine.find(s => names.some(n => nameMatches(findAnswer(s, 'name'), n)));
       const row = { chapter: c.name, sa: e.sa?.name || null, submissions: mine.length, matched: !!match, submitters: mine.map(who) };
       if (e.jotform_auto === false && e.jotform_done !== null) { row.skipped = 'manual override'; results.push(row); continue; }
       saPatches.push(db.from('sa_entries').update({ jotform_done: !!match, jotform_auto: true, jotform_submission_id: match ? match.id : null }).eq('id', e.id));
@@ -112,8 +112,8 @@ export default handler(async ({ req, session, body }) => {
   for (const c of chapters) {
     const e = entries.find(x => x.chapter_id === c.id); if (!e) continue;
     const mine = visitSubs.filter(s => normChapter(findAnswer(s, 'select chapter', 'chapter')) === c.key);
-    const alias = (e.sdc?.jotform_alias || e.sdc?.name || '').toLowerCase().trim();
-    const theirs = mine.filter(s => { const who = (findAnswer(s, 'visited by') + ' ' + findAnswer(s, 'name')).toLowerCase(); return alias && who.includes(alias); })
+    const names = [e.sdc?.jotform_alias, e.sdc?.name].filter(Boolean);
+    const theirs = mine.filter(s => names.some(n => nameMatches(findAnswer(s, 'name'), n)))
       .map(s => { let vd = toDate(findAnswer(s, 'visit date', 'date')); const sd = (s.created_at || '').slice(0, 10);
         const sw = swapDayMonth(vd); if (vd && sd && sw) { const l1 = dayDiff(sd, vd), l2 = dayDiff(sd, sw); if (!(l1 >= 0 && l1 <= 1) && l2 >= 0 && l2 <= 1) vd = sw; }
         const late = vd && sd ? dayDiff(sd, vd) : null;

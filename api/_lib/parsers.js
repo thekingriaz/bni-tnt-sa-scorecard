@@ -379,6 +379,21 @@ export function parseCommissionReport(text, feeTypes = DEFAULT_FEE_TYPES) {
   return { report: 'commission', month, rows: out, unknown };
 }
 
+/**
+ * Does a name typed on a Jotform belong to this SA / SDC? Tolerates case, spacing, initials, "Dr." and small spelling
+ * differences ("Valentin Machado" ~ "Valentine", "THIRUGNANASAMBANDAM T" ~ "Thirugnanasambantham", "Deva Shibhin" ~ "Deva Shibin").
+ * Used only within one chapter's submissions, so a first-name match is enough.
+ */
+export function nameMatches(typed, known) {
+  const toks = v => String(v || '').toLowerCase().replace(/\bdr\b\.?/g, ' ').replace(/[^a-z ]/g, ' ').split(/\s+/).filter(t => t.length > 1);
+  const a = toks(typed), b = toks(known);
+  if (!a.length || !b.length) return false;
+  const ja = a.join(''), jb = b.join('');
+  if (ja === jb || ja.includes(jb) || jb.includes(ja)) return true;
+  const close = (x, y) => x === y || editDistance(x, y) <= (Math.min(x.length, y.length) >= 7 ? 2 : 1);
+  return close(a[0], b[0]) && (Math.min(a[0].length, b[0].length) >= 4 || close(ja, jb));
+}
+
 // ---------- LTRT / DCRT attendance (Google Sheet downloaded as .xlsx; green = attended, red = absent) ----------
 const personKey = s => String(s || '').toLowerCase().replace(/\bdr\b\.?/g, '').replace(/[^a-z]/g, '');
 /**
