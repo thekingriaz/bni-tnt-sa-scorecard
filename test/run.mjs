@@ -220,3 +220,12 @@ for (const [typed, known] of [['Valentin Machado', 'Valentine'], ['THIRUGNANASAM
 for (const [typed, known] of [['ESAI KUMAR S', 'Valentine'], ['MAX PRINCE', 'Vinoth Babu'], ['Gunaseelan Selvaraju', 'Saravanan Manickam'], ['Vijai K', 'Mohan Babu'], ['Mohamed Riaz', 'Dr.Ruth'], ['Jimmy Bonson', 'Thirugnanasambantham']])
   assert.ok(!nameMatches(typed, known), typed + ' !~ ' + known);
 console.log('Jotform name checks passed ✓');
+// Training mode chosen at upload: online + in-person reports for one region combine; a member counts once (online wins)
+import { combinedAttendances } from '../api/_lib/training.js';
+const tA = [{ key: 'kanya', member_key: 'a', event_type: 'X' }, { key: 'kanya', member_key: 'b', event_type: 'X' }];
+const tB = [{ key: 'kanya', member_key: 'b', event_type: 'Y' }, { key: 'kanya', member_key: 'c', event_type: 'Y' }];
+const comb = combinedAttendances([{ summary: { region: 'N', mode: 'online', attendances: tA } }, { summary: { region: 'N', mode: 'in_person', attendances: tB } }, { summary: { region: 'N', mode: 'online', attendances: tA.slice(0, 1) } }]);
+const tp = trainingPercents(comb, 'kanya', 10, []);
+assert.deepEqual([tp.online_count, tp.offline_count, tp.unique_members], [1, 2, 3]); // re-uploaded online report (only a) replaced the first
+assert.equal(trainingPercents([{ key: 'k', member_key: 'z', event_type: 'Member Success Program' }], 'k', 10, ['Member Success Program']).online_count, 1); // old uploads: list fallback
+console.log('Training mode checks passed ✓');

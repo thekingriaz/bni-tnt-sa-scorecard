@@ -2,7 +2,7 @@ import { db, handler, fail, audit, loadSettings } from '../_lib/db.js';
 import { ensureMonth } from '../_lib/compute.js';
 import { parseChapterStatistics, parseTrainingReport, parseTrafficLights, parseMembershipActivity, parseChapterRetention, parseCommissionReport, matchAttendance, trainingPercents, normChapter } from '../_lib/parsers.js';
 import { ensureSdcMonth } from '../_lib/compute_sdc.js';
-import { recomputeTraining } from '../_lib/training.js';
+import { recomputeTraining, combinedAttendances } from '../_lib/training.js';
 
 export const config = { api: { bodyParser: { sizeLimit: '8mb' } } };
 
@@ -45,9 +45,15 @@ export default handler(async ({ req, session, body }) => {
     if (!saLocked && !baseline) await recomputeTraining(month.id, settings, updated.map(u => byKey[normChapter(u.chapter)].id));
     summary = { region: parsed.region, month: parsed.month, chapters: updated.length, unmatched, sa_locked: saLocked, baseline };
   } else if (kind === 'training') {
+    const mode = body.mode === 'online' || body.mode === 'in_person' ? body.mode : null;
+    if (!mode) throw fail('Choose whether this training report is Online or In-person, then upload it again.');
     parsed = parseTrainingReport(text);
+    parsed.attendances = parsed.attendances.map(a => ({ ...a, mode }));
     month = await ensureMonth(parsed.month, session.uid);
     if (month.status === 'published') throw fail(`${parsed.month} is already published. Unpublish it first if you need to re-upload.`);
+    // combine with the month's other training uploads (e.g. the in-person report for the same region)
+    const { data: prevUps } = await db.from('sa_uploads').select('summary,created_at').eq('month_id', month.id).eq('kind', 'training').order('created_at');
+    const allAtt = combinedAttendances([...(prevUps || []), { summary: { region: parsed.region, mode, attendances: parsed.attendances } }]);
     // Store raw attendances in the upload summary so online/offline can be recomputed when the event-type list changes
     const { data: entries } = await db.from('sa_entries').select('id,chapter_id,member_count').eq('month_id', month.id);
     const entryByChapter = {}; for (const e of entries || []) entryByChapter[e.chapter_id] = e;
@@ -57,7 +63,7 @@ export default handler(async ({ req, session, body }) => {
       if (!c) { unmatched.push(parsed.by_chapter[key].chapter); continue; }
       const e = entryByChapter[c.id];
       const memberCount = e?.member_count ? Number(e.member_count) : 0;
-      const t = trainingPercents(parsed.attendances, key, memberCount, settings.online_event_types);
+      const t = trainingPercents(allAtt, key, memberCount, settings.online_event_types);
       const up = await db.from('sa_entries').update({
         online_pct: t.online_pct, offline_pct: t.offline_pct, training_unique: t.unique_members,
         updated_at: new Date().toISOString(), updated_by: session.uid,
@@ -66,8 +72,9 @@ export default handler(async ({ req, session, body }) => {
       updated.push({ chapter: c.name, ...t, member_count: memberCount, needs_member_count: memberCount === 0 });
     }
     // Chapters in this region with zero attendances: set 0/0 so the month is complete
-    summary = { region: parsed.region, month: parsed.month, chapters: updated.length, unmatched, event_types: parsed.event_types,
+    summary = { region: parsed.region, month: parsed.month, mode, chapters: updated.length, unmatched, event_types: parsed.event_types,
       attendances: parsed.attendances.map(a => ({ key: a.key, member_key: a.member_key, event_type: a.event_type })) };
+    parsed.mode = mode;
   } else if (kind === 'membership_activity') {
     // SDC Chapter Net Growth = Joined minus Left for the month, straight from BNI Connect
     parsed = parseMembershipActivity(text);
@@ -198,5 +205,5 @@ export default handler(async ({ req, session, body }) => {
     return { ok: true, kind, month: parsed.month, region: parsed.region, score_column: parsed.score_column, updated, unmatched, warning: [warning, note2].filter(Boolean).join(' ') || null };
   }
   const note = parsed.lockNote || (kind === 'chapter_statistics' && summary?.sa_locked ? `${parsed.month} is published for SAs, so only the SDC member counts were updated.` : null);
-  return { ok: true, kind, month: parsed.month, region: parsed.region, updated, unmatched, event_types: parsed.event_types || null, warning: [warning, note].filter(Boolean).join(' ') || null };
+  return { ok: true, kind, month: parsed.month, region: parsed.region, updated, unmatched, event_types: parsed.event_types || null, mode: parsed.mode || null, warning: [warning, note].filter(Boolean).join(' ') || null };
 }, { role: 'admin' });

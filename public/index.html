@@ -397,8 +397,9 @@ async function renderMonth(ym) {
     <div class="card"><h3>Upload BNI Connect exports</h3>
       <div class="drop" id="drop">Drop .xls files here or click to choose<br><span class="small">Chapter Statistics, Region Member Training Report, Region Commission Report (new + renewals), one month, both regions, the <b>3+1 Traffic Lights</b> (.xlsx) for 1st-year retention, and the LTRT / DCRT attendance sheets (.xlsx). Type is detected from the file.</span></div>
       <input type="file" id="file" multiple accept=".xls,.xlsx,.xml,.txt" class="hidden">
+      <div class="field" style="margin-top:10px;margin-bottom:0"><label for="train-mode">Training report is</label><select id="train-mode" style="width:auto"><option value="">Choose before uploading a training report…</option><option value="online">Online training</option><option value="in_person">In-person training</option></select><span class="small muted"> Upload the online and in-person reports separately; a member who attended either counts once.</span></div>
       <div id="up-log" class="small" style="margin-top:8px">${state.upLog || ''}</div>
-      ${m.uploads?.length ? `<div class="divider"></div><div class="small muted">Uploaded: ${m.uploads.map(u => `${esc(u.kind)} · ${esc(u.region || '')} · ${new Date(u.created_at).toLocaleDateString('en-IN')}`).join('<br>')}</div>` : ''}
+      ${m.uploads?.length ? `<div class="divider"></div><div class="small muted">Uploaded: ${m.uploads.map(u => `${esc(u.kind)}${u.summary?.mode ? ' (' + (u.summary.mode === 'online' ? 'online' : 'in-person') + ')' : ''} · ${esc(u.region || '')} · ${new Date(u.created_at).toLocaleDateString('en-IN')}`).join('<br>')}</div>` : ''}
     </div>
     <div class="card"><h3>Jotform chapter visits</h3><p class="small muted" style="margin-top:0">Pulls this month's "BNI Chapter Visit Report" submissions and ticks the chapters where the SA submitted. Manual changes you make afterwards are kept.</p>
       <button class="btn navy sm" id="jot">Sync Jotform</button><div id="jot-log" class="small" style="margin-top:8px"></div></div>
@@ -446,8 +447,9 @@ async function handleFiles(files, ym) {
       const text = await f.text();
       const kind = /Chapter Statistics/i.test(text) ? 'chapter_statistics' : /Member Training Report/i.test(text) ? 'training' : (/Invoice Ref/i.test(text) && /Commission/i.test(text)) ? 'commission' : null;
       if (!kind) throw new Error('Not a Chapter Statistics, Member Training Report or Region Commission Report export');
-      const r = await api('admin/upload', { method: 'POST', body: { kind, filename: f.name, text } });
-      log.lastElementChild.innerHTML = `<span class="ok">✓</span> ${esc(f.name)}: ${kind === 'commission' ? 'Commission · ' : ''}${esc(r.region || '')} ${r.month}, ${r.updated.length} chapters updated${kind === 'commission' ? ': ' + r.updated.map(u => `${esc(String(u.chapter).replace(/^BNI\s+/, ''))} ${u.new_members} new + ${u.renewals} ren.${u.two_year ? ` (${u.two_year} × 2 yr)` : ''}`).join(', ') : ''}${r.warning ? ` <span class="bad">${esc(r.warning)}</span>` : ''}${kind === 'training' && r.updated.some(u => u.needs_member_count) ? ' <span class="bad">Some chapters have no member count yet: upload Chapter Statistics for this region, then re-upload this file.</span>' : ''}`;
+      if (kind === 'training' && !$('#train-mode')?.value) throw new Error('Choose "Online training" or "In-person training" above, then drop this file again');
+      const r = await api('admin/upload', { method: 'POST', body: { kind, filename: f.name, text, mode: kind === 'training' ? $('#train-mode').value : undefined } });
+      log.lastElementChild.innerHTML = `<span class="ok">✓</span> ${esc(f.name)}: ${kind === 'commission' ? 'Commission · ' : kind === 'training' ? (r.mode === 'online' ? 'Online training · ' : 'In-person training · ') : ''}${esc(r.region || '')} ${r.month}, ${r.updated.length} chapters updated${kind === 'commission' ? ': ' + r.updated.map(u => `${esc(String(u.chapter).replace(/^BNI\s+/, ''))} ${u.new_members} new + ${u.renewals} ren.${u.two_year ? ` (${u.two_year} × 2 yr)` : ''}`).join(', ') : ''}${r.warning ? ` <span class="bad">${esc(r.warning)}</span>` : ''}${kind === 'training' && r.updated.some(u => u.needs_member_count) ? ' <span class="bad">Some chapters have no member count yet: upload Chapter Statistics for this region, then re-upload this file.</span>' : ''}`;
       if (r.month !== ym) { toast(`File was for ${monthName(r.month)}, opening that month`); state.month = r.month; return renderMonth(r.month); }
     } catch (e) { log.lastElementChild.innerHTML = `<span class="bad">✗ ${esc(f.name)}: ${esc(e.message)}</span>`; }
   }
@@ -497,8 +499,9 @@ async function renderSdcMonth(ym) {
     <div class="card"><h3>Upload reports</h3>
       <div class="drop" id="drop">Drop files here or click to choose<br><span class="small">BNI Connect <b>Membership Activity by Chapter</b> (.xls, both regions, 1st to last day of ${monthName(ym)}) for net growth, the <b>All India Chapter Traffic Lights</b> (.xlsx) the <b>3+1 Traffic Lights</b> (.xlsx) for renewal % (Overall Retention column), and the <b>LTRT</b> and <b>DCRT attendance</b> sheets (.xlsx).</span></div>
       <input type="file" id="file" multiple accept=".xls,.xlsx,.xml,.txt" class="hidden">
+      <div class="field" style="margin-top:10px;margin-bottom:0"><label for="train-mode">Training report is</label><select id="train-mode" style="width:auto"><option value="">Choose before uploading a training report…</option><option value="online">Online training</option><option value="in_person">In-person training</option></select><span class="small muted"> Upload the online and in-person reports separately; a member who attended either counts once.</span></div>
       <div id="up-log" class="small" style="margin-top:8px">${state.upLog || ''}</div>
-      ${m.uploads?.length ? `<div class="divider"></div><div class="small muted">Uploaded: ${m.uploads.map(u => `${esc(u.kind)} · ${esc(u.region || '')} · ${new Date(u.created_at).toLocaleDateString('en-IN')}`).join('<br>')}</div>` : ''}
+      ${m.uploads?.length ? `<div class="divider"></div><div class="small muted">Uploaded: ${m.uploads.map(u => `${esc(u.kind)}${u.summary?.mode ? ' (' + (u.summary.mode === 'online' ? 'online' : 'in-person') + ')' : ''} · ${esc(u.region || '')} · ${new Date(u.created_at).toLocaleDateString('en-IN')}`).join('<br>')}</div>` : ''}
     </div>
     <div class="card" style="grid-column:1/-1"><h3>PALMS on time · Friday check</h3>
       <p class="small muted" style="margin-top:0">Every Friday evening, drop the <b>Last Meeting Entered</b> screenshot below. The app reads it, fills the box and sets the report date: <b>check the 14 lines against the screenshot</b>, then click Apply. Each chapter's meeting that week is ticked ✓ if it was entered, ✗ if the last meeting entered is older. (Copying the table text from BNI Connect also works.)</p>
@@ -759,7 +762,8 @@ async function handleSdcFiles(files, ym) {
         const text = await f.text();
         const kind = /Membership Activity by Chapter/i.test(text) ? 'membership_activity' : /Chapter Statistics/i.test(text) ? 'chapter_statistics' : /Member Training Report/i.test(text) ? 'training' : (/Invoice Ref/i.test(text) && /Commission/i.test(text)) ? 'commission' : null;
         if (!kind) throw new Error('Not a Membership Activity by Chapter / Chapter Statistics export (or an .xlsx Traffic Lights file)');
-        r = await api('admin/upload', { method: 'POST', body: { kind, filename: f.name, text } });
+        if (kind === 'training' && !$('#train-mode')?.value) throw new Error('Choose "Online training" or "In-person training" above, then drop this file again');
+        r = await api('admin/upload', { method: 'POST', body: { kind, filename: f.name, text, mode: kind === 'training' ? $('#train-mode').value : undefined } });
         log.lastElementChild.innerHTML = kind === 'commission' ? `<span class="ok">✓</span> ${esc(f.name)}: Commission · ${esc(r.region || '')} ${r.month}: ${r.updated.map(u => `${esc(String(u.chapter).replace(/^BNI\s+/, ''))} ${u.new_members} new + ${u.renewals} ren.${u.two_year ? ` (${u.two_year} × 2 yr)` : ''}`).join(', ')}${r.warning ? ` <span class="bad">${esc(r.warning)}</span>` : ''}` : `<span class="ok">✓</span> ${esc(f.name)}: ${kind === 'membership_activity' ? 'Membership Activity · ' : ''}${esc(r.region || '')} ${r.month}, ${r.updated.length} chapters updated${kind === 'membership_activity' ? ' (' + r.updated.map(u => `${esc(u.chapter.replace(/^BNI\s+/, ''))} ${u.change > 0 ? '+' : ''}${u.change}${u.kept_manual ? '*' : ''}`).join(', ') + ')' : ''}${r.warning ? ` <span class="bad">${esc(r.warning)}</span>` : ''}`;
         if (r.month !== ym) { toast(`File was for ${monthName(r.month)}, opening that month`); state.month = r.month; return renderSdcMonth(r.month); }
       }
@@ -795,7 +799,7 @@ async function renderSettings() {
       <table class="small"><tbody>${d.chapters.map(c => `<tr><td>${esc(c.name)}</td><td><select class="cell-sel md" data-id="${c.id}" style="width:auto">${['', 0, 1, 2, 3, 4, 5, 6].map(v => `<option value="${v}" ${String(c.meeting_day ?? '') === String(v) ? 'selected' : ''}>${v === '' ? '–' : DOW[v]}</option>`).join('')}</select></td></tr>`).join('')}</tbody></table>
       <button class="btn ghost sm" id="savedays" style="margin-top:8px">Save meeting days</button>
     </div>
-    <div class="card"><h2>Online training events</h2><p class="small muted" style="margin-top:0">Tick the event types that count as <b>online</b>. Everything else counts as offline. Draft months recalculate automatically.</p>
+    <div class="card"><h2>Online training events</h2><p class="small muted" style="margin-top:0">From November 2026 each training report is marked Online or In-person when it is uploaded, and that choice decides the split. This list only applies to reports uploaded before that change.</p>
       <div class="chips" id="chips">${types.map(t => `<span class="chip ${s.online_event_types.includes(t) ? 'on' : ''}" data-t="${esc(t)}">${esc(t)}</span>`).join('') || '<span class="muted small">Upload a training report first; event types will appear here.</span>'}</div>
       <div class="field" style="margin-top:10px"><label>Add an event type manually</label><div class="row"><input id="newtype" placeholder="e.g. BNI Online Support Ambassador Orientation - India"><button class="btn ghost sm" id="addtype">Add</button></div></div>
       <div class="divider"></div>

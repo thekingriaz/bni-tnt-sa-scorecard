@@ -146,7 +146,8 @@ export function trainingPercents(attendances, chapterKey, memberCount, onlineTyp
   const members = new Map();
   for (const a of attendances) {
     if (a.key !== chapterKey) continue;
-    const isOnline = online.has(a.event_type.trim().toLowerCase());
+    // the admin marks each uploaded report Online or In-person; older uploads fall back to the event-type list in Settings
+    const isOnline = a.mode ? a.mode === 'online' : online.has(String(a.event_type || '').trim().toLowerCase());
     members.set(a.member_key, (members.get(a.member_key) || false) || isOnline);
   }
   let on = 0, off = 0;
