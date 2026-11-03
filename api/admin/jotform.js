@@ -78,7 +78,7 @@ export default handler(async ({ req, session, body }) => {
     db.from('sa_chapters').select('id,name,key'),
     fetchSubs(settings.jotform_form_id, `${ym}-01 00:00:00`, `${nextYm}-01 00:00:00`),
     tbForm ? fetchSubs(tbForm, `${ym}-01 00:00:00`, `${tbAfter} 00:00:00`) : Promise.resolve([]),
-    sdc ? fetchTz() : Promise.resolve(null),
+    sdc ? fetchTz() : Promise.resolve(null), // only the SDC checks deadlines
   ]);
   const results = [];
 
@@ -114,8 +114,11 @@ export default handler(async ({ req, session, body }) => {
     const mine = visitSubs.filter(s => normChapter(findAnswer(s, 'select chapter', 'chapter')) === c.key);
     const names = [e.sdc?.jotform_alias, e.sdc?.name].filter(Boolean);
     const theirs = mine.filter(s => names.some(n => nameMatches(findAnswer(s, 'name'), n)))
-      .map(s => { let vd = toDate(findAnswer(s, 'visit date', 'date')); const sd = (s.created_at || '').slice(0, 10);
-        const sw = swapDayMonth(vd); if (vd && sd && sw) { const l1 = dayDiff(sd, vd), l2 = dayDiff(sd, sw); if (!(l1 >= 0 && l1 <= 1) && l2 >= 0 && l2 <= 1) vd = sw; }
+      .map(s => { let vd = toDate(findAnswer(s, 'visit date', 'date'));
+        // submission day in IST (Jotform stamps created_at in the account's time zone, US Eastern by default)
+        const sd = s.created_at ? new Date(zonedToUtcMs(s.created_at, jotTz) + 330 * 60000).toISOString().slice(0, 10) : '';
+        // a date typed day-first (10-06 for 10 Oct) reads as June: keep whichever reading is on or before the submission and closest to it
+        const sw = swapDayMonth(vd); if (vd && sd && sw) { const l1 = dayDiff(sd, vd), l2 = dayDiff(sd, sw); if (l2 >= 0 && (l1 < 0 || l2 < l1)) vd = sw; }
         const late = vd && sd ? dayDiff(sd, vd) : null;
         return { s, visit_date: vd, submitted: sd, late_days: late, on_time: late !== null && late >= 0 && late <= limitDays }; });
     const match = theirs.find(t => t.on_time) || theirs[0] || null;
