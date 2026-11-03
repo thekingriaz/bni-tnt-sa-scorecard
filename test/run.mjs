@@ -229,3 +229,11 @@ const tp = trainingPercents(comb, 'kanya', 10, []);
 assert.deepEqual([tp.online_count, tp.offline_count, tp.unique_members], [1, 2, 3]); // re-uploaded online report (only a) replaced the first
 assert.equal(trainingPercents([{ key: 'k', member_key: 'z', event_type: 'Member Success Program' }], 'k', 10, ['Member Success Program']).online_count, 1); // old uploads: list fallback
 console.log('Training mode checks passed ✓');
+// Sales By Item (real Oct 2026 exports): New / Renewal x 12 / 24 months per chapter; registration and late fees ignored
+import { parseSalesByItem } from '../api/_lib/parsers.js';
+const sbT = parseSalesByItem(F('sales-by-item-tirunelveli-oct2026.xls')), sbN = parseSalesByItem(F('sales-by-item-nagercoil-tuticorin-oct2026.xls'));
+assert.equal(sbT.month, '2026-10'); assert.equal(sbT.region, 'Tirunelveli'); assert.equal(sbN.region, 'Nagercoil & Tuticorin');
+const sbk = Object.fromEntries([...sbT.rows, ...sbN.rows].map(r => [r.key, [r.new_members, r.new_2y, r.renewals, r.ren_2y]]));
+assert.deepEqual(sbk.ainthinai, [5, 0, 11, 5]); assert.deepEqual(sbk.korkai, [1, 0, 7, 3]); assert.deepEqual(sbk.kings, [7, 0, 1, 0]); assert.deepEqual(sbk.cmyveli, [0, 0, 4, 4]);
+assert.equal(sbk.kumari, undefined); assert.equal(sbT.ignored.length + sbN.ignored.length, 0);
+console.log('Sales By Item checks passed ✓');

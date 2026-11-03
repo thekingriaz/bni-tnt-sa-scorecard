@@ -395,6 +395,40 @@ export function nameMatches(typed, known) {
   return close(a[0], b[0]) && (Math.min(a[0].length, b[0].length) >= 4 || close(ja, jb));
 }
 
+/**
+ * BNI Connect "Chapter > Sales By Item" report (Region Sales By Item, .xls SpreadsheetML), one region, one month.
+ * Rows: Chapter Name | Product ("New Membership" / "Renewal Membership") | Item ("12 Month", "24 Month", "Registration Fee", "Late Fee") | Months | Numbers Sold.
+ * Only the 12 / 24 month membership items are members; registration and late fees are ignored.
+ * Returns { report, region, month, rows: [{chapter, key, new_members, renewals, new_2y, ren_2y}], ignored: [...] }.
+ */
+export function parseSalesByItem(text) {
+  const rows = readSpreadsheetML(text);
+  if (!rows.some(r => r.some(c => /sales by item/i.test(String(c || ''))))) throw new Error('This is not a Sales By Item report.');
+  const region = metaValue(rows, 'Region');
+  const from = String(metaValue(rows, 'From') || ''), to = String(metaValue(rows, 'To') || '');
+  const fm = from.slice(0, 7), tm = to.slice(0, 7);
+  if (!/^\d{4}-\d{2}$/.test(fm)) throw new Error(`Could not read the From date "${from}".`);
+  if (fm !== tm) throw new Error(`Report covers ${from.slice(0, 10)} to ${to.slice(0, 10)}. Run it for ONE calendar month (1st to last day).`);
+  const hIdx = rows.findIndex(r => /^chapter name$/i.test(String(r[0] || '').trim()) && r.some(c => /numbers sold/i.test(String(c || ''))));
+  if (hIdx < 0) throw new Error('Header row "Chapter Name ... Numbers Sold" not found.');
+  const h = rows[hIdx].map(c => String(c || '').trim().toLowerCase());
+  const cProd = h.indexOf('product'), cItem = h.indexOf('item'), cMonths = h.indexOf('months'), cSold = h.indexOf('numbers sold');
+  const by = {}, ignored = [];
+  for (const r of rows.slice(hIdx + 1)) {
+    const chapter = String(r[0] || '').trim(); if (!/^BNI\s/i.test(chapter)) continue;
+    const product = String(r[cProd] || '').toLowerCase(), item = String(r[cItem] || '');
+    const months = Number(r[cMonths]) || Number((/(\d+)\s*month/i.exec(item) || [])[1]) || 0;
+    const sold = Number(r[cSold]) || 0;
+    const type = /renewal/.test(product) ? 'renewal' : /new/.test(product) ? 'new' : null;
+    if (!type || !(months === 12 || months === 24)) { if (sold && !/registration fee|late fee/i.test(item)) ignored.push(`${chapter}: ${r[cProd]} ${item} × ${sold}`); continue; }
+    const key = normChapter(chapter.replace(/\.+$/, ''));
+    const b = by[key] || (by[key] = { chapter, key, new_members: 0, renewals: 0, new_2y: 0, ren_2y: 0 });
+    if (type === 'new') { b.new_members += sold; if (months === 24) b.new_2y += sold; }
+    else { b.renewals += sold; if (months === 24) b.ren_2y += sold; }
+  }
+  return { report: 'sales_by_item', region, month: fm, rows: Object.values(by), ignored };
+}
+
 // ---------- LTRT / DCRT attendance (Google Sheet downloaded as .xlsx; green = attended, red = absent) ----------
 const personKey = s => String(s || '').toLowerCase().replace(/\bdr\b\.?/g, '').replace(/[^a-z]/g, '');
 /**
