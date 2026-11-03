@@ -56,6 +56,8 @@ export default handler(async ({ req, session, body }) => {
     }
     const d = new Date(s); return Number.isNaN(d.getTime()) ? null : d.toISOString().slice(0, 10);
   };
+  // "Visited By" is the role (SA / SDC / SSDC); the person's own name is in the "Name" field
+  const who = s => [findAnswer(s, 'name'), findAnswer(s, 'visited by') && `(${findAnswer(s, 'visited by')})`].filter(Boolean).join(' ');
   const swapDayMonth = iso => { const [y, m, d] = String(iso || '').split('-').map(Number); return d && d <= 12 && d !== m ? `${y}-${String(d).padStart(2, '0')}-${String(m).padStart(2, '0')}` : null; };
   const dayDiff = (a, b) => Math.round((new Date(a + 'T00:00:00Z') - new Date(b + 'T00:00:00Z')) / 86400000);
 
@@ -88,7 +90,7 @@ export default handler(async ({ req, session, body }) => {
       const mine = visitSubs.filter(s => normChapter(findAnswer(s, 'select chapter', 'chapter')) === c.key);
       const alias = (e.sa?.jotform_alias || e.sa?.name || '').toLowerCase().trim();
       const match = mine.find(s => { const who = (findAnswer(s, 'visited by') + ' ' + findAnswer(s, 'name')).toLowerCase(); return alias && who.includes(alias); });
-      const row = { chapter: c.name, sa: e.sa?.name || null, submissions: mine.length, matched: !!match, submitters: mine.map(s => findAnswer(s, 'visited by') || findAnswer(s, 'name')) };
+      const row = { chapter: c.name, sa: e.sa?.name || null, submissions: mine.length, matched: !!match, submitters: mine.map(who) };
       if (e.jotform_auto === false && e.jotform_done !== null) { row.skipped = 'manual override'; results.push(row); continue; }
       saPatches.push(db.from('sa_entries').update({ jotform_done: !!match, jotform_auto: true, jotform_submission_id: match ? match.id : null }).eq('id', e.id));
       results.push(row);
@@ -118,7 +120,7 @@ export default handler(async ({ req, session, body }) => {
         return { s, visit_date: vd, submitted: sd, late_days: late, on_time: late !== null && late >= 0 && late <= limitDays }; });
     const match = theirs.find(t => t.on_time) || theirs[0] || null;
     const row = { chapter: c.name, sdc: e.sdc?.name || null, submissions: mine.length, matched: !!(match && match.on_time), late: !!(match && !match.on_time),
-      visit_date: match?.visit_date || null, submitted: match?.submitted || null, submitters: mine.map(s => findAnswer(s, 'visited by') || findAnswer(s, 'name')) };
+      visit_date: match?.visit_date || null, submitted: match?.submitted || null, submitters: mine.map(who) };
     if (e.visit_auto === false && e.visit_done !== null) { row.skipped = 'manual override'; results.push(row); continue; }
     entryPatches.push({ id: e.id, visit_done: row.matched, visit_auto: true, visit_submission_id: match ? match.s.id : null, visit_hours: match && match.late_days !== null ? match.late_days * 24 : null });
     results.push(row);
