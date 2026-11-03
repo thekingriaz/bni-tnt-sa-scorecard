@@ -31,14 +31,16 @@ export default handler(async ({ req, session, body }) => {
     timing['form_' + formId] = Date.now() - ts;
     return out;
   };
+  // Labels are tried in order (most specific first) and only answered fields count: the visit form opens with a
+  // "Record Chapter Visit" heading that also contains "chapter" but has no answer, which used to hide "Select Chapter".
   const findAnswer = (s, ...labels) => {
-    for (const a of Object.values(s.answers || {})) {
-      const t = (a.text || a.name || '').toLowerCase();
-      if (labels.some(l => t.includes(l))) {
-        const v = a.prettyFormat || a.answer;
-        if (v && typeof v === 'object') return v.datetime || [v.year, v.month, v.day].filter(Boolean).join('-') || Object.values(v).join(' ');
-        return v ? String(v) : '';
-      }
+    const answers = Object.values(s.answers || {}).filter(a => !/^control_(head|text|button|divider|image)$/.test(a.type || ''));
+    const valueOf = a => { const v = a.prettyFormat || a.answer;
+      if (v && typeof v === 'object') return String(v.datetime || [v.year, v.month, v.day].filter(Boolean).join('-') || Object.values(v).join(' ')).trim();
+      return v ? String(v).trim() : ''; };
+    for (const l of labels) for (const a of answers) {
+      if (!(a.text || a.name || '').toLowerCase().includes(l)) continue;
+      const v = valueOf(a); if (v) return v;
     }
     return '';
   };
@@ -92,8 +94,10 @@ export default handler(async ({ req, session, body }) => {
       results.push(row);
     }
     await Promise.all(saPatches);
+    const known = new Set(chapters.map(c => c.key));
+    const unrecognised = [...new Set(visitSubs.map(s => findAnswer(s, 'select chapter', 'chapter')).filter(v => !known.has(normChapter(v))))];
     await audit(session.uid, 'jotform.sync', { ym, submissions: visitSubs.length });
-    return { ok: true, ym, total_submissions: visitSubs.length, results };
+    return { ok: true, ym, total_submissions: visitSubs.length, results, unrecognised };
   }
 
   // ---------- SDC: chapter visits (24 h rule) ----------
