@@ -374,20 +374,20 @@ async function renderMonth(ym) {
   const sas = state.users ? state.users.filter(u => u.role === 'sa') : null;
   const num = (e, k, step = 'any', extra = '') => pub || e.legacy ? `<td class="num">${fmt(e[k], 2)}${extra}</td>` : `<td class="num"><input class="cell-in" type="number" step="${step}" data-id="${e.id}" data-k="${k}" value="${e[k] ?? ''}">${extra}</td>`;
   const yn = (e, k, a, b) => pub || e.legacy ? `<td>${e[k] === null ? '–' : e[k] ? a : b}</td>` : `<td><select class="cell-sel" data-id="${e.id}" data-k="${k}"><option value="" ${e[k] === null ? 'selected' : ''}>–</option><option value="1" ${e[k] === true ? 'selected' : ''}>${a}</option><option value="0" ${e[k] === false ? 'selected' : ''}>${b}</option></select>${k === 'jotform_done' && e.jotform_auto ? '<span class="auto">auto</span>' : ''}</td>`;
-  const rows = m.entries.map(e => { const c = e.computed; return `<tr>
+  const rows = m.entries.map(e => { const c = e.computed; return `<tr data-ch="${e.chapter_id}">
+    <td class="num c-rank"><b>#${c.rank}</b></td>
     <td><b>${esc(e.chapter.name.replace(/^BNI\s+/, ""))}</b><span class="auto">${esc(e.sa?.name || '<no SA>')}${e.sa && e.sa.active === false ? ' (inactive)' : ''}</span></td>
     ${num(e, 'member_score', '1')}
     ${num(e, 'online_pct', '0.01')}${num(e, 'offline_pct', '0.01')}
-    <td class="num muted">${fmt(e.member_count, 0)}</td>
+    <td class="num muted c-mem">${fmt(e.member_count, 0)}</td>
     ${num(e, 'retention_pct', '0.01', e.retention_na ? '<span class="auto" title="Chapter under 12 months: no First Year Retention on the 3+1 report. KPI skipped, other 55 points scaled to 100.">n/a: under 12 months</span>' : '')}
     ${num(e, 'one_to_one_per_member', '0.01')}
     ${attCell(e, pub || e.legacy)}
     ${yn(e, 'jotform_done', 'Done', 'Not done')}
     ${num(e, 'new_members', '1', e.new_2y ? `<span class="auto">${e.new_2y} × 2 yr</span>` : '')}${num(e, 'renewals', '1', e.ren_2y ? `<span class="auto">${e.ren_2y} × 2 yr</span>` : '')}
-    <td class="num"><b>${fmt(c.total_scaled, 0)}</b><span class="auto">${c.total_raw}/${c.max_total}</span></td>
-    <td><span class="pill ${c.band}">${c.band}</span></td>
-    <td class="num">${inr(c.payout)}</td>
-    <td class="num muted">#${c.rank}</td></tr>`; }).join('');
+    <td class="num c-score"><b>${fmt(c.total_scaled, 0)}</b><span class="auto">${c.total_raw}/${c.max_total}</span></td>
+    <td class="c-band"><span class="pill ${c.band}">${c.band}</span></td>
+    <td class="num c-pay">${inr(c.payout)}</td></tr>`; }).join('');
   app.innerHTML = adminNav() + `
   <div class="row" style="margin-bottom:12px"><button class="btn ghost sm" id="back">← Months</button><h2 style="margin:0">${monthName(ym)}</h2><span class="pill ${m.month.status}">${m.month.status}</span><div class="spacer"></div>
     <span class="small muted">Region avg <b>${fmt(m.region_avg)}</b></span>
@@ -405,7 +405,7 @@ async function renderMonth(ym) {
       <button class="btn navy sm" id="jot">Sync Jotform</button><div id="jot-log" class="small" style="margin-top:8px"></div></div>
   </div>`}
   <div class="card"><div class="tbl-wrap"><table class="month-tbl">
-    <thead><tr><th>Chapter / SA</th><th class="right">Member score</th><th class="right">Online %</th><th class="right">Offline %</th><th class="right">Members</th><th class="right">Retention %</th><th class="right">1-2-1 / member</th><th>LTRT · DCRT</th><th>Jotform</th><th class="right">New</th><th class="right">Renewals</th><th class="right">Score</th><th>Band</th><th class="right">Payout</th><th class="right">Rank</th></tr></thead>
+    <thead><tr><th class="right">Rank</th><th>Chapter / SA</th><th class="right">Member score</th><th class="right">Online %</th><th class="right">Offline %</th><th class="right">Members</th><th class="right">Retention %</th><th class="right">1-2-1 / member</th><th>LTRT · DCRT</th><th>Jotform</th><th class="right">New</th><th class="right">Renewals</th><th class="right">Score</th><th>Band</th><th class="right">Payout</th></tr></thead>
     <tbody>${rows}</tbody></table></div>
     ${pub ? '' : '<p class="small muted" style="margin-bottom:0">Edits save when you leave the cell. Online %, Offline %, Members and 1-2-1 come from the uploads; you can override them.</p>'}</div>`;
   bindNav();
@@ -426,12 +426,11 @@ async function renderMonth(ym) {
 }
 async function renderMonthScoresOnly(ym) { // cheap re-render after a save (keeps focus flow simple)
   const m = await api('admin/months?ym=' + ym);
-  const rows = app.querySelectorAll('tbody tr');
-  m.entries.forEach((e, i) => { const tr = rows[i]; if (!tr) return; const c = e.computed; const tds = tr.querySelectorAll('td');
-    tds[11].innerHTML = `<b>${fmt(c.total_scaled, 0)}</b><span class="auto">${c.total_raw}/${c.max_total}</span>`; tds[12].innerHTML = `<span class="pill ${c.band}">${c.band}</span>`; tds[13].textContent = inr(c.payout); tds[14].textContent = '#' + c.rank;
+  m.entries.forEach(e => { const tr = app.querySelector(`tbody tr[data-ch="${e.chapter_id}"]`); if (!tr) return; const c = e.computed; const tds = tr.querySelectorAll('td');
+    tr.querySelector('.c-score').innerHTML = `<b>${fmt(c.total_scaled, 0)}</b><span class="auto">${c.total_raw}/${c.max_total}</span>`; tr.querySelector('.c-band').innerHTML = `<span class="pill ${c.band}">${c.band}</span>`; tr.querySelector('.c-pay').textContent = inr(c.payout); tr.querySelector('.c-rank').innerHTML = '<b>#' + c.rank + '</b>';
     const jot = tr.querySelector('[data-k="jotform_done"]'); if (jot) { jot.value = e.jotform_done === null ? '' : e.jotform_done ? '1' : '0'; }
     for (const k of ['online_pct', 'offline_pct', 'one_to_one_per_member']) { const el = tr.querySelector(`[data-k="${k}"]`); if (el && document.activeElement !== el) el.value = e[k] ?? ''; }
-    tds[4].textContent = fmt(e.member_count, 0); });
+    tr.querySelector('.c-mem').textContent = fmt(e.member_count, 0); });
 }
 async function handleFiles(files, ym) {
   const log = $('#up-log'); state.upLog = '';
@@ -470,6 +469,7 @@ async function renderSdcMonth(ym) {
     : `<td><select class="cell-sel" data-id="${e.id}" data-k="tl_status"><option value="" ${!e.tl_status ? 'selected' : ''}>–</option>${['GREEN', 'AMBER', 'RED', 'GREY'].map(v => `<option ${e.tl_status === v ? 'selected' : ''}>${v}</option>`).join('')}</select>${e.tl_auto ? `<span class="auto">auto${e.tl_score != null ? ' · ' + fmt(e.tl_score, 0) : ''}</span>` : ''}</td>`;
   const netExtra = e => `<span class="auto">${e.legacy ? '' : e.net_add_auto && e.joined != null ? `${e.joined} joined, ${e.left_count} left` : e.net_add !== null && e.net_add !== undefined && e.net_add_auto === false ? 'typed by admin' : e.net_add_derived !== null && e.net_add_derived !== undefined ? `${fmt(e.prev_member_count, 0)}→${fmt(e.member_count, 0)} (estimate)` : 'upload Membership Activity'}</span>`;
   const rows = m.entries.map(e => { const c = e.computed; return `<tr data-ch="${e.chapter_id}">
+    <td class="num c-rank"><b>#${c.rank}</b></td>
     <td><b>${esc(e.chapter.name.replace(/^BNI\s+/, ''))}</b><span class="auto">${esc(e.sdc?.name || '<no SDC>')}${e.sdc && e.sdc.active === false ? ' (inactive)' : ''} · ${DOW[e.chapter.meeting_day] || '?'}</span></td>
     ${ro(e) ? `<td class="num">${e.net_add ?? '–'}${netExtra(e)}</td>` : `<td class="num"><input class="cell-in" type="number" step="1" data-id="${e.id}" data-k="net_add" value="${e.net_add ?? ''}" placeholder="${e.net_add_derived ?? ''}">${netExtra(e)}</td>`}
     ${tl(e)}
@@ -483,7 +483,7 @@ async function renderSdcMonth(ym) {
     <td class="num c-score">${sdcScoreCell(c)}</td>
     <td class="c-band"><span class="pill ${c.band}">${c.band}</span></td>
     <td class="num c-pay">${inr(c.payout)}</td>
-    <td class="num muted c-rank">#${c.rank}</td></tr>`; }).join('');
+    </tr>`; }).join('');
   // weekly grid
   const maxWeeks = Math.max(0, ...m.entries.map(e => (e.weeks || []).length));
   const tg = (w, k, label) => { const v = w[k]; return `<button class="${v === true ? 'y' : v === false ? 'n' : ''} ${k === 'telebridge_done' && w.telebridge_auto && v !== null ? 'auto' : ''}" data-w="${w.id}" data-k="${k}" data-v="${v === null || v === undefined ? '' : v ? 1 : 0}" ${pub ? 'disabled' : ''} title="${label}: ${v === true ? 'done' : v === false ? 'not done' : 'not recorded'}. Click to change.">${label} ${v === true ? '✓' : v === false ? '✗' : '·'}</button>`; };
@@ -514,7 +514,7 @@ async function renderSdcMonth(ym) {
       <button class="btn navy sm" id="jot">Sync Jotform</button><div id="jot-log" class="small" style="margin-top:8px"></div></div>
   </div>`}
   <div class="card"><div class="tbl-wrap"><table class="month-tbl">
-    <thead><tr><th>Chapter / SDC</th><th class="right">Net add</th><th>Traffic light</th><th class="right">Renewal %</th><th class="right">Member score</th><th class="right">TB</th><th class="right">PALMS</th><th>Visit 24h</th><th>LTRT · DCRT</th><th class="right">Paid</th><th class="right">Score</th><th>Band</th><th class="right">Payout</th><th class="right">Rank</th></tr></thead>
+    <thead><tr><th class="right">Rank</th><th>Chapter / SDC</th><th class="right">Net add</th><th>Traffic light</th><th class="right">Renewal %</th><th class="right">Member score</th><th class="right">TB</th><th class="right">PALMS</th><th>Visit 24h</th><th>LTRT · DCRT</th><th class="right">Paid</th><th class="right">Score</th><th>Band</th><th class="right">Payout</th></tr></thead>
     <tbody>${rows}</tbody></table></div>
     ${pub ? '' : '<p class="small muted" style="margin-bottom:0">Edits save when you leave the cell. Net add comes from the Membership Activity upload (joined minus left); type a number to override. Traffic light comes from the upload; pick a value to override. "Paid" (new + renewals) is typed on the SA month.</p>'}</div>
   ${grid}`;
@@ -596,7 +596,7 @@ function refreshSdcScores(ym) { // debounced: rapid clicks cause one fetch
       const tr = app.querySelector(`tr[data-ch="${e.chapter_id}"]`); if (!tr) continue; const c = e.computed;
       const set = (sel, html) => { const el = tr.querySelector(sel); if (el) el.innerHTML = html; };
       set('.c-tb', sdcWeekCell(e, 'telebridge')); set('.c-palms', sdcWeekCell(e, 'palms')); set('.c-score', sdcScoreCell(c));
-      set('.c-band', `<span class="pill ${c.band}">${c.band}</span>`); set('.c-pay', inr(c.payout)); set('.c-rank', '#' + c.rank);
+      set('.c-band', `<span class="pill ${c.band}">${c.band}</span>`); set('.c-pay', inr(c.payout)); set('.c-rank', '<b>#' + c.rank + '</b>');
     }
     const avg = app.querySelector('#sdc-avg'); if (avg) avg.textContent = fmt(m.region_avg);
   }, 350);
