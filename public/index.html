@@ -389,7 +389,7 @@ async function renderMonth(ym) {
     <td class="c-band"><span class="pill ${c.band}">${c.band}</span></td>
     <td class="num c-pay">${inr(c.payout)}</td></tr>`; }).join('');
   app.innerHTML = adminNav() + `
-  <div class="row" style="margin-bottom:12px"><button class="btn ghost sm" id="back">← Months</button><h2 style="margin:0">${monthName(ym)}</h2><span class="pill ${m.month.status}">${m.month.status}</span><div class="spacer"></div>
+  <div class="row" style="margin-bottom:12px"><button class="btn ghost sm" id="back">← Months</button><h2 style="margin:0">${monthName(ym)}</h2><span class="pill ${m.month.status}">${m.month.status}</span><div class="spacer"></div><button class="btn ghost sm" id="export">Export to Excel</button>
     <span class="small muted">Region avg <b>${fmt(m.region_avg)}</b></span>
     ${base ? '<span class="pill draft">baseline</span>' : pub ? `<button class="btn ghost sm" id="unpub">Unpublish</button>` : `<button class="btn" id="pub">Publish month</button>`}</div>
   ${base ? `<div class="banner">${monthName(ym)} is before the go-live month (${monthName(m.go_live_ym)}). It only holds member counts so ${monthName(m.go_live_ym)} net growth can be calculated. It is never scored or shown to SAs or SDCs.</div>` : ''}
@@ -410,6 +410,7 @@ async function renderMonth(ym) {
     ${pub ? '' : '<p class="small muted" style="margin-bottom:0">Edits save when you leave the cell. Online %, Offline %, Members and 1-2-1 come from the uploads; you can override them.</p>'}</div>`;
   bindNav();
   $('#back').onclick = () => { state.month = null; state.upLog = ''; renderAdmin(); };
+  $('#export').onclick = () => exportMonth(ym, 'sa');
   if ($('#pub')) $('#pub').onclick = async () => { if (!confirm(`Publish ${monthName(ym)}? SAs will see their scores and payout immediately.`)) return; try { await api('admin/months', { method: 'POST', body: { action: 'publish', ym } }); toast('Published'); renderMonth(ym); } catch (e) { toast(e.message, true); } };
   if ($('#unpub')) $('#unpub').onclick = async () => { if (!confirm('Unpublish? SAs will stop seeing this month until you publish again.')) return; try { await api('admin/months', { method: 'POST', body: { action: 'unpublish', ym } }); renderMonth(ym); } catch (e) { toast(e.message, true); } };
   const save = async (id, k, v) => { try { await api('admin/entries', { method: 'PUT', body: { id, [k]: v } }); renderMonthScoresOnly(ym); } catch (e) { toast(e.message, true); } };
@@ -491,7 +492,7 @@ async function renderSdcMonth(ym) {
     <div class="tbl-wrap" style="margin-top:10px"><table class="month-tbl"><thead><tr><th>Chapter</th>${Array.from({ length: maxWeeks }, (_, i) => `<th>Week ${i + 1}</th>`).join('')}</tr></thead>
     <tbody>${m.entries.filter(e => !e.legacy).map(e => `<tr><td><b>${esc(e.chapter.name.replace(/^BNI\s+/, ''))}</b><span class="auto">${DOW[e.chapter.meeting_day] || ''}</span></td>${(e.weeks || []).map(w => `<td><div class="wk ${w.no_meeting ? 'off' : ''}"><small>${dmy(w.week_date)}</small><div class="tg">${tg(w, 'telebridge_done', 'TB')}${tg(w, 'palms_done', 'PALMS')}</div>${pub ? '' : `<span class="nm" data-nm="${w.id}" data-v="${w.no_meeting ? 1 : 0}">${w.no_meeting ? 'no meeting · undo' : 'no meeting'}</span>`}</div></td>`).join('')}${'<td></td>'.repeat(maxWeeks - (e.weeks || []).length)}</tr>`).join('')}</tbody></table></div></div>` : '';
   app.innerHTML = adminNav() + `
-  <div class="row" style="margin-bottom:12px"><button class="btn ghost sm" id="back">← Months</button><h2 style="margin:0">${monthName(ym)} · SDC</h2><span class="pill ${m.month.sdc_status}">${m.month.sdc_status}</span><div class="spacer"></div>
+  <div class="row" style="margin-bottom:12px"><button class="btn ghost sm" id="back">← Months</button><h2 style="margin:0">${monthName(ym)} · SDC</h2><span class="pill ${m.month.sdc_status}">${m.month.sdc_status}</span><div class="spacer"></div><button class="btn ghost sm" id="export">Export to Excel</button>
     <span class="small muted">Region avg <b id="sdc-avg">${fmt(m.region_avg)}</b></span>
     ${base ? '<span class="pill draft">baseline</span>' : pub ? `<button class="btn ghost sm" id="unpub">Unpublish</button>` : `<button class="btn" id="pub">Publish month</button>`}</div>
   ${base ? `<div class="banner">${monthName(ym)} is before the go-live month (${monthName(m.go_live_ym)}). Nothing needs to be entered here: net growth now comes from each month's own Membership Activity report. This month is never scored or shown to SDCs.</div>` : ''}
@@ -520,6 +521,7 @@ async function renderSdcMonth(ym) {
   ${grid}`;
   bindNav();
   $('#back').onclick = () => { state.month = null; state.upLog = ''; renderAdmin(); };
+  $('#export').onclick = () => exportMonth(ym, 'sdc');
   if ($('#pub')) $('#pub').onclick = async () => { if (!confirm(`Publish ${monthName(ym)} for SDCs? They will see their scores and payout immediately.`)) return; try { await api('admin/months', { method: 'POST', body: { action: 'publish', ym, programme: 'sdc' } }); toast('Published'); renderSdcMonth(ym); } catch (e) { toast(e.message, true); } };
   if ($('#unpub')) $('#unpub').onclick = async () => { if (!confirm('Unpublish? SDCs will stop seeing this month until you publish again.')) return; try { await api('admin/months', { method: 'POST', body: { action: 'unpublish', ym, programme: 'sdc' } }); renderSdcMonth(ym); } catch (e) { toast(e.message, true); } };
   // Saves never re-render the page: buttons flip instantly, then only the score cells refresh in the background.
@@ -716,6 +718,53 @@ function fridayFromLines(lines) {
   if (max === null) return null;
   const d = new Date(max); while (d.getUTCDay() !== 5) d.setUTCDate(d.getUTCDate() + 1);
   return d.toISOString().slice(0, 10);
+}
+/** Excel export of a month (fresh from the server): one row per chapter with inputs, points per KPI, score, band and payout working. */
+async function exportMonth(ym, prog) {
+  const btn = $('#export'); btn.disabled = true; btn.textContent = 'Preparing…';
+  try {
+    await loadSheetJS();
+    const m = await api('admin/months?ym=' + ym + (prog === 'sdc' ? '&programme=sdc' : ''));
+    const yesNo = v => v === true ? 'Yes' : v === false ? 'No' : '';
+    const n2 = v => v === null || v === undefined || v === '' ? '' : Math.round(Number(v) * 100) / 100;
+    const payCols = c => { const o = {}; for (const l of c.payout_lines || []) { o[l.label + ' (count)'] = l.count; o[l.label + ' (₹ each)'] = l.per; } return o; };
+    const rows = m.entries.map(e => { const c = e.computed, p = c.points || {};
+      const head = { Rank: c.rank, Chapter: e.chapter.name, [prog === 'sdc' ? 'Support DC' : 'Support Ambassador']: (prog === 'sdc' ? e.sdc?.name : e.sa?.name) || '' };
+      const body = prog === 'sdc' ? {
+        'Joined': n2(e.joined), 'Left': n2(e.left_count), 'Net add': n2(e.net_add), 'Pts: Net growth': p.net_growth,
+        'Traffic light': e.tl_status || '', 'TL score': n2(e.tl_score), 'Pts: Traffic light': p.traffic_light,
+        'Renewal % (overall retention)': e.retention_na ? 'n/a (under 12 months)' : n2(e.retention_pct), 'Pts: Renewal %': e.retention_na ? 'n/a' : p.retention,
+        'Member score': n2(e.member_score), 'Pts: Member score': p.member,
+        'Meetings held': e.meetings_total, 'Tele-Bridge on time (weeks)': e.telebridge_weeks, 'Pts: Tele-Bridge': p.telebridge,
+        'PALMS on time (weeks)': e.palms_weeks, 'Pts: PALMS': p.palms,
+        'Visit within 24 h': yesNo(e.visit_done), 'Pts: Visit': p.visit,
+        'LTRT attended': yesNo(e.ltrt_att), 'DCRT attended': yesNo(e.dcrt_att), 'Pts: LTRT/DCRT': p.ltrt,
+      } : {
+        'Member score': n2(e.member_score), 'Pts: Member score': p.member,
+        'Members': n2(e.member_count), 'Trained (unique)': n2(e.training_unique), 'Online %': n2(e.online_pct), 'Offline %': n2(e.offline_pct), 'Pts: Training': p.training,
+        '1st-year retention %': e.retention_na ? 'n/a (under 12 months)' : n2(e.retention_pct), 'Pts: Retention': e.retention_na ? 'n/a' : p.retention,
+        '1-2-1 per member': n2(e.one_to_one_per_member), 'Pts: 1-2-1': p.one_to_one,
+        'LTRT attended': yesNo(e.ltrt_att), 'DCRT attended': yesNo(e.dcrt_att), 'Pts: LTRT/DCRT': p.ltrt,
+        'Chapter visit (Jotform)': yesNo(e.jotform_done), 'Pts: Visit': p.visit,
+      };
+      return { ...head, ...body, 'Raw points': c.total_raw, 'Out of': c.max_total, 'Score (out of 100)': n2(c.total_scaled), 'Band': c.band, 'Multiplier': c.multiplier,
+        'New members': n2(e.new_members), 'Renewals': n2(e.renewals), ...payCols(c), 'Base commission (₹)': c.base_payout, 'Payout (₹)': c.payout };
+    });
+    const wb = XLSX.utils.book_new();
+    const ws = XLSX.utils.json_to_sheet(rows); ws['!cols'] = Object.keys(rows[0] || {}).map(k => ({ wch: Math.max(10, Math.min(28, k.length + 2)) }));
+    XLSX.utils.book_append_sheet(wb, ws, prog === 'sdc' ? 'SDC scorecard' : 'SA scorecard');
+    if (prog === 'sdc') {
+      const weeks = m.entries.flatMap(e => (e.weeks || []).map(w => ({ Chapter: e.chapter.name, 'Support DC': e.sdc?.name || '', 'Meeting date': w.week_date,
+        'No meeting': w.no_meeting ? 'Yes' : '', 'Tele-Bridge on time': w.no_meeting ? '' : yesNo(w.telebridge_done), 'PALMS on time': w.no_meeting ? '' : yesNo(w.palms_done) })));
+      if (weeks.length) { const ww = XLSX.utils.json_to_sheet(weeks); ww['!cols'] = [{ wch: 20 }, { wch: 20 }, { wch: 13 }, { wch: 11 }, { wch: 18 }, { wch: 15 }]; XLSX.utils.book_append_sheet(wb, ww, 'Weekly grid'); }
+    }
+    const note = [[`${prog === 'sdc' ? 'Support DC' : 'Support Ambassador'} Scorecard, ${monthName(ym)}`], [`Status: ${prog === 'sdc' ? m.month.sdc_status : m.month.status}. Exported ${new Date().toLocaleString('en-IN')} from sa.bnitnt.in.`],
+      ['Score = raw points ÷ out of × 100. Payout = base commission × band multiplier.'], ['Commission per member = fee without GST, less BNI tech fee and royalty, × ' + (prog === 'sdc' ? 'SDC' : 'SA') + ' %.'], ['Region average: ' + m.region_avg]];
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(note), 'Notes');
+    XLSX.writeFile(wb, `${prog === 'sdc' ? 'SDC' : 'SA'} Scorecard ${monthName(ym)}.xlsx`);
+    toast('Excel file downloaded');
+  } catch (e) { toast(e.message, true); }
+  finally { btn.disabled = false; btn.textContent = 'Export to Excel'; }
 }
 /** 3+1 Traffic Lights workbook. Sheet "Chapter NPS (Total to Date)" (BNI's name; the NPS score is not used) holds, per chapter,
  *  Overall Retention (SDC Renewal %) and First Year Retention (SA 1st-Year Retention). One upload fills both. Returns the result, or null if not this file. */
