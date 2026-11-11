@@ -1,7 +1,7 @@
 import { db, handler, fail, audit, loadSettings } from '../_lib/db.js';
 import { recomputeTraining } from '../_lib/training.js';
 
-const KEYS = ['fee_types', 'royalty_pct', 'fee_amount', 'commission_pct', 'sdc_commission_pct', 'telebridge_form_id', 'mentoring_enabled', 'one_to_one_threshold', 'online_event_types', 'jotform_form_id', 'thresholds', 'bands', 'max_pts'];
+const KEYS = ['senior_commission_pct', 'fee_types', 'royalty_pct', 'fee_amount', 'commission_pct', 'sdc_commission_pct', 'telebridge_form_id', 'mentoring_enabled', 'one_to_one_threshold', 'online_event_types', 'jotform_form_id', 'thresholds', 'bands', 'max_pts'];
 
 // GET -> settings + chapters + known event types (from uploads)
 // PUT { key: value, ... } -> update; recomputes training % for draft months when the online list changes
@@ -19,6 +19,7 @@ export default handler(async ({ req, session, body }) => {
   if ('fee_amount' in patch) patch.fee_amount = Number(patch.fee_amount);
   if ('commission_pct' in patch) patch.commission_pct = Number(patch.commission_pct);
   if ('sdc_commission_pct' in patch) patch.sdc_commission_pct = Number(patch.sdc_commission_pct);
+  if ('senior_commission_pct' in patch) patch.senior_commission_pct = Number(patch.senior_commission_pct);
   if ('fee_types' in patch) {
     const cur = (await loadSettings()).fee_types;
     patch.fee_types = cur.map(t => { const u = (patch.fee_types || []).find(x => x.key === t.key) || {};
@@ -42,8 +43,14 @@ export default handler(async ({ req, session, body }) => {
   if (body.chapters) { // optional chapter edits: [{id?, name, key, region, sort_order, active}]
     for (const c of body.chapters) {
       const row = { name: c.name, key: c.key, region: c.region, sort_order: Number(c.sort_order || 0), active: c.active !== false, meeting_day: c.meeting_day === '' || c.meeting_day === undefined || c.meeting_day === null ? null : Number(c.meeting_day) };
+      if ('senior_user_id' in c) row.senior_user_id = c.senior_user_id ? Number(c.senior_user_id) : null;
       const r = c.id ? await db.from('sa_chapters').update(row).eq('id', c.id) : await db.from('sa_chapters').insert(row);
       if (r.error) throw r.error;
+      // a changed Senior DC applies to SDC months not yet published
+      if (c.id && 'senior_user_id' in c) {
+        const { data: open } = await db.from('sa_months').select('id').eq('sdc_status', 'draft').gte('ym', (await loadSettings()).go_live_ym || '2026-10');
+        if (open?.length) await db.from('sdc_entries').update({ senior_user_id: row.senior_user_id }).eq('chapter_id', c.id).in('month_id', open.map(m => m.id));
+      }
     }
   }
   await audit(session.uid, 'settings.update', patch);

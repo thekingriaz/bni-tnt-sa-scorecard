@@ -10,7 +10,7 @@ import { db, handler, fail, audit } from '../_lib/db.js';
 //        re-points draft entries from from_ym onward to the new SA (history by person).
 export default handler(async ({ req, session, body }) => {
   if (req.method === 'GET') {
-    const { data } = await db.from('sa_users').select('id,role,name,email,chapter_id,jotform_alias,active,created_at,last_login_at, chapter:sa_chapters(name)').order('role').order('name');
+    const { data } = await db.from('sa_users').select('id,role,name,email,chapter_id,jotform_alias,active,created_at,last_login_at,senior_id, chapter:sa_chapters!sa_users_chapter_id_fkey(name)').order('role').order('name');
     return { users: data };
   }
   if (req.method !== 'POST') throw fail('POST only', 405);
@@ -26,6 +26,14 @@ export default handler(async ({ req, session, body }) => {
     await audit(session.uid, 'user.create_' + role, { id: r.data.id, name: body.name });
     return { ok: true, id: r.data.id };
   }
+  if (a === 'create_senior') {
+    if (!body.name || !body.pin) throw fail('name and pin are required');
+    if (!/^\d{4,8}$/.test(String(body.pin))) throw fail('PIN must be 4 to 8 digits');
+    const r = await db.from('sa_users').insert({ role: 'ssdc', name: body.name.trim(), pin_hash: await hash(body.pin), jotform_alias: body.name.trim() }).select().single();
+    if (r.error) throw r.error;
+    await audit(session.uid, 'user.create_ssdc', { id: r.data.id, name: body.name });
+    return { ok: true, id: r.data.id };
+  }
   if (a === 'create_admin') {
     if (!body.name || !body.email || !body.password) throw fail('name, email and password are required');
     if (String(body.password).length < 8) throw fail('Password must be at least 8 characters');
@@ -36,7 +44,8 @@ export default handler(async ({ req, session, body }) => {
   }
   if (a === 'update') {
     const patch = {};
-    for (const k of ['name', 'chapter_id', 'jotform_alias', 'active', 'email']) if (k in body) patch[k] = body[k];
+    for (const k of ['name', 'chapter_id', 'jotform_alias', 'active', 'email', 'senior_id']) if (k in body) patch[k] = body[k];
+    if ('senior_id' in patch) patch.senior_id = patch.senior_id ? Number(patch.senior_id) : null;
     if ('chapter_id' in patch) patch.chapter_id = patch.chapter_id ? Number(patch.chapter_id) : null;
     if (Number(body.id) === session.uid && patch.active === false) throw fail('You cannot deactivate yourself');
     const r = await db.from('sa_users').update(patch).eq('id', Number(body.id));
@@ -46,7 +55,7 @@ export default handler(async ({ req, session, body }) => {
   }
   if (a === 'set_pin') {
     if (!/^\d{4,8}$/.test(String(body.pin || ''))) throw fail('PIN must be 4 to 8 digits');
-    const r = await db.from('sa_users').update({ pin_hash: await hash(body.pin) }).eq('id', Number(body.id)).in('role', ['sa', 'sdc']);
+    const r = await db.from('sa_users').update({ pin_hash: await hash(body.pin) }).eq('id', Number(body.id)).in('role', ['sa', 'sdc', 'ssdc']);
     if (r.error) throw r.error;
     await audit(session.uid, 'user.set_pin', { id: body.id });
     return { ok: true };

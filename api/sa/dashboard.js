@@ -7,6 +7,7 @@ import { nextSdcBandHints, mergeSdcSettings, dowName } from '../_lib/scoring_sdc
 // GET: everything the SA / SDC dashboard needs. Only the person's own entries (history by person), rank, region average.
 export default handler(async ({ session }) => {
   if (session.role === 'sdc') return sdcDashboard(session);
+  if (session.role === 'ssdc') return seniorDashboard(session);
   if (session.role !== 'sa') return { error: 'SA / SDC accounts only' };
   const settings = await loadSettings();
   const { data: mine } = await db.from('sa_entries')
@@ -32,7 +33,7 @@ export default handler(async ({ session }) => {
       hints: me.legacy ? null : nextBandHints(me, settings),
     });
   }
-  const { data: user } = await db.from('sa_users').select('id,name,chapter:sa_chapters(id,name,region)').eq('id', session.uid).single();
+  const { data: user } = await db.from('sa_users').select('id,name,chapter:sa_chapters!sa_users_chapter_id_fkey(id,name,region)').eq('id', session.uid).single();
   return {
     user, programme: 'sa', settings: {
       fee_amount: settings.fee_amount, commission_pct: settings.commission_pct, mentoring_enabled: settings.mentoring_enabled,
@@ -71,10 +72,32 @@ async function sdcDashboard(session) {
       hints: me.legacy ? null : nextSdcBandHints(me, settings),
     });
   }
-  const { data: user } = await db.from('sa_users').select('id,name,chapter:sa_chapters(id,name,region,meeting_day)').eq('id', session.uid).single();
+  const { data: user } = await db.from('sa_users').select('id,name,chapter:sa_chapters!sa_users_chapter_id_fkey(id,name,region,meeting_day)').eq('id', session.uid).single();
   return {
     user, programme: 'sdc',
     settings: { fee_amount: settings.fee_amount, commission_pct: settings.sdc_commission_pct, thresholds: settings.sdc_thresholds, max_pts: settings.sdc_max_pts, bands: settings.bands },
     history,
   };
+}
+
+/** Senior DC: every published SDC month, the chapters this person covers, members paid and their share. */
+async function seniorDashboard(session) {
+  const settings = mergeSdcSettings(await loadSettings());
+  const goLive = settings.go_live_ym || '2026-10';
+  const { data: mine } = await db.from('sdc_entries').select('id, month:sa_months!inner(id,ym,sdc_status)')
+    .eq('senior_user_id', session.uid).eq('month.sdc_status', 'published');
+  const yms = [...new Set((mine || []).map(e => e.month.ym))].filter(ym => ym >= goLive).sort();
+  const loaded = await loadSdcMonths(yms, settings);
+  const months = loaded.map(m => {
+    const rows = m.entries.filter(e => e.senior_user_id === session.uid).map(e => e.senior_dual ? {
+      chapter: e.chapter.name, as_sdc: true, members_paid: e.computed.members_paid, rate: e.computed.rate,
+      band: e.computed.band, multiplier: e.computed.multiplier, score: e.computed.total_scaled, payout_lines: e.computed.payout_lines, payout: e.computed.payout,
+    } : {
+      chapter: e.chapter.name, as_sdc: false, sdc: e.sdc?.name || null, members_paid: e.senior_computed?.members_paid ?? 0,
+      rate: e.senior_computed?.rate, payout_lines: e.senior_computed?.payout_lines || [], payout: e.senior_computed?.payout ?? 0,
+    });
+    return { ym: m.month.ym, rows, total: rows.reduce((a, r) => a + (r.payout || 0), 0) };
+  }).filter(m => m.rows.length);
+  const { data: user } = await db.from('sa_users').select('id,name').eq('id', session.uid).single();
+  return { user, programme: 'ssdc', settings: { senior_pct: settings.senior_commission_pct ?? 2.5, sdc_pct: settings.sdc_commission_pct }, months };
 }

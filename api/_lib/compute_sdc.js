@@ -1,5 +1,5 @@
 import { db, loadSettings } from './db.js';
-import { scoreSdcEntry, meetingDates, weekCounts } from './scoring_sdc.js';
+import { scoreSdcEntry, seniorPayout, meetingDates, weekCounts } from './scoring_sdc.js';
 
 const DEFAULT_PREV = {};
 /** Loads an SDC month: entries + weeks joined with chapter + SDC, live scores for non-legacy rows, ranks. */
@@ -20,7 +20,7 @@ export async function loadSdcMonths(yms, settings) {
   const ids = (months || []).map(m => m.id);
   if (!ids.length) return [];
   const [{ data: entries, error }, { data: weeks }, { data: saRows }, { data: prevSdc }] = await Promise.all([
-    db.from('sdc_entries').select('*, chapter:sa_chapters(id,name,region,sort_order,meeting_day), sdc:sa_users!sdc_entries_sdc_user_id_fkey(id,name,active)').in('month_id', ids),
+    db.from('sdc_entries').select('*, chapter:sa_chapters(id,name,region,sort_order,meeting_day), sdc:sa_users!sdc_entries_sdc_user_id_fkey(id,name,active,senior_id), senior:sa_users!sdc_entries_senior_user_id_fkey(id,name,active)').in('month_id', ids),
     db.from('sdc_weeks').select('*').in('month_id', ids).order('week_date'),
     db.from('sa_entries').select('month_id,chapter_id,new_members,renewals,new_2y,ren_2y,member_count').in('month_id', ids),
     db.from('sdc_entries').select('month_id,chapter_id,member_count').in('month_id', ids),
@@ -49,8 +49,11 @@ export async function loadSdcMonths(yms, settings) {
         net_add: e.net_add ?? derived,
         members_paid: (Number(sa?.new_members || 0) + Number(sa?.renewals || 0)),
         new_members: sa?.new_members ?? null, renewals: sa?.renewals ?? null, new_2y: sa?.new_2y ?? 0, ren_2y: sa?.ren_2y ?? 0,
+        senior_dual: !!(e.senior_user_id && e.sdc?.senior_id && e.sdc.senior_id === e.senior_user_id),
       };
-      return { ...effective, weeks: w, computed: e.legacy ? legacyComputed(e) : scoreSdcEntry(effective, s) };
+      // Senior DC line: own 2.5% in full, unless the Senior DC is this chapter's SDC (then it is inside the SDC's 10%)
+      const senior = e.senior_user_id && !effective.senior_dual && !e.legacy ? seniorPayout(effective, s) : null;
+      return { ...effective, weeks: w, senior_computed: senior, computed: e.legacy ? legacyComputed(e) : scoreSdcEntry(effective, s) };
     });
     rows.sort((a, b) => b.computed.total_scaled - a.computed.total_scaled || (a.chapter?.sort_order || 0) - (b.chapter?.sort_order || 0));
     rows.forEach((r, i) => { r.computed.rank = i + 1; });
@@ -76,12 +79,12 @@ export async function ensureSdcMonth(ym, userId) {
     const ins = await db.from('sa_months').insert({ ym }).select().single();
     if (ins.error) throw ins.error; month = ins.data;
   }
-  const { data: chapters } = await db.from('sa_chapters').select('id,meeting_day').eq('active', true);
+  const { data: chapters } = await db.from('sa_chapters').select('id,meeting_day,senior_user_id').eq('active', true);
   const { data: sdcs } = await db.from('sa_users').select('id,chapter_id').eq('role', 'sdc').eq('active', true);
   const byChapter = {}; for (const u of sdcs || []) byChapter[u.chapter_id] = u.id;
   const { data: existing } = await db.from('sdc_entries').select('chapter_id').eq('month_id', month.id);
   const have = new Set((existing || []).map(e => e.chapter_id));
-  const missing = (chapters || []).filter(c => !have.has(c.id)).map(c => ({ month_id: month.id, chapter_id: c.id, sdc_user_id: byChapter[c.id] || null, updated_by: userId }));
+  const missing = (chapters || []).filter(c => !have.has(c.id)).map(c => ({ month_id: month.id, chapter_id: c.id, sdc_user_id: byChapter[c.id] || null, senior_user_id: c.senior_user_id || null, updated_by: userId }));
   if (missing.length) { const r = await db.from('sdc_entries').insert(missing); if (r.error) throw r.error; }
   // weeks
   const { data: wk } = await db.from('sdc_weeks').select('chapter_id,week_date').eq('month_id', month.id);

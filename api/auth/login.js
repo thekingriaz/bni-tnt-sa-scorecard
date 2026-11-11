@@ -13,6 +13,12 @@ export default handler(async ({ req, res, body }) => {
       throw fail('Wrong email or password', 401);
     }
     user = data;
+  } else if (body.mode === 'ssdc') {
+    const id = Number(body.user_id), pin = String(body.pin || '').trim();
+    if (!id || !pin) throw fail('Pick your name and enter your PIN');
+    const { data } = await db.from('sa_users').select('*').eq('role', 'ssdc').eq('id', id).eq('active', true).maybeSingle();
+    if (!data || !data.pin_hash || !(await bcrypt.compare(pin, data.pin_hash))) throw fail('Wrong PIN', 401);
+    user = data;
   } else {
     const chapter_id = Number(body.chapter_id);
     const pin = String(body.pin || '').trim();

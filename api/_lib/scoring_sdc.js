@@ -3,7 +3,8 @@ import { DEFAULT_SETTINGS, bandFor, payoutLines } from './scoring.js';
 import { attendancePoints } from './parsers.js';
 
 export const SDC_DEFAULTS = {
-  sdc_commission_pct: 7.5,     // % of fee_amount per member paid (fee_amount shared with SAs)
+  sdc_commission_pct: 7.5,
+  senior_commission_pct: 2.5,  // Senior DC share, paid in full; added to the SDC's % where one person holds both roles     // % of fee_amount per member paid (fee_amount shared with SAs)
   sdc_thresholds: {
     net_growth: [{ min: 2, pts: 20 }, { min: 1, pts: 10 }],
     retention:  [{ min: 80, pts: 20 }, { min: 70, pts: 10 }],
@@ -100,16 +101,26 @@ export function scoreSdcEntry(entry, settings) {
   const scaled = maxTotal > 0 ? Math.round((raw / maxTotal) * 100 * 100) / 100 : 0;
   const band = bandFor(scaled, s);
 
-  const pl = payoutLines(e, s, s.sdc_commission_pct); // counts come from the SA month (Commission Report upload)
+  // Where the chapter's Senior DC is the SDC too, the SDC is paid both shares (10%) x the scorecard multiplier
+  const rate = Number(s.sdc_commission_pct) + (e.senior_dual ? Number(s.senior_commission_pct ?? 2.5) : 0);
+  const pl = payoutLines(e, s, rate); // counts come from the SA month (Commission Report / Sales By Item upload)
   const members = pl.members, basePayout = pl.base_payout;
   const payout = Math.round(basePayout * band.multiplier);
 
   return {
     points: pts, total_raw: raw, max_total: maxTotal, total_scaled: scaled,
     band: band.label, band_emoji: band.emoji, band_name: band.name, multiplier: band.multiplier,
-    members_paid: members, payout_lines: pl.lines, base_payout: Math.round(basePayout), payout,
+    members_paid: members, payout_lines: pl.lines, base_payout: Math.round(basePayout), payout, rate, senior_dual: !!e.senior_dual,
     meetings_total: meetings, retention_na: !retentionApplies,
   };
+}
+
+/** Senior DC payout for one chapter: senior % of each member's commission base, paid in full (no scorecard). */
+export function seniorPayout(entry, settings) {
+  const s = mergeSdcSettings(settings);
+  const pct = Number(s.senior_commission_pct ?? 2.5);
+  const pl = payoutLines(entry || {}, s, pct);
+  return { rate: pct, members_paid: pl.members, payout_lines: pl.lines, payout: pl.base_payout };
 }
 
 /** "What do I need to reach the next band" hints for SDCs. */

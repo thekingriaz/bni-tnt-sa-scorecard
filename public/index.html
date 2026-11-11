@@ -50,6 +50,7 @@ th,td{padding:9px 8px;border-bottom:1px solid var(--line);text-align:left;vertic
 th{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;font-weight:600;background:#FAFBFC}
 tr:last-child td{border-bottom:0}
 .tbl-wrap{overflow:auto;-webkit-overflow-scrolling:touch}
+.kpi-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px}.kpi{background:var(--bg,#f6f7fb);border-radius:10px;padding:12px 14px}
 .pay-lines{width:100%;margin-top:8px}.pay-lines td{padding:3px 0;border:0}.pay-lines tr:nth-last-child(2) td{border-top:1px solid var(--line);padding-top:6px}
 .kpi-max{color:var(--muted);font-size:12px}
 .pts{font-weight:700} .pts.zero{color:var(--redband)} .pts.full{color:var(--green)}
@@ -142,13 +143,13 @@ function payoutHtml(c, members) {
 }
 /* =============================== boot =============================== */
 async function boot() {
-  try { const me = await api('auth/me'); state.user = me.user; state.chapters = me.chapters || []; }
+  try { const me = await api('auth/me'); state.user = me.user; state.chapters = me.chapters || []; state.seniors = me.seniors || []; }
   catch (e) { app.innerHTML = `<div class="card bad">Cannot reach the server: ${esc(e.message)}</div>`; return; }
   render();
 }
 function header() {
   const r = $('#hdr-right');
-  $('#hdr-mark').textContent = state.user?.role === 'sdc' || (state.user?.role === 'admin' && state.prog === 'sdc') ? 'SDC' : 'SA';
+  $('#hdr-mark').textContent = state.user?.role === 'ssdc' ? 'Sr DC' : state.user?.role === 'sdc' || (state.user?.role === 'admin' && state.prog === 'sdc') ? 'SDC' : 'SA';
   if (!state.user) { r.innerHTML = ''; return; }
   r.innerHTML = `<span class="small" style="opacity:.85">${esc(state.user.name)}</span><button class="btn ghost sm" id="logout">Sign out</button>`;
   $('#logout').onclick = async () => { await api('auth/logout', { method: 'POST' }); state.user = null; state.sa = null; state.selYm = null; state.month = null; render(); };
@@ -161,9 +162,9 @@ function renderLogin() {
   const opts = state.chapters.map(c => `<option value="${c.id}">${esc(c.name)}</option>`).join('');
   app.innerHTML = `<div class="login-box card">
     <h1>Sign in</h1><p class="muted small" style="margin-top:0">Track your monthly score, rank and payout.</p>
-    <div class="tabs"><button class="on" data-t="sa">Support Ambassador</button><button data-t="sdc">Support DC</button><button data-t="admin">Admin</button></div>
+    <div class="tabs"><button class="on" data-t="sa">Support Ambassador</button><button data-t="sdc">Support DC</button><button data-t="ssdc">Senior DC</button><button data-t="admin">Admin</button></div>
     <form id="f-sa" data-mode="sa">
-      <div class="field"><label>Your chapter</label><select name="chapter_id" required><option value="">Select chapter…</option>${opts}</select></div>
+      <div class="field"><label id="who-l">Your chapter</label><select id="who" name="chapter_id" required><option value="">Select chapter…</option>${opts}</select></div>
       <div class="field"><label>PIN</label><input name="pin" type="password" inputmode="numeric" pattern="[0-9]*" autocomplete="off" placeholder="4 to 8 digits" required></div>
       <button class="btn" style="width:100%;justify-content:center">View my scorecard</button>
     </form>
@@ -174,16 +175,44 @@ function renderLogin() {
     </form>
     <p class="muted small center" style="margin-bottom:0">Forgot your PIN? Ask the BNI TNT office to reset it.</p>
   </div>`;
-  app.querySelectorAll('.tabs button').forEach(b => b.onclick = () => { app.querySelectorAll('.tabs button').forEach(x => x.classList.remove('on')); b.classList.add('on'); const pin = b.dataset.t !== 'admin'; $('#f-sa').classList.toggle('hidden', !pin); $('#f-admin').classList.toggle('hidden', pin); if (pin) { $('#f-sa').dataset.mode = b.dataset.t; $('#f-sa button').textContent = 'View my scorecard'; } });
-  $('#f-sa').onsubmit = async e => { e.preventDefault(); const fd = new FormData(e.target); try { const r = await api('auth/login', { method: 'POST', body: { mode: e.target.dataset.mode || 'sa', chapter_id: fd.get('chapter_id'), pin: fd.get('pin') } }); state.user = r.user; render(); } catch (err) { toast(err.message, true); } };
+  app.querySelectorAll('.tabs button').forEach(b => b.onclick = () => { app.querySelectorAll('.tabs button').forEach(x => x.classList.remove('on')); b.classList.add('on'); const pin = b.dataset.t !== 'admin'; $('#f-sa').classList.toggle('hidden', !pin); $('#f-admin').classList.toggle('hidden', pin); if (pin) { $('#f-sa').dataset.mode = b.dataset.t; $('#f-sa button').textContent = b.dataset.t === 'ssdc' ? 'View my payouts' : 'View my scorecard';
+      const sr = b.dataset.t === 'ssdc'; $('#who-l').textContent = sr ? 'Your name' : 'Your chapter';
+      $('#who').innerHTML = sr ? '<option value="">Select your name…</option>' + (state.seniors || []).map(u => `<option value="${u.id}">${esc(u.name)}</option>`).join('') : `<option value="">Select chapter…</option>${opts}`; } });
+  $('#f-sa').onsubmit = async e => { e.preventDefault(); const fd = new FormData(e.target); try { const r = await api('auth/login', { method: 'POST', body: { mode: e.target.dataset.mode || 'sa', chapter_id: fd.get('chapter_id'), user_id: fd.get('chapter_id'), pin: fd.get('pin') } }); state.user = r.user; render(); } catch (err) { toast(err.message, true); } };
   $('#f-admin').onsubmit = async e => { e.preventDefault(); const fd = new FormData(e.target); try { const r = await api('auth/login', { method: 'POST', body: { mode: 'admin', email: fd.get('email'), password: fd.get('password') } }); state.user = r.user; render(); } catch (err) { toast(err.message, true); } };
+}
+
+/* =============================== Senior DC dashboard =============================== */
+function renderSenior(d) {
+  $('#hdr-sub').textContent = 'My Senior DC Payouts';
+  if (!d.months.length) { app.innerHTML = `<div class="card"><h1>Hi ${esc(d.user.name)} 👋</h1><p>No published months yet. Your Senior DC payouts appear here once the office publishes the Support DC month.</p></div>`; return; }
+  const months = [...d.months].reverse();
+  if (!state.selYm || !months.find(m => m.ym === state.selYm)) state.selYm = months[0].ym;
+  const m = months.find(x => x.ym === state.selYm);
+  const lineTxt = r => (r.payout_lines || []).filter(l => l.count > 0).map(l => `${l.count} × ${esc(l.label)} @ ${inr(l.per)}`).join('<br>') || '<span class="muted">No members paid</span>';
+  app.innerHTML = `
+  <div class="card"><div class="row"><div><h1 style="margin:0">Hi ${esc(d.user.name)} 👋</h1><p class="muted small" style="margin:4px 0 0">Senior DC share: ${fmt(d.settings.senior_pct)}% of each member's commission base, paid in full. Where you are also the chapter's Support DC, you are paid ${fmt(Number(d.settings.sdc_pct) + Number(d.settings.senior_pct))}% × your SDC scorecard multiplier instead.</p></div><div class="spacer"></div>
+    <select id="sel-ym" style="width:auto">${months.map(x => `<option value="${x.ym}" ${x.ym === m.ym ? 'selected' : ''}>${monthName(x.ym)}</option>`).join('')}</select></div>
+    <div class="kpi-row" style="margin-top:14px"><div class="kpi"><div class="small muted">Total for ${monthName(m.ym)}</div><div style="font-size:28px;font-weight:700">${inr(m.total)}</div></div>
+      <div class="kpi"><div class="small muted">Chapters</div><div style="font-size:28px;font-weight:700">${m.rows.length}</div></div>
+      <div class="kpi"><div class="small muted">Members paid</div><div style="font-size:28px;font-weight:700">${m.rows.reduce((a, r) => a + (r.members_paid || 0), 0)}</div></div></div>
+  </div>
+  <div class="card" style="margin-top:14px"><div class="tbl-wrap"><table>
+    <thead><tr><th>Chapter</th><th>Your role</th><th>Members paid</th><th>Working</th><th class="right">Payout</th></tr></thead>
+    <tbody>${m.rows.map(r => `<tr><td><b>${esc(r.chapter.replace(/^BNI\s+/, ''))}</b>${r.as_sdc ? '' : `<span class="auto">SDC: ${esc(r.sdc || '–')}</span>`}</td>
+      <td>${r.as_sdc ? `Senior DC + Support DC<span class="auto">${fmt(r.rate)}% × ${Number(r.multiplier).toFixed(2)} (${esc(r.band)}, score ${fmt(r.score, 0)})</span>` : `Senior DC<span class="auto">${fmt(r.rate)}%, paid in full</span>`}</td>
+      <td class="num">${r.members_paid || 0}</td><td class="small">${lineTxt(r)}</td><td class="num"><b>${inr(r.payout)}</b></td></tr>`).join('')}
+      <tr><td colspan="4"><b>Total</b></td><td class="num"><b>${inr(m.total)}</b></td></tr></tbody></table></div>
+    <p class="small muted" style="margin-bottom:0">Commission base per member = fee without GST, less BNI India's tech fee and royalty. Amounts are before TDS.</p></div>`;
+  $('#sel-ym').onchange = e => { state.selYm = e.target.value; renderSenior(d); };
 }
 
 /* =============================== SA dashboard =============================== */
 async function renderSA() {
   $('#hdr-sub').textContent = 'My Scorecard';
   if (!state.sa) { app.innerHTML = '<div class="card center muted">Loading your scorecard…</div>'; try { state.sa = await api('sa/dashboard'); } catch (e) { app.innerHTML = `<div class="card bad">${esc(e.message)}</div>`; return; } }
-  const d = state.sa; const hist = d.history;
+  const d = state.sa; if (d.programme === 'ssdc') return renderSenior(d);
+  const hist = d.history;
   if (!hist.length) { app.innerHTML = `<div class="card"><h1>Hi ${esc(d.user.name)} 👋</h1><p>No published months yet for you. Your first scorecard will appear here once the office publishes the month.</p></div>`; return; }
   if (d.programme === 'sdc') return renderSDC(d);
   if (!state.selYm || !hist.find(h => h.ym === state.selYm)) state.selYm = hist[hist.length - 1].ym;
@@ -483,8 +512,14 @@ async function renderSdcMonth(ym) {
     <td class="num muted">${e.legacy ? '–' : `${c.members_paid}<span class="auto">${e.new_members ?? 0} new + ${e.renewals ?? 0} ren.</span>`}</td>
     <td class="num c-score">${sdcScoreCell(c)}</td>
     <td class="c-band"><span class="pill ${c.band}">${c.band}</span></td>
-    <td class="num c-pay">${inr(c.payout)}</td>
+    <td class="num c-pay">${inr(c.payout)}${c.senior_dual ? `<span class="auto" title="This SDC is also the chapter's Senior DC">${fmt(c.rate)}% (also Senior DC)</span>` : ''}</td>
     </tr>`; }).join('');
+  const srRows = m.entries.filter(e => e.senior_user_id);
+  const seniorCardM = srRows.length ? `<div class="card" style="margin-top:14px"><h3 style="margin-top:0">Senior DC payouts · ${monthName(ym)}</h3>
+    <div class="tbl-wrap"><table class="small"><thead><tr><th>Chapter</th><th>Senior DC</th><th class="right">Members paid</th><th class="right">Payout</th></tr></thead><tbody>
+    ${srRows.map(e => `<tr><td>${esc(e.chapter.name.replace(/^BNI\s+/, ''))}</td><td>${esc(e.senior?.name || '')}</td><td class="num">${e.computed.members_paid || 0}</td><td class="num">${e.senior_dual ? `<span class="muted">in SDC payout (${fmt(e.computed.rate)}%)</span>` : inr(e.senior_computed?.payout || 0)}</td></tr>`).join('')}
+    ${[...new Set(srRows.map(e => e.senior?.name))].map(n => `<tr><td></td><td><b>${esc(n || '')}</b> total</td><td></td><td class="num"><b>${inr(srRows.filter(e => e.senior?.name === n && !e.senior_dual).reduce((a, e) => a + (e.senior_computed?.payout || 0), 0))}</b></td></tr>`).join('')}
+    </tbody></table></div><p class="small muted" style="margin-bottom:0">${fmt(m.settings.senior_commission_pct ?? 2.5)}% of each member's commission base, paid in full. Where the Senior DC is the SDC too, the SDC row above is paid ${fmt(Number(m.settings.sdc_commission_pct) + Number(m.settings.senior_commission_pct ?? 2.5))}% × the scorecard multiplier. Set Senior DCs in Settings.</p></div>` : '';
   // weekly grid
   const maxWeeks = Math.max(0, ...m.entries.map(e => (e.weeks || []).length));
   const tg = (w, k, label) => { const v = w[k]; return `<button class="${v === true ? 'y' : v === false ? 'n' : ''} ${k === 'telebridge_done' && w.telebridge_auto && v !== null ? 'auto' : ''}" data-w="${w.id}" data-k="${k}" data-v="${v === null || v === undefined ? '' : v ? 1 : 0}" ${pub ? 'disabled' : ''} title="${label}: ${v === true ? 'done' : v === false ? 'not done' : 'not recorded'}. Click to change.">${label} ${v === true ? '✓' : v === false ? '✗' : '·'}</button>`; };
@@ -518,6 +553,7 @@ async function renderSdcMonth(ym) {
     <thead><tr><th class="right">Rank</th><th>Chapter / SDC</th><th class="right">Net add</th><th>Traffic light</th><th class="right">Renewal %</th><th class="right">Member score</th><th class="right">TB</th><th class="right">PALMS</th><th>Visit 24h</th><th>LTRT · DCRT</th><th class="right">Paid</th><th class="right">Score</th><th>Band</th><th class="right">Payout</th></tr></thead>
     <tbody>${rows}</tbody></table></div>
     ${pub ? '' : '<p class="small muted" style="margin-bottom:0">Edits save when you leave the cell. Net add comes from the Membership Activity upload (joined minus left); type a number to override. Traffic light comes from the upload; pick a value to override. "Paid" (new + renewals) is typed on the SA month.</p>'}</div>
+  ${seniorCardM}
   ${grid}`;
   bindNav();
   $('#back').onclick = () => { state.month = null; state.upLog = ''; renderAdmin(); };
@@ -747,6 +783,7 @@ async function exportMonth(ym, prog) {
         'LTRT attended': yesNo(e.ltrt_att), 'DCRT attended': yesNo(e.dcrt_att), 'Pts: LTRT/DCRT': p.ltrt,
         'Chapter visit (Jotform)': yesNo(e.jotform_done), 'Pts: Visit': p.visit,
       };
+      if (prog === 'sdc') body['SDC rate %'] = c.rate ?? '';
       return { ...head, ...body, 'Raw points': c.total_raw, 'Out of': c.max_total, 'Score (out of 100)': n2(c.total_scaled), 'Band': c.band, 'Multiplier': c.multiplier,
         'New members': n2(e.new_members), 'Renewals': n2(e.renewals), ...payCols(c), 'Base commission (₹)': c.base_payout, 'Payout (₹)': c.payout };
     });
@@ -756,6 +793,9 @@ async function exportMonth(ym, prog) {
     if (prog === 'sdc') {
       const weeks = m.entries.flatMap(e => (e.weeks || []).map(w => ({ Chapter: e.chapter.name, 'Support DC': e.sdc?.name || '', 'Meeting date': w.week_date,
         'No meeting': w.no_meeting ? 'Yes' : '', 'Tele-Bridge on time': w.no_meeting ? '' : yesNo(w.telebridge_done), 'PALMS on time': w.no_meeting ? '' : yesNo(w.palms_done) })));
+      const sr = m.entries.filter(e => e.senior_user_id).map(e => ({ Chapter: e.chapter.name, 'Senior DC': e.senior?.name || '', 'Also the SDC?': e.senior_dual ? 'Yes' : 'No',
+        'Members paid': e.computed.members_paid || 0, 'Senior DC payout (₹)': e.senior_dual ? 0 : (e.senior_computed?.payout || 0), Note: e.senior_dual ? `Paid inside the SDC payout at ${e.computed.rate}%` : `${e.senior_computed?.rate}% paid in full` }));
+      if (sr.length) { const sw = XLSX.utils.json_to_sheet(sr); sw['!cols'] = [{ wch: 20 }, { wch: 18 }, { wch: 12 }, { wch: 13 }, { wch: 18 }, { wch: 34 }]; XLSX.utils.book_append_sheet(wb, sw, 'Senior DC'); }
       if (weeks.length) { const ww = XLSX.utils.json_to_sheet(weeks); ww['!cols'] = [{ wch: 20 }, { wch: 20 }, { wch: 13 }, { wch: 11 }, { wch: 18 }, { wch: 15 }]; XLSX.utils.book_append_sheet(wb, ww, 'Weekly grid'); }
     }
     const note = [[`${prog === 'sdc' ? 'Support DC' : 'Support Ambassador'} Scorecard, ${monthName(ym)}`], [`Status: ${prog === 'sdc' ? m.month.sdc_status : m.month.status}. Exported ${new Date().toLocaleString('en-IN')} from sa.bnitnt.in.`],
@@ -836,6 +876,7 @@ async function renderSettings() {
       <div class="row" style="gap:12px;margin-top:10px">
         <div class="field" style="flex:1"><label>SA commission %</label><input id="pct" type="number" step="0.01" value="${s.commission_pct}"></div>
         <div class="field" style="flex:1"><label>SDC commission %</label><input id="sdcpct" type="number" step="0.01" value="${s.sdc_commission_pct ?? 7.5}"></div>
+        <div class="field" style="flex:1"><label>Senior DC %</label><input id="srpct" type="number" step="0.01" value="${s.senior_commission_pct ?? 2.5}"></div>
       </div>
       <p class="small muted">Payout = each member paid × their type's SA / SDC amount × band multiplier. The Commission Report upload fills New, Renewals and the 2-year counts on the SA month; both programmes use them.</p>
       <h2>Scoring</h2>
@@ -845,9 +886,10 @@ async function renderSettings() {
       <div class="field"><label>Jotform form ID (Support DC Tele-bridge Call)</label><input id="tbf" value="${esc(s.telebridge_form_id || '')}"></div>
       <button class="btn" id="save">Save settings</button>
       <div class="divider"></div>
-      <h2>Chapter meeting days</h2><p class="small muted" style="margin-top:0">Drives "meetings in month" for the SDC weekly KPIs. Changing a day only affects months opened after the change.</p>
-      <table class="small"><tbody>${d.chapters.map(c => `<tr><td>${esc(c.name)}</td><td><select class="cell-sel md" data-id="${c.id}" style="width:auto">${['', 0, 1, 2, 3, 4, 5, 6].map(v => `<option value="${v}" ${String(c.meeting_day ?? '') === String(v) ? 'selected' : ''}>${v === '' ? '–' : DOW[v]}</option>`).join('')}</select></td></tr>`).join('')}</tbody></table>
-      <button class="btn ghost sm" id="savedays" style="margin-top:8px">Save meeting days</button>
+      <h2>Chapter meeting days and Senior DCs</h2><p class="small muted" style="margin-top:0">Meeting day drives "meetings in month" for the SDC weekly KPIs (months opened after the change). Senior DC applies to every SDC month not yet published.</p>
+      <table class="small"><thead><tr><th>Chapter</th><th>Meets</th><th>Senior DC</th></tr></thead><tbody>${d.chapters.map(c => `<tr><td>${esc(c.name)}</td><td><select class="cell-sel md" data-id="${c.id}" style="width:auto">${['', 0, 1, 2, 3, 4, 5, 6].map(v => `<option value="${v}" ${String(c.meeting_day ?? '') === String(v) ? 'selected' : ''}>${v === '' ? '–' : DOW[v]}</option>`).join('')}</select></td>
+        <td><select class="cell-sel srdc" data-id="${c.id}" style="width:auto"><option value="">None</option>${(state.seniors || []).map(u => `<option value="${u.id}" ${c.senior_user_id === u.id ? 'selected' : ''}>${esc(u.name)}</option>`).join('')}</select></td></tr>`).join('')}</tbody></table>
+      <button class="btn ghost sm" id="savedays" style="margin-top:8px">Save meeting days and Senior DCs</button>
     </div>
     <div class="card"><h2>Online training events</h2><p class="small muted" style="margin-top:0">From November 2026 each training report is marked Online or In-person when it is uploaded, and that choice decides the split. This list only applies to reports uploaded before that change.</p>
       <div class="chips" id="chips">${types.map(t => `<span class="chip ${s.online_event_types.includes(t) ? 'on' : ''}" data-t="${esc(t)}">${esc(t)}</span>`).join('') || '<span class="muted small">Upload a training report first; event types will appear here.</span>'}</div>
@@ -865,8 +907,8 @@ async function renderSettings() {
       tr.querySelector('.ft-roy').textContent = inr(roy); tr.querySelector('.ft-base').textContent = inr(b); tr.querySelector('.ft-sa').textContent = inr(b * pa / 100); tr.querySelector('.ft-sdc').textContent = inr(b * pd / 100); }); };
   app.querySelectorAll('#feetbl input, #pct, #sdcpct, #roy').forEach(el => el.oninput = feeCalc); feeCalc();
   $('#addtype').onclick = () => { const v = $('#newtype').value.trim(); if (!v) return; const el = document.createElement('span'); el.className = 'chip on'; el.dataset.t = v; el.textContent = v; el.onclick = () => el.classList.toggle('on'); $('#chips').appendChild(el); $('#newtype').value = ''; };
-  $('#save').onclick = async () => { try { await api('admin/settings', { method: 'PUT', body: { royalty_pct: $('#roy').value, fee_types: [...app.querySelectorAll('#feetbl tbody tr')].map(tr => ({ key: tr.dataset.k, fee: tr.querySelector('.ft-fee').value, rd: tr.querySelector('.ft-rd').value })), commission_pct: $('#pct').value, sdc_commission_pct: $('#sdcpct').value, one_to_one_threshold: $('#o2o').value, mentoring_enabled: $('#ment').checked, jotform_form_id: $('#jf').value.trim(), telebridge_form_id: $('#tbf').value.trim(), online_event_types: [...app.querySelectorAll('.chip.on')].map(c => c.dataset.t) } }); toast('Settings saved'); renderSettings(); } catch (e) { toast(e.message, true); } };
-  $('#savedays').onclick = async () => { try { const chapters = d.chapters.map(c => ({ ...c, meeting_day: app.querySelector(`.md[data-id="${c.id}"]`).value })); await api('admin/settings', { method: 'PUT', body: { chapters } }); toast('Meeting days saved'); renderSettings(); } catch (e) { toast(e.message, true); } };
+  $('#save').onclick = async () => { try { await api('admin/settings', { method: 'PUT', body: { senior_commission_pct: $('#srpct').value, royalty_pct: $('#roy').value, fee_types: [...app.querySelectorAll('#feetbl tbody tr')].map(tr => ({ key: tr.dataset.k, fee: tr.querySelector('.ft-fee').value, rd: tr.querySelector('.ft-rd').value })), commission_pct: $('#pct').value, sdc_commission_pct: $('#sdcpct').value, one_to_one_threshold: $('#o2o').value, mentoring_enabled: $('#ment').checked, jotform_form_id: $('#jf').value.trim(), telebridge_form_id: $('#tbf').value.trim(), online_event_types: [...app.querySelectorAll('.chip.on')].map(c => c.dataset.t) } }); toast('Settings saved'); renderSettings(); } catch (e) { toast(e.message, true); } };
+  $('#savedays').onclick = async () => { try { const chapters = d.chapters.map(c => ({ ...c, meeting_day: app.querySelector(`.md[data-id="${c.id}"]`).value, senior_user_id: app.querySelector(`.srdc[data-id="${c.id}"]`).value || null })); await api('admin/settings', { method: 'PUT', body: { chapters } }); toast('Saved'); renderSettings(); } catch (e) { toast(e.message, true); } };
 }
 
 /* =============================== Users =============================== */
@@ -884,7 +926,17 @@ async function renderUsers() {
     <form class="row f-rep" data-role="${role}"><select name="chapter_id" style="width:auto" required><option value="">Chapter…</option>${chapOpts()}</select><input name="name" placeholder="New ${short} name" style="width:200px" required><input name="pin" placeholder="PIN (4-8 digits)" inputmode="numeric" style="width:150px" required><input name="from_ym" type="month" style="width:auto" title="Draft months from here onwards move to the new ${short}"><button class="btn sm">Replace</button></form>
     <p class="small muted" style="margin:8px 0 0">Dual role (one person, two chapters): add them a second time with the other chapter via Replace. Each chapter login has its own PIN.</p>
   </div>`; };
-  app.innerHTML = adminNav() + personCard('sa', 'Support Ambassadors', 'SA').replace('style="margin-top:14px"', '') + personCard('sdc', 'Support Director Consultants', 'SDC') + `
+  const seniors = users.filter(u => u.role === 'ssdc'), activeSr = seniors.filter(u => u.active);
+  const seniorCard = `<div class="card" style="margin-top:14px"><h2>Senior DCs</h2><p class="small muted" style="margin-top:0">Sign in on the Senior DC tab with name + PIN. Their chapters are set in Settings. Link an SDC account to the same person below, so the 10% rule applies where they are both.</p>
+    <div class="tbl-wrap"><table><thead><tr><th>Name</th><th>Chapters</th><th>Status</th><th>Last login</th><th></th></tr></thead>
+    <tbody>${seniors.map(u => `<tr><td><b>${esc(u.name)}</b></td><td class="small">${esc(state.chapters.filter(c => c.senior_user_id === u.id).map(c => c.name.replace(/^BNI\s+/, '')).join(', ') || '–')}</td><td>${u.active ? '<span class="ok">active</span>' : '<span class="muted">inactive</span>'}</td><td class="small muted">${u.last_login_at ? new Date(u.last_login_at).toLocaleString('en-IN') : 'never'}</td>
+      <td class="right"><button class="btn ghost sm" data-pin="${u.id}">Set PIN</button> ${u.active ? `<button class="btn ghost sm" data-deact="${u.id}">Deactivate</button>` : `<button class="btn ghost sm" data-act="${u.id}">Activate</button>`}</td></tr>`).join('')}</tbody></table></div>
+    <div class="divider"></div><h3>Add Senior DC</h3>
+    <form id="f-sr" class="row"><input name="name" placeholder="Name" style="width:200px" required><input name="pin" placeholder="PIN (4 to 8 digits)" style="width:160px" required><button class="btn sm">Add</button></form>
+    <div class="divider"></div><h3>SDC accounts that are also a Senior DC</h3>
+    <table class="small"><tbody>${users.filter(u => u.role === 'sdc' && u.active).map(u => `<tr><td>${esc(u.name)}<span class="auto">${esc(u.chapter?.name || '')}</span></td><td><select class="cell-sel srlink" data-id="${u.id}" style="width:auto"><option value="">Not a Senior DC</option>${activeSr.map(x => `<option value="${x.id}" ${u.senior_id === x.id ? 'selected' : ''}>Same person as Senior DC ${esc(x.name)}</option>`).join('')}</select></td></tr>`).join('')}</tbody></table>
+  </div>`;
+  app.innerHTML = adminNav() + personCard('sa', 'Support Ambassadors', 'SA').replace('style="margin-top:14px"', '') + personCard('sdc', 'Support Director Consultants', 'SDC') + seniorCard + `
   <div class="card" style="margin-top:14px"><h2>Admins</h2><div class="tbl-wrap"><table><thead><tr><th>Name</th><th>Email</th><th>Last login</th><th></th></tr></thead>
     <tbody>${admins.map(u => `<tr><td><b>${esc(u.name)}</b></td><td>${esc(u.email)}</td><td class="small muted">${u.last_login_at ? new Date(u.last_login_at).toLocaleString('en-IN') : 'never'}</td><td class="right"><button class="btn ghost sm" data-pw="${u.id}">Set password</button></td></tr>`).join('')}</tbody></table></div>
     <div class="divider"></div><h3>Add admin</h3>
@@ -898,6 +950,8 @@ async function renderUsers() {
   app.querySelectorAll('[data-act]').forEach(b => b.onclick = () => act({ action: 'update', id: b.dataset.act, active: true }, 'Activated'));
   app.querySelectorAll('[data-pw]').forEach(b => b.onclick = () => { const pw = prompt('New password (8+ characters):'); if (pw) act({ action: 'set_password', id: b.dataset.pw, password: pw }, 'Password updated'); });
   app.querySelectorAll('.f-rep').forEach(f => f.onsubmit = e => { e.preventDefault(); const role = f.dataset.role; const fd = Object.fromEntries(new FormData(e.target)); if (!confirm(`Replace the ${role.toUpperCase()} of this chapter with ${fd.name}? The current ${role.toUpperCase()} will be deactivated.`)) return; act({ action: 'replace_sa', role, ...fd }, `${role.toUpperCase()} replaced`); });
+  $('#f-sr').onsubmit = e => { e.preventDefault(); act({ action: 'create_senior', ...Object.fromEntries(new FormData(e.target)) }, 'Senior DC added'); };
+  app.querySelectorAll('.srlink').forEach(sel => sel.onchange = () => act({ action: 'update', id: sel.dataset.id, senior_id: sel.value || null }, 'Saved'));
   $('#f-adm').onsubmit = e => { e.preventDefault(); act({ action: 'create_admin', ...Object.fromEntries(new FormData(e.target)) }, 'Admin added'); };
 }
 

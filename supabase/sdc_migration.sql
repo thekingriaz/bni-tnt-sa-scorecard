@@ -129,3 +129,26 @@ alter table sa_entries add column if not exists retention_na boolean not null de
 -- 12. Commission by fee type (26 Oct 2026): 2-year counts from the Region Commission Report; the rest of New / Renewals count as 1-year
 alter table sa_entries add column if not exists new_2y int not null default 0;
 alter table sa_entries add column if not exists ren_2y int not null default 0;
+
+-- 13. Senior DCs (11 Nov 2026). Own login tab (name + PIN). 2.5% of each member's commission base, paid in full.
+--     Where the Senior DC is also the chapter's SDC, the SDC is paid 10% (7.5 + 2.5) x the SDC scorecard multiplier instead.
+alter table sa_users drop constraint if exists sa_users_role_check;
+alter table sa_users add constraint sa_users_role_check check (role in ('admin','sa','sdc','ssdc'));
+alter table sa_users add column if not exists senior_id int references sa_users(id);      -- on an SDC account: that person's Senior DC account
+alter table sa_chapters add column if not exists senior_user_id int references sa_users(id);
+alter table sdc_entries add column if not exists senior_user_id int references sa_users(id); -- per month (copied from the chapter when the month opens)
+insert into sa_settings (key, value) values ('senior_commission_pct', '2.5') on conflict (key) do nothing;
+insert into sa_users (role, name, pin_hash, jotform_alias)
+select 'ssdc', v.name, crypt('1234', gen_salt('bf', 10)), v.name
+from (values ('Max Prince'), ('Mohamed Aneez'), ('Gunaseelan'), ('Vijai')) v(name)
+where not exists (select 1 from sa_users u where u.role = 'ssdc' and u.name = v.name);
+-- link SDC accounts to the same person's Senior DC account (decides the 10% case)
+update sa_users s set senior_id = x.id from sa_users x where x.role = 'ssdc' and s.role = 'sdc' and s.name = x.name and s.name in ('Max Prince', 'Gunaseelan', 'Vijai');
+-- chapters each Senior DC covers (October 2026 commission sheet)
+update sa_chapters c set senior_user_id = u.id from sa_users u where u.role = 'ssdc' and (
+     (u.name = 'Max Prince'    and c.key in ('ainthinai', 'cmyveli', 'thamira', 'kanya'))
+  or (u.name = 'Mohamed Aneez' and c.key in ('dilnadu', 'ejamaan', 'comorin'))
+  or (u.name = 'Gunaseelan'    and c.key in ('tamilan', 'saral', 'korkai'))
+  or (u.name = 'Vijai'         and c.key in ('bambookottai', 'kings', 'nanjil')));
+update sdc_entries e set senior_user_id = c.senior_user_id from sa_chapters c, sa_months m
+where c.id = e.chapter_id and m.id = e.month_id and m.ym >= '2026-10' and e.senior_user_id is null;

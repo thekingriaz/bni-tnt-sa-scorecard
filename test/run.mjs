@@ -240,3 +240,15 @@ const sbk = Object.fromEntries([...sbT.rows, ...sbN.rows].map(r => [r.key, [r.ne
 assert.deepEqual(sbk.ainthinai, [5, 0, 11, 5]); assert.deepEqual(sbk.korkai, [1, 0, 7, 3]); assert.deepEqual(sbk.kings, [7, 0, 1, 0]); assert.deepEqual(sbk.cmyveli, [0, 0, 4, 4]);
 assert.equal(sbk.kumari, undefined); assert.equal(sbT.ignored.length + sbN.ignored.length, 0);
 console.log('Sales By Item checks passed ✓');
+// Senior DCs (11 Nov 2026): 2.5% in full; SDC who is also the chapter's Senior DC gets 10% x multiplier
+import { seniorPayout } from '../api/_lib/scoring_sdc.js';
+const srE = { new_members: 1, renewals: 3, new_2y: 0, ren_2y: 1 };
+const sp = seniorPayout(srE, sdcS);
+assert.equal(sp.rate, 2.5); assert.equal(sp.payout, Math.round(874.02 + 2 * 754.04 + 1175.6)); // same per-member amounts as an SA
+const srGold = { net_add: 2, tl_status: 'GREEN', retention_pct: 90, member_score: 90, meetings_total: 4, telebridge_weeks: 4, palms_weeks: 4, visit_done: true, ltrt_att: true, dcrt_att: true, ...srE };
+const single = scoreSdcEntry(srGold, sdcS), dual = scoreSdcEntry({ ...srGold, senior_dual: true }, sdcS);
+assert.equal(single.rate, 7.5); assert.equal(dual.rate, 10); assert.equal(dual.senior_dual, true);
+const red = scoreSdcEntry({ ...srE, senior_dual: true, meetings_total: 4 }, sdcS);
+assert.equal(red.payout, Math.round(red.base_payout * red.multiplier)); // the 10% is scored with the multiplier
+assert.ok(Math.abs(dual.base_payout - single.base_payout * 10 / 7.5) <= 1);
+console.log('Senior DC checks passed ✓');
