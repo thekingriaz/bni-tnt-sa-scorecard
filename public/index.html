@@ -418,7 +418,7 @@ async function renderMonth(ym) {
     <td class="c-band"><span class="pill ${c.band}">${c.band}</span></td>
     <td class="num c-pay">${inr(c.payout)}</td></tr>`; }).join('');
   app.innerHTML = adminNav() + `
-  <div class="row" style="margin-bottom:12px"><button class="btn ghost sm" id="back">← Months</button><h2 style="margin:0">${monthName(ym)}</h2><span class="pill ${m.month.status}">${m.month.status}</span><div class="spacer"></div><button class="btn ghost sm" id="export">Export to Excel</button>
+  <div class="row" style="margin-bottom:12px"><button class="btn ghost sm" id="back">← Months</button><h2 style="margin:0">${monthName(ym)}</h2><span class="pill ${m.month.status}">${m.month.status}</span><div class="spacer"></div><button class="btn ghost sm" id="export">Export to Excel</button>${base ? '' : '<button class="btn ghost sm" id="export-comm">Export Commission Report</button>'}
     <span class="small muted">Region avg <b>${fmt(m.region_avg)}</b></span>
     ${base ? '<span class="pill draft">baseline</span>' : pub ? `<button class="btn ghost sm" id="unpub">Unpublish</button>` : `<button class="btn" id="pub">Publish month</button>`}</div>
   ${base ? `<div class="banner">${monthName(ym)} is before the go-live month (${monthName(m.go_live_ym)}). It only holds member counts so ${monthName(m.go_live_ym)} net growth can be calculated. It is never scored or shown to SAs or SDCs.</div>` : ''}
@@ -440,6 +440,7 @@ async function renderMonth(ym) {
   bindNav();
   $('#back').onclick = () => { state.month = null; state.upLog = ''; renderAdmin(); };
   $('#export').onclick = () => exportMonth(ym, 'sa');
+  if ($('#export-comm')) $('#export-comm').onclick = () => exportCommission(ym);
   if ($('#pub')) $('#pub').onclick = async () => { if (!confirm(`Publish ${monthName(ym)}? SAs will see their scores and payout immediately.`)) return; try { await api('admin/months', { method: 'POST', body: { action: 'publish', ym } }); toast('Published'); renderMonth(ym); } catch (e) { toast(e.message, true); } };
   if ($('#unpub')) $('#unpub').onclick = async () => { if (!confirm('Unpublish? SAs will stop seeing this month until you publish again.')) return; try { await api('admin/months', { method: 'POST', body: { action: 'unpublish', ym } }); renderMonth(ym); } catch (e) { toast(e.message, true); } };
   const save = async (id, k, v) => { try { await api('admin/entries', { method: 'PUT', body: { id, [k]: v } }); renderMonthScoresOnly(ym); } catch (e) { toast(e.message, true); } };
@@ -527,7 +528,7 @@ async function renderSdcMonth(ym) {
     <div class="tbl-wrap" style="margin-top:10px"><table class="month-tbl"><thead><tr><th>Chapter</th>${Array.from({ length: maxWeeks }, (_, i) => `<th>Week ${i + 1}</th>`).join('')}</tr></thead>
     <tbody>${m.entries.filter(e => !e.legacy).map(e => `<tr><td><b>${esc(e.chapter.name.replace(/^BNI\s+/, ''))}</b><span class="auto">${DOW[e.chapter.meeting_day] || ''}</span></td>${(e.weeks || []).map(w => `<td><div class="wk ${w.no_meeting ? 'off' : ''}"><small>${dmy(w.week_date)}</small><div class="tg">${tg(w, 'telebridge_done', 'TB')}${tg(w, 'palms_done', 'PALMS')}</div>${pub ? '' : `<span class="nm" data-nm="${w.id}" data-v="${w.no_meeting ? 1 : 0}">${w.no_meeting ? 'no meeting · undo' : 'no meeting'}</span>`}</div></td>`).join('')}${'<td></td>'.repeat(maxWeeks - (e.weeks || []).length)}</tr>`).join('')}</tbody></table></div></div>` : '';
   app.innerHTML = adminNav() + `
-  <div class="row" style="margin-bottom:12px"><button class="btn ghost sm" id="back">← Months</button><h2 style="margin:0">${monthName(ym)} · SDC</h2><span class="pill ${m.month.sdc_status}">${m.month.sdc_status}</span><div class="spacer"></div><button class="btn ghost sm" id="export">Export to Excel</button>
+  <div class="row" style="margin-bottom:12px"><button class="btn ghost sm" id="back">← Months</button><h2 style="margin:0">${monthName(ym)} · SDC</h2><span class="pill ${m.month.sdc_status}">${m.month.sdc_status}</span><div class="spacer"></div><button class="btn ghost sm" id="export">Export to Excel</button>${base ? '' : '<button class="btn ghost sm" id="export-comm">Export Commission Report</button>'}
     <span class="small muted">Region avg <b id="sdc-avg">${fmt(m.region_avg)}</b></span>
     ${base ? '<span class="pill draft">baseline</span>' : pub ? `<button class="btn ghost sm" id="unpub">Unpublish</button>` : `<button class="btn" id="pub">Publish month</button>`}</div>
   ${base ? `<div class="banner">${monthName(ym)} is before the go-live month (${monthName(m.go_live_ym)}). Nothing needs to be entered here: net growth now comes from each month's own Membership Activity report. This month is never scored or shown to SDCs.</div>` : ''}
@@ -558,6 +559,7 @@ async function renderSdcMonth(ym) {
   bindNav();
   $('#back').onclick = () => { state.month = null; state.upLog = ''; renderAdmin(); };
   $('#export').onclick = () => exportMonth(ym, 'sdc');
+  if ($('#export-comm')) $('#export-comm').onclick = () => exportCommission(ym);
   if ($('#pub')) $('#pub').onclick = async () => { if (!confirm(`Publish ${monthName(ym)} for SDCs? They will see their scores and payout immediately.`)) return; try { await api('admin/months', { method: 'POST', body: { action: 'publish', ym, programme: 'sdc' } }); toast('Published'); renderSdcMonth(ym); } catch (e) { toast(e.message, true); } };
   if ($('#unpub')) $('#unpub').onclick = async () => { if (!confirm('Unpublish? SDCs will stop seeing this month until you publish again.')) return; try { await api('admin/months', { method: 'POST', body: { action: 'unpublish', ym, programme: 'sdc' } }); renderSdcMonth(ym); } catch (e) { toast(e.message, true); } };
   // Saves never re-render the page: buttons flip instantly, then only the score cells refresh in the background.
@@ -806,6 +808,73 @@ async function exportMonth(ym, prog) {
   } catch (e) { toast(e.message, true); }
   finally { btn.disabled = false; btn.textContent = 'Export to Excel'; }
 }
+/** Commission Report for paying out: SA + SDC + Senior DC for one month. "Payment sheet" = one row per person (one cheque / transfer),
+ *  "Line detail" = one row per person × role × chapter. TDS rate sits in one cell (from Settings) so the admin can change it. */
+function commissionLines(sa, sdc) {
+  const L = [], n2 = v => Math.round(Number(v || 0) * 100) / 100;
+  for (const e of sa.entries) { if (!e.sa?.name || e.legacy) continue; const c = e.computed;
+    L.push({ name: e.sa.name.trim(), role: 'SA', chapter: e.chapter.name, members: c.members_paid ?? (Number(e.new_members || 0) + Number(e.renewals || 0)), rate: Number(sa.settings.commission_pct), base: n2(c.base_payout), score: n2(c.total_scaled), band: c.band, mult: Number(c.multiplier), pay: n2(c.payout) }); }
+  for (const e of sdc.entries) { if (e.legacy) continue; const c = e.computed;
+    if (e.sdc?.name) L.push({ name: e.sdc.name.trim(), role: e.senior_dual ? 'SDC + Senior DC' : 'SDC', chapter: e.chapter.name, members: c.members_paid || 0, rate: Number(c.rate), base: n2(c.base_payout), score: n2(c.total_scaled), band: c.band, mult: Number(c.multiplier), pay: n2(c.payout) });
+    if (e.senior?.name && !e.senior_dual && e.senior_computed) L.push({ name: e.senior.name.trim(), role: 'Senior DC', chapter: e.chapter.name, members: e.senior_computed.members_paid || 0, rate: Number(e.senior_computed.rate), base: n2(e.senior_computed.payout), score: '', band: 'paid in full', mult: 1, pay: n2(e.senior_computed.payout) }); }
+  const key = s => s.toLowerCase().replace(/[^a-z0-9]/g, '');
+  const order = { 'SA': 0, 'SDC': 1, 'SDC + Senior DC': 1, 'Senior DC': 2 };
+  L.sort((a, b) => key(a.name).localeCompare(key(b.name)) || order[a.role] - order[b.role] || a.chapter.localeCompare(b.chapter));
+  const people = []; for (const l of L) { const k = key(l.name); let p = people.find(x => x.k === k); if (!p) people.push(p = { k, name: l.name, lines: [] }); p.lines.push(l); }
+  return { lines: L, people };
+}
+async function exportCommission(ym) {
+  const btn = $('#export-comm'); btn.disabled = true; btn.textContent = 'Preparing…';
+  try {
+    await loadSheetJS();
+    const [sa, sdc] = await Promise.all([api('admin/months?ym=' + ym), api('admin/months?ym=' + ym + '&programme=sdc')]);
+    const tds = Number(sa.settings.tds_pct ?? 10) / 100;
+    const { lines, people } = commissionLines(sa, sdc);
+    const short = s => s.replace(/^BNI\s+/, '');
+    const draft = [sa.month.status !== 'published' && 'SA', sdc.month.sdc_status !== 'published' && 'SDC'].filter(Boolean);
+    const S = XLSX.utils, inrz = '#,##0;(#,##0);-', inr2 = '#,##0.00;(#,##0.00);-';
+    // ---- Line detail
+    const dh = ['Name', 'Role', 'Chapter', 'Members paid', 'Rate %', 'Full commission before score (₹)', 'Score (out of 100)', 'Band', 'Multiplier', 'Commission payable (₹)', 'TDS (₹)', 'Net after TDS (₹)'];
+    const dw = S.aoa_to_sheet([dh]);
+    lines.forEach((l, i) => { const r = i + 2; const tdsV = Math.round(l.pay * tds * 100) / 100;
+      S.sheet_add_aoa(dw, [[l.name, l.role, short(l.chapter), l.members, l.rate, l.base, l.score, l.band, l.mult,
+        { t: 'n', v: l.pay, f: `ROUND(F${r}*I${r},0)` }, { t: 'n', v: tdsV, f: `ROUND(J${r}*'Payment sheet'!$B$2,2)` }, { t: 'n', v: l.pay - tdsV, f: `J${r}-K${r}` }]], { origin: 'A' + r });
+      for (const c of ['F', 'J', 'K', 'L']) dw[c + r].z = inr2; });
+    const dT = lines.length + 2;
+    S.sheet_add_aoa(dw, [['Total', '', '', '', '', '', '', '', '', ...['J', 'K', 'L'].map(c => ({ t: 'n', v: 0, f: `SUM(${c}2:${c}${dT - 1})` }))]], { origin: 'A' + dT });
+    for (const c of ['J', 'K', 'L']) dw[c + dT].z = inr2;
+    dw['!cols'] = [22, 16, 16, 9, 7, 16, 10, 12, 9, 16, 12, 15].map(w => ({ wch: w }));
+    // ---- Payment sheet (one row per person)
+    const ph = ['S.No', 'Name', 'Roles', 'Chapters', 'Gross commission (₹)', 'TDS (₹)', 'Net payable (₹)', 'PAN', 'Mode (Cheque / NEFT)', 'Cheque no / UTR', 'Paid on', 'Remarks'];
+    const pw = S.aoa_to_sheet([[`BNI TNT Commission Report, ${monthName(ym)}${draft.length ? ` (DRAFT: ${draft.join(' and ')} not published yet)` : ''}`],
+      ['TDS rate', { t: 'n', v: tds, z: '0.0%' }, 'Change this one cell if your CA advises another rate. Every TDS figure updates.'], [], ph]);
+    people.forEach((p, i) => { const r = i + 5; const gross = Math.round(p.lines.reduce((a, l) => a + l.pay, 0)); const t = Math.round(gross * tds);
+      const roles = [...new Set(p.lines.map(l => l.role))].join(', ');
+      const chs = p.lines.map(l => `${short(l.chapter)} (${l.role})`).join(', ');
+      S.sheet_add_aoa(pw, [[i + 1, p.name, roles, chs, { t: 'n', v: gross, f: `ROUND(SUMIF('Line detail'!$A$2:$A$${dT - 1},B${r},'Line detail'!$J$2:$J$${dT - 1}),0)` },
+        { t: 'n', v: t, f: `ROUND(E${r}*$B$2,0)` }, { t: 'n', v: gross - t, f: `E${r}-F${r}` }, '', '', '', '', gross === 0 ? 'Nothing payable this month' : '']], { origin: 'A' + r });
+      for (const c of ['E', 'F', 'G']) pw[c + r].z = inrz; });
+    const pT = people.length + 5;
+    S.sheet_add_aoa(pw, [['', 'Total', `${people.length} people`, `${lines.length} lines`, ...['E', 'F', 'G'].map(c => ({ t: 'n', v: 0, f: `SUM(${c}5:${c}${pT - 1})` }))]], { origin: 'A' + pT });
+    for (const c of ['E', 'F', 'G']) pw[c + pT].z = inrz;
+    pw['!cols'] = [5, 22, 18, 46, 14, 10, 14, 13, 14, 18, 11, 22].map(w => ({ wch: w }));
+    pw['!merges'] = [{ s: { r: 0, c: 0 }, e: { r: 0, c: 7 } }];
+    // ---- Notes
+    const notes = [[`Commission Report, ${monthName(ym)}`], [`Exported ${new Date().toLocaleString('en-IN')} from sa.bnitnt.in. SA month: ${sa.month.status}. SDC month: ${sdc.month.sdc_status}.`],
+      [draft.length ? `WARNING: the ${draft.join(' and ')} month is not published. Figures can still change. Pay only from a report exported after publishing.` : 'Both months are published.'], [],
+      ['Payment sheet: one row per person, so one cheque or transfer each. A person with more than one role or chapter is added up into one row (matched by name).'],
+      ['Line detail: one row per person, role and chapter, showing how each amount is worked out.'],
+      ['Commission payable = full commission before score × band multiplier. Senior DC 2.5% is paid in full (multiplier 1).'],
+      [`Where the Senior DC is also the chapter's SDC, the role reads "SDC + Senior DC": the SDC line is paid at ${fmt(Number(sdc.settings.sdc_commission_pct) + Number(sdc.settings.senior_commission_pct ?? 2.5))}% × multiplier and there is no separate Senior DC line.`],
+      ['Gross on the payment sheet is rounded to the rupee. TDS = gross × TDS rate, rounded to the rupee. Net payable = gross − TDS.'],
+      ['Fill PAN, mode, cheque no / UTR and paid date as you pay. Line detail TDS is for reference only; the payment sheet is what you pay.']];
+    const wb = S.book_new();
+    S.book_append_sheet(wb, pw, 'Payment sheet'); S.book_append_sheet(wb, dw, 'Line detail'); S.book_append_sheet(wb, S.aoa_to_sheet(notes), 'Notes');
+    XLSX.writeFile(wb, `Commission Report ${monthName(ym)}${draft.length ? ' (DRAFT)' : ''}.xlsx`);
+    toast('Commission Report downloaded');
+  } catch (e) { toast(e.message, true); }
+  finally { btn.disabled = false; btn.textContent = 'Export Commission Report'; }
+}
 /** 3+1 Traffic Lights workbook. Sheet "Chapter NPS (Total to Date)" (BNI's name; the NPS score is not used) holds, per chapter,
  *  Overall Retention (SDC Renewal %) and First Year Retention (SA 1st-Year Retention). One upload fills both. Returns the result, or null if not this file. */
 async function upload3plus1(f, ym, log) {
@@ -877,6 +946,7 @@ async function renderSettings() {
         <div class="field" style="flex:1"><label>SA commission %</label><input id="pct" type="number" step="0.01" value="${s.commission_pct}"></div>
         <div class="field" style="flex:1"><label>SDC commission %</label><input id="sdcpct" type="number" step="0.01" value="${s.sdc_commission_pct ?? 7.5}"></div>
         <div class="field" style="flex:1"><label>Senior DC %</label><input id="srpct" type="number" step="0.01" value="${s.senior_commission_pct ?? 2.5}"></div>
+        <div class="field" style="flex:1"><label>TDS % (Commission Report)</label><input id="tdspct" type="number" step="0.01" value="${s.tds_pct ?? 10}"></div>
       </div>
       <p class="small muted">Payout = each member paid × their type's SA / SDC amount × band multiplier. The Commission Report upload fills New, Renewals and the 2-year counts on the SA month; both programmes use them.</p>
       <h2>Scoring</h2>
@@ -907,7 +977,7 @@ async function renderSettings() {
       tr.querySelector('.ft-roy').textContent = inr(roy); tr.querySelector('.ft-base').textContent = inr(b); tr.querySelector('.ft-sa').textContent = inr(b * pa / 100); tr.querySelector('.ft-sdc').textContent = inr(b * pd / 100); }); };
   app.querySelectorAll('#feetbl input, #pct, #sdcpct, #roy').forEach(el => el.oninput = feeCalc); feeCalc();
   $('#addtype').onclick = () => { const v = $('#newtype').value.trim(); if (!v) return; const el = document.createElement('span'); el.className = 'chip on'; el.dataset.t = v; el.textContent = v; el.onclick = () => el.classList.toggle('on'); $('#chips').appendChild(el); $('#newtype').value = ''; };
-  $('#save').onclick = async () => { try { await api('admin/settings', { method: 'PUT', body: { senior_commission_pct: $('#srpct').value, royalty_pct: $('#roy').value, fee_types: [...app.querySelectorAll('#feetbl tbody tr')].map(tr => ({ key: tr.dataset.k, fee: tr.querySelector('.ft-fee').value, rd: tr.querySelector('.ft-rd').value })), commission_pct: $('#pct').value, sdc_commission_pct: $('#sdcpct').value, one_to_one_threshold: $('#o2o').value, mentoring_enabled: $('#ment').checked, jotform_form_id: $('#jf').value.trim(), telebridge_form_id: $('#tbf').value.trim(), online_event_types: [...app.querySelectorAll('.chip.on')].map(c => c.dataset.t) } }); toast('Settings saved'); renderSettings(); } catch (e) { toast(e.message, true); } };
+  $('#save').onclick = async () => { try { await api('admin/settings', { method: 'PUT', body: { tds_pct: $('#tdspct').value, senior_commission_pct: $('#srpct').value, royalty_pct: $('#roy').value, fee_types: [...app.querySelectorAll('#feetbl tbody tr')].map(tr => ({ key: tr.dataset.k, fee: tr.querySelector('.ft-fee').value, rd: tr.querySelector('.ft-rd').value })), commission_pct: $('#pct').value, sdc_commission_pct: $('#sdcpct').value, one_to_one_threshold: $('#o2o').value, mentoring_enabled: $('#ment').checked, jotform_form_id: $('#jf').value.trim(), telebridge_form_id: $('#tbf').value.trim(), online_event_types: [...app.querySelectorAll('.chip.on')].map(c => c.dataset.t) } }); toast('Settings saved'); renderSettings(); } catch (e) { toast(e.message, true); } };
   $('#savedays').onclick = async () => { try { const chapters = d.chapters.map(c => ({ ...c, meeting_day: app.querySelector(`.md[data-id="${c.id}"]`).value, senior_user_id: app.querySelector(`.srdc[data-id="${c.id}"]`).value || null })); await api('admin/settings', { method: 'PUT', body: { chapters } }); toast('Saved'); renderSettings(); } catch (e) { toast(e.message, true); } };
 }
 

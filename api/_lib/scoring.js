@@ -8,7 +8,7 @@ export const DEFAULT_SETTINGS = {
   // Commission base per member = region nett before the support team (BNI TNT Region Nett Calculator, Nov 2026):
   //   fee ex GST − BNI tech fee (`rd`, taken upfront) − BNI royalty (royalty_pct of fee minus tech fee).
   // Tech fee back-calculated from Oct 2026 BNI invoices IND82714 / IND82715.
-  royalty_pct: 20,
+  royalty_pct: 20, tds_pct: 10,
   fee_types: [
     { key: 'ren_1y', label: 'Renewal, 1 year',    type: 'renewal', years: 1, fee: 41559.01, rd: 3857.01 },
     { key: 'ren_2y', label: 'Renewal, 2 years',   type: 'renewal', years: 2, fee: 66494.08, rd: 7714.02 },
